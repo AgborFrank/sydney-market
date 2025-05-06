@@ -1,0 +1,196 @@
+<!-- templates/privacy_policy.html -->
+{% extends 'base.html' %} {% block title %}Privacy Policy - DarkVault{% endblock
+%} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">Privacy Policy</h1>
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <p class="text-gray-600 mb-4">Last Updated: February 2025</p>
+    <p class="text-gray-700 mb-6">
+      At DarkVault, we prioritize your privacy and security. This Privacy Policy
+      explains how we collect, use, disclose, and protect your information when
+      you use our platform. By using DarkVault, you agree to the terms outlined
+      below.
+    </p>
+
+    <!-- Section 1: Information We Collect -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      1. Information We Collect
+    </h2>
+    <p class="text-gray-600 mb-4">
+      We collect the following types of information to provide and improve our
+      services:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Account Information:</strong> When you register as a user or
+        vendor, we collect your username, hashed password, Bitcoin address (for
+        transactions), and PGP public key (for encrypted communication).
+      </li>
+      <li>
+        <strong>Transaction Data:</strong> We store details of your orders,
+        including product IDs, Bitcoin amounts, escrow addresses, and
+        transaction statuses, to facilitate secure exchanges.
+      </li>
+      <li>
+        <strong>Usage Data:</strong> We log your interactions with the site,
+        such as page views, search queries, and timestamps, to enhance
+        functionality and detect fraud.
+      </li>
+      <li>
+        <strong>Communication Data:</strong> Messages sent via our messaging
+        system are stored, with individual messages encrypted using your PGP
+        key.
+      </li>
+    </ul>
+
+    <!-- Section 2: How We Use Your Information -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      2. How We Use Your Information
+    </h2>
+    <p class="text-gray-600 mb-4">
+      Your information is used solely to operate and secure DarkVault:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Service Delivery:</strong> To process orders, manage escrow, and
+        facilitate communication between buyers, vendors, and admins.
+      </li>
+      <li>
+        <strong>Security:</strong> To detect and prevent fraud, abuse, or
+        illegal activities using usage and transaction data.
+      </li>
+      <li>
+        <strong>Improvement:</strong> To analyze usage patterns and improve site
+        features.
+      </li>
+      <li>
+        <strong>Legal Compliance:</strong> To comply with applicable laws or
+        respond to lawful requests (though we aim to minimize such disclosures).
+      </li>
+    </ul>
+
+    <!-- Section 3: How We Protect Your Information -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      3. How We Protect Your Information
+    </h2>
+    <p class="text-gray-600 mb-4">
+      We employ robust measures to safeguard your data:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Encryption:</strong> Passwords are hashed, and sensitive
+        communications are encrypted with PGP. Bitcoin transactions use
+        blockchain security.
+      </li>
+      <li>
+        <strong>Minimal Data Retention:</strong> We retain only what’s necessary
+        for functionality and delete inactive account data after [specify
+        period, e.g., 1 year].
+      </li>
+      <li>
+        <strong>Server Security:</strong> Our servers use industry-standard
+        encryption and access controls to prevent unauthorized access.
+      </li>
+      <li>
+        <strong>Anonymity:</strong> We do not collect real-world identifiers
+        (e.g., name, email, or IP address) unless voluntarily provided.
+      </li>
+    </ul>
+
+    <!-- Section 4: Sharing Your Information -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      4. Sharing Your Information
+    </h2>
+    <p class="text-gray-600 mb-4">
+      We limit data sharing to the following scenarios:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Transaction Parties:</strong> Buyers and vendors share Bitcoin
+        addresses and encrypted messages as needed for orders.
+      </li>
+      <li>
+        <strong>Admins:</strong> Site administrators access data to resolve
+        disputes or manage the platform.
+      </li>
+      <li>
+        <strong>Legal Requests:</strong> We may disclose data if required by
+        law, though we strive to protect user anonymity.
+      </li>
+      <li>
+        <strong>No Third Parties:</strong> We do not sell, trade, or share your
+        data with external entities for marketing or other purposes.
+      </li>
+    </ul>
+
+    <!-- Section 5: Your Rights and Choices -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      5. Your Rights and Choices
+    </h2>
+    <p class="text-gray-600 mb-4">You have control over your data:</p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Account Deletion:</strong> Contact support to delete your
+        account and associated data.
+      </li>
+      <li>
+        <strong>PGP Encryption:</strong> Provide and update your PGP key to
+        ensure secure communication.
+      </li>
+      <li>
+        <strong>Opt-Out:</strong> You can stop using DarkVault at any time,
+        though past transaction data may persist on the blockchain.
+      </li>
+    </ul>
+
+    <!-- Section 6: Cookies and Tracking -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      6. Cookies and Tracking
+    </h2>
+    <p class="text-gray-600 mb-6">
+      DarkVault does not use cookies, web beacons, or third-party tracking
+      technologies. Session management is handled server-side with minimal data
+      collection.
+    </p>
+
+    <!-- Section 7: Blockchain Considerations -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      7. Blockchain Considerations
+    </h2>
+    <p class="text-gray-600 mb-6">
+      Bitcoin transactions are recorded on a public blockchain. While we
+      anonymize your identity on our platform, blockchain data (e.g., addresses,
+      amounts) is permanent and publicly accessible. Use wallet best practices
+      (e.g., new addresses per transaction) to enhance your privacy.
+    </p>
+
+    <!-- Section 8: Changes to This Policy -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      8. Changes to This Privacy Policy
+    </h2>
+    <p class="text-gray-600 mb-6">
+      We may update this policy periodically. Changes will be posted here with
+      an updated "Last Updated" date. Continued use of DarkVault after changes
+      constitutes acceptance of the new terms.
+    </p>
+
+    <!-- Section 9: Contact Us -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">9. Contact Us</h2>
+    <p class="text-gray-600 mb-6">
+      For questions or concerns about this Privacy Policy, contact our support
+      team via the messaging system or submit a PGP-encrypted message to [insert
+      admin PGP key or contact method].
+    </p>
+  </div>
+
+  <!-- Back to Home -->
+  <div class="mt-6">
+    <a
+      href="{{ url_for('public.index') }}"
+      class="inline-block bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+    >
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

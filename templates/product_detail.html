@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% block title %}{{ product['title'] }} - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Left/Center Section: Images & Product Details -->
+    <div class="col-span-3 shadow-md bg-white border rounded-xl p-2">
+      <div class="grid grid-cols-1 lg:grid-cols-3">
+        <div class="lg:col-span-1">
+          <div class="bg-white p-4">
+            <!-- Main Image with Zoom -->
+            <div class="relative mb-4 overflow-hidden" id="main-image-container">
+              <img
+                src="{% if product['featured_image'] %}{{ url_for('static', filename=product['featured_image']) }}{% else %}{{ url_for('static', filename='uploads/default.png') }}{% endif %}"
+                alt="{{ product['title'] }}"
+                class="w-full h-64 object-contain rounded-md main-image"
+                id="main-image"
+              />
+              <div class="absolute inset-0 pointer-events-none zoom-lens hidden"></div>
+            </div>
+
+            <!-- Thumbnail Gallery -->
+            <div class="grid grid-cols-3 gap-2">
+              {% if product['featured_image'] %}
+              <img
+                src="{{ url_for('static', filename=product['featured_image']) }}"
+                alt="Featured Image"
+                class="w-full h-20 object-cover rounded-md cursor-pointer hover:opacity-75 thumbnail"
+                data-src="{{ url_for('static', filename=product['featured_image']) }}"
+              />
+              {% endif %}
+              {% for img in additional_images %}
+              <img
+                src="{{ url_for('static', filename=img['image_path']) }}"
+                alt="Additional Image"
+                class="w-full h-20 object-cover rounded-md cursor-pointer hover:opacity-75 thumbnail"
+                data-src="{{ url_for('static', filename=img['image_path']) }}"
+              />
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="lg:col-span-2">
+          <div class="bg-white p-6">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ product['title'] }}</h1>
+            {% set rating_info = get_product_rating(product['id']) %}
+            <div class="flex items-center mb-2">
+              <span class="text-yellow-400">★</span>
+              <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
+              <a href="#reviews" class="text-primary hover:underline ml-2 text-sm">See all reviews</a>
+            </div>
+            <p class="text-gray-600 text-lg font-bold mb-2">Price: <span>{{ product['price_usd'] }} <del>{{ product['original_price_usd'] }}</del></span> USD</p>
+            <div class="mb-4">
+              <p class="text-green-700 text-sm ">Stock Quantity: {{ product['stock'] }} available</p>
+              <p class="text-gray-700 text-sm ">Shipping Method: {{ product['shipping_method'] }} </p>
+              <p class="text-gray-700 text-sm ">Packaging Dimensions: {{ product['shipping_dimensions'] }} lb</p>
+              <p class="text-gray-700 text-sm ">MOQ: {{ product['moq'] }}</p>
+              <p class="text-gray-700 text-sm ">Lead Time: {{ product['lead_time'] }}</p>
+            </div>
+            <h2 class="text-md font-semibold text-gray-700 mb-2">Description</h2>
+            <p class="text-gray-500 mb-6 text-sm">{{ product['description']|truncate(300) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section: Purchase Options & Vendor Details -->
+    <div class="lg:col-span-1">
+      <div class="bg-white p-6 rounded-lg shadow-md sticky top-4 border rounded-xl">
+        <h3 class="text-md font-semibold text-gray-700 mb-2">
+          Sold by:  </h3>
+          <div class="mb-3">
+            <h4 class="font-semibold">{{ vendor['business_name']|default(vendor['username']|default('Admin')) }}</h4>
+            <p class="text-sm text-gray-600">Level: <span class="inline-block bg-green-700 text-white text-sm font-bold px-2 py-0 rounded-full">{{ vendor['level'] }}</span></p>
+            <p class="text-sm text-gray-600 ">Ships from: {{ vendor['shipping_location'] }}</p>
+            <p class="text-sm text-gray-600">Ships to: {{ vendor['shipping_destinations'] }}</p>
+          </div>
+          
+       
+        <p class="text-gray-600 mb-2">Minimum Order: ${{ vendor['min_order_amount']|default(0.0) }}</p>
+        
+
+        <!-- Quantity Selector -->
+        {% if product['stock'] > 0 %}
+        <div class="flex items-center mb-4">
+          <button id="decrease-qty" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-l-md hover:bg-gray-300">-</button>
+          <input type="number" id="quantity" name="quantity" value="{{ product['moq'] }}" min="{{ product['moq'] }}" max="{{ product['stock'] }}"
+                 class="w-[400px] text-center border-t border-b border-gray-300 focus:outline-none">
+          <button id="increase-qty" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-r-md hover:bg-gray-300">+</button>
+        </div>
+
+        <button id="add-to-cart" data-product-id="{{ product['id'] }}"
+                class="block w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 text-center transition duration-200">
+          Add to Cart
+        </button>
+        {% else %}
+        <p class="text-red-600 font-semibold">Out of Stock</p>
+        {% endif %}
+
+        <!-- Vendor Stats -->
+        <div class="text-sm text-gray-700 mt-4">
+          <p>Shipping: {{ vendor['shipping_policy']|truncate(50)|default('Not specified') }}</p>
+          <p>Returns: {{ vendor['return_policy']|truncate(50)|default('Not specified') }}</p>
+          <p class="mt-2">Feedback:</p>
+          <ul class="list-disc pl-4">
+            <li>Positive: {{ vendor_feedback['positive'] }}</li>
+            <li>Negative: {{ vendor_feedback['negative'] }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Section: Tabs & Related Products -->
+  <div class="mt-4">
+    <!-- Tabs -->
+    <div class="bg-white rounded-lg shadow-md mb-4 border">
+      <div class="flex border-b">
+        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none active" data-tab="description">Description</button>
+        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="vendor-policy">Vendor Policy</button>
+        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="shipping-policy">Shipping Policy</button>
+        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="reviews">Reviews</button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="p-6">
+        <!-- Description Tab -->
+        <div id="description" class="tab-content">
+          <h2 class="text-md font-semibold text-gray-700 mb-4">Product Description</h2>
+          <p class="text-gray-600 text-sm">{{ product['description']|default('No description available.') }}</p>
+        </div>
+
+        <!-- Vendor Policy Tab -->
+        <div id="vendor-policy" class="tab-content hidden">
+          <h2 class="text-md font-semibold text-gray-700 mb-4">Vendor Policy</h2>
+          <p><strong>Business Name:</strong> {{ vendor['business_name']|default(vendor['username']|default('Admin')) }}</p>
+          <p><strong>Vendor Level:</strong> {{ vendor['level'] }}</p>
+          <p><strong>Minimum Order:</strong> ${{ vendor['min_order_amount']|default(0.0) }}</p>
+          <p><strong>Contact:</strong> {{ vendor['support_contact']|default('Encrypted contact not provided') }}</p>
+          <div class="mt-6">
+            {{ vendor['return_policy']|default('Not specified') }}
+          </div>
+        </div>
+
+        <!-- Shipping Policy Tab -->
+        <div id="shipping-policy" class="tab-content hidden">
+          <h2 class="text-md font-semibold text-gray-700 mb-4">Shipping Policy</h2>
+          <p><strong>Shipping From:</strong> {{ vendor['shipping_location'] }}</p>
+          <p><strong>Shipping To:</strong> {{ vendor['shipping_destinations'] }}</p>
+          <p><strong>Shipping Method:</strong> {{ product['shipping_method']|default('Not specified') }}</p>
+          <p><strong>Lead Time:</strong> {{ product['lead_time']|default('Not specified') }}</p>
+          <div class="mt-6">
+            {{ vendor['shipping_policy']|default('Not specified') }}
+          </div>
+        </div>
+
+        <!-- Reviews Tab -->
+        <div id="reviews" class="tab-content hidden">
+          <h2 class="text-md font-semibold text-gray-700 mb-4">Customer Reviews</h2>
+          {% if reviews %}
+          {% for review in reviews %}
+          <div class="border-t border-gray-200 pt-4 mt-4">
+            <div class="flex items-center">
+              <span class="text-yellow-400">★</span>
+              <span class="text-gray-700 ml-1">{{ review['rating'] }}</span>
+              <span class="text-gray-500 text-sm ml-2">{{ review['created_at'] }}</span>
+            </div>
+            <p class="text-gray-600 mt-2">{{ review['comment'] }}</p>
+          </div>
+          {% endfor %}
+          {% if 'user_id' in session %}
+          <a href="{{ url_for('public.review_product', product_id=product['id']) }}"
+             class="mt-4 inline-block text-primary hover:underline">Write a Review</a>
+          {% endif %}
+          {% else %}
+          <p class="text-gray-600">No reviews yet. Be the first to review this product!</p>
+          {% if 'user_id' in session %}
+          <a href="{{ url_for('public.review_product', product_id=product['id']) }}"
+             class="mt-4 inline-block text-primary hover:underline">Write a Review</a>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    <div class="bg-white p-4 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold text-gray-700 mb-4">Other products in {{ category['name'] }}</h2>
+      {% if related_products %}
+      <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+        {% for related in related_products %}
+        <div class="bg-white border p-4 rounded-lg shadow-sm">
+          <a href="{{ url_for('public.product_detail', product_id=related['id']) }}">
+            {% if related['featured_image'] %}
+            <img
+              src="{{ url_for('static', filename=related['featured_image']) }}"
+              alt="{{ related['title'] }}"
+              class="w-full h-32 object-contain rounded-md mb-2"
+            />
+            {% endif %}
+            <h3 class="text-sm font-medium text-gray-700 mb-1">{{ related['title']|truncate(46) }}</h3>
+            {% set related_rating = get_product_rating(related['id']) %}
+                <div class="flex items-center mb-2">
+                    <span class="text-yellow-400">★</span>
+                    <span class="text-gray-700 ml-1">{{ related_rating['avg_rating'] }} ({{ related_rating['review_count'] }})</span>
+                </div>
+                <!-- Vendor Details -->
+                <p class="text-gray-600 text-xs font-bold">Sold by: <span class="font-normal">{{ related['vendor']['business_name']|default(related['vendor']['username']) }}</span> </p>
+                <p class="text-gray-600 text-xs font-bold">Seller level: <span class="font-normal">{{ related['vendor']['level'] }}</span> </p>
+                <p class="text-gray-600 text-xs font-bold">Shipping from: <span class="font-normal">{{ related['vendor']['shipping_location']|truncate(30)|default('Not specified') }}</span></p>
+                <p class="text-gray-600 text-xs mb-3 font-bold">Shipping to: <span class="font-normal">{{ related['vendor']['shipping_destinations']|truncate(30)|default('Not specified') }}</span></p>
+            <span class="block w-full bg-primary text-gray-900 font-semibold py-1 px-4 rounded-md hover:bg-primary-90 text-center transition duration-200">View details</span>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-600">No related products found in this category.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const mainImage = document.getElementById("main-image");
+    const thumbnails = document.querySelectorAll(".thumbnail");
+    const mainImageContainer = document.getElementById("main-image-container");
+    const zoomLens = document.querySelector(".zoom-lens");
+    const decreaseQty = document.getElementById("decrease-qty");
+    const increaseQty = document.getElementById("increase-qty");
+    const quantityInput = document.getElementById("quantity");
+    const addToCartBtn = document.getElementById("add-to-cart");
+    const cartCountSpan = document.getElementById("cart-count"); // Add this line
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    // Image Sliding
+    thumbnails.forEach((thumbnail) => {
+      thumbnail.addEventListener("click", function () {
+        mainImage.src = this.dataset.src;
+      });
+    });
+
+    // Image Zoom
+    mainImageContainer.addEventListener("mouseenter", function () {
+      zoomLens.classList.remove("hidden");
+    });
+    mainImageContainer.addEventListener("mouseleave", function () {
+      zoomLens.classList.add("hidden");
+    });
+    mainImageContainer.addEventListener("mousemove", function (e) {
+      const rect = mainImageContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const lensSize = 100;
+      let lensX = x - lensSize / 2;
+      let lensY = y - lensSize / 2;
+      lensX = Math.max(0, Math.min(lensX, rect.width - lensSize));
+      lensY = Math.max(0, Math.min(lensY, rect.height - lensSize));
+      zoomLens.style.left = `${lensX}px`;
+      zoomLens.style.top = `${lensY}px`;
+      const zoomFactor = 2;
+      const bgX = -(lensX * zoomFactor - rect.width / 2);
+      const bgY = -(lensY * zoomFactor - rect.height / 2);
+      zoomLens.style.backgroundImage = `url(${mainImage.src})`;
+      zoomLens.style.backgroundSize = `${rect.width * zoomFactor}px ${rect.height * zoomFactor}px`;
+      zoomLens.style.backgroundPosition = `${bgX}px ${bgY}px`;
+    });
+
+    // Quantity Selector
+    if (decreaseQty && increaseQty && quantityInput) {
+      decreaseQty.addEventListener("click", function () {
+        let qty = parseInt(quantityInput.value);
+        let min = parseInt(quantityInput.min);
+        if (qty > min) {
+          quantityInput.value = qty - 1;
+        }
+      });
+      increaseQty.addEventListener("click", function () {
+        let qty = parseInt(quantityInput.value);
+        let max = parseInt(quantityInput.max);
+        if (qty < max) {
+          quantityInput.value = qty + 1;
+        }
+      });
+      quantityInput.addEventListener("change", function () {
+        let qty = parseInt(this.value);
+        let min = parseInt(this.min);
+        let max = parseInt(this.max);
+        if (qty < min) this.value = min;
+        else if (qty > max) this.value = max;
+      });
+    }
+
+    // Add to Cart
+    if (addToCartBtn) {
+      addToCartBtn.addEventListener("click", function () {
+        const productId = this.dataset.productId;
+        const quantity = parseInt(quantityInput.value);
+        fetch("{{ url_for('cart.add_to_cart') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ product_id: productId, quantity: quantity }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              alert("Added to cart successfully!");
+            } else {
+              alert("Error adding to cart: " + data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("Failed to add to cart.");
+          });
+      });
+    }
+
+    // Tab Functionality
+    tabButtons.forEach(button => {
+      button.addEventListener("click", function () {
+        tabButtons.forEach(btn => {
+          btn.classList.remove("active");
+          btn.classList.remove("border-yellow-400");
+          btn.classList.add("border-transparent");
+        });
+        tabContents.forEach(content => content.classList.add("hidden"));
+
+        this.classList.add("active");
+        this.classList.add("border-yellow-400");
+        this.classList.remove("border-transparent");
+
+        const tabId = this.dataset.tab;
+        document.getElementById(tabId).classList.remove("hidden");
+      });
+    });
+  });
+</script>
+
+<style>
+  .zoom-lens {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 1px solid #ccc;
+    background-color: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .tab-button.active {
+    border-bottom: 2px solid #f4b400; /* Matches hover:bg-yellow-400 */
+  }
+</style>
+{% endblock %}

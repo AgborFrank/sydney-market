@@ -1,0 +1,45 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="title" content="{{ settings['meta_title'] }}" />
+    <meta name="description" content="{{ settings['meta_description'] }}" />
+    <title>{% block title %}{{ settings['site_name'] }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+      :root {
+          --primary-color: {{ settings['primary_color'] }};
+          --secondary-color: {{ settings['secondary_color'] }};
+      }
+      .container {
+        max-width: 1280px
+      }
+      .bg-primary { background-color: var(--primary-color); }
+        .text-primary { color: var(--primary-color); }
+        .bg-secondary { background-color: var(--secondary-color); }
+        .text-secondary { color: var(--secondary-color); }
+        .focus\:ring-primary:focus { 
+            outline: none; 
+            ring: 2px solid var(--primary-color); 
+            --tw-ring-color: var(--primary-color); 
+        }
+        .hover\:bg-primary-90:hover { 
+            background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9); 
+        }.\
+
+    </style>
+  </head>
+  <body class="flex flex-col min-h-screen bg-gray-800">
+    <!-- Include Header -->
+    {% include 'components/header.html' %}
+
+    <!-- Main Content Block -->
+    <main class="flex-grow">{% block content %}{% endblock %}</main>
+
+    <!-- Include Footer -->
+    {% include 'components/footer.html' %}
+  </body>
+</html>

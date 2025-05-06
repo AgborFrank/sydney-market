@@ -1,0 +1,131 @@
+<!-- templates/admin/messages.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Messages - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Messages</h2>
+
+<!-- Message Form -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Compose Message</h3>
+    <form method="POST" action="{{ url_for('admin.admin_messages') }}" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+            <label for="recipient_type" class="block text-gray-700 font-semibold mb-2">Recipient Type</label>
+            <select 
+                id="recipient_type" 
+                name="recipient_type" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                onchange="toggleRecipientId(this.value)" 
+                required
+            >
+                <option value="vendor">Specific Vendor</option>
+                <option value="user">Specific User</option>
+                <option value="all_vendors">All Vendors</option>
+                <option value="all_users">All Users</option>
+            </select>
+        </div>
+        <div id="recipient_id_div" class="hidden">
+            <label for="recipient_id" class="block text-gray-700 font-semibold mb-2">Recipient ID</label>
+            <input 
+                type="number" 
+                id="recipient_id" 
+                name="recipient_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter Vendor or User ID"
+            >
+        </div>
+        <div>
+            <label for="subject" class="block text-gray-700 font-semibold mb-2">Subject</label>
+            <input 
+                type="text" 
+                id="subject" 
+                name="subject" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Message subject" 
+                required
+            >
+        </div>
+        <div>
+            <label for="body" class="block text-gray-700 font-semibold mb-2">Message</label>
+            <textarea 
+                id="body" 
+                name="body" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                rows="5" 
+                placeholder="Enter your message" 
+                required
+            ></textarea>
+        </div>
+        <div class="text-right">
+            <button 
+                type="submit" 
+                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+            >
+                Send Message
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Sent Messages -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Sent Messages</h3>
+    {% if messages %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">Sent At</th>
+                <th class="py-2 px-4 text-gray-700">Recipient</th>
+                <th class="py-2 px-4 text-gray-700">Subject</th>
+                <th class="py-2 px-4 text-gray-700">Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for message in messages %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ message['sent_at'] }}</td>
+                <td class="py-2 px-4">
+                    {{ message['recipient_type']|replace('_', ' ')|title }}
+                    {% if message['recipient_id'] %}(ID: {{ message['recipient_id'] }}){% endif %}
+                </td>
+                <td class="py-2 px-4">{{ message['subject'] }}</td>
+                <td class="py-2 px-4">
+                    {% if message['encrypted_body'] %}
+                    <span class="text-gray-600 italic">Encrypted</span>
+                    {% else %}
+                    {{ message['body']|truncate(50) }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No messages sent yet.</p>
+    {% endif %}
+</div>
+
+<!-- Messages -->
+{% if success %}
+<p class="mt-4 text-green-600">{{ success }}</p>
+{% endif %}
+{% if error %}
+<p class="mt-4 text-red-600">{{ error }}</p>
+{% endif %}
+
+<!-- JavaScript to toggle recipient ID field -->
+<script>
+function toggleRecipientId(value) {
+    const div = document.getElementById('recipient_id_div');
+    if (value === 'vendor' || value === 'user') {
+        div.classList.remove('hidden');
+        document.getElementById('recipient_id').setAttribute('required', 'required');
+    } else {
+        div.classList.add('hidden');
+        document.getElementById('recipient_id').removeAttribute('required');
+    }
+}
+</script>
+{% endblock %}

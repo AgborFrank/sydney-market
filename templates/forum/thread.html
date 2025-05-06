@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">{{ thread.title }}</h1>
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Started by {{ thread.creator }} on {{ thread.created_at }} {% if thread.locked %}<span class="text-red-600">[Locked]</span>{% endif %}</p>
+    <div class="space-y-6">
+      {% for post in posts %}
+        <div class="border-b dark:border-gray-600 pb-4">
+          <p class="text-gray-700 dark:text-gray-300">{{ post.content }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Posted by {{ post.creator }} on {{ post.created_at }}{% if post.edited_at %} (Edited: {{ post.edited_at }}){% endif %}</p>
+        </div>
+      {% endfor %}
+    </div>
+    {% if not thread.locked %}
+      <form method="POST" class="mt-6">
+        <textarea name="content" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-gray-100" rows="4" placeholder="Write your reply..."></textarea>
+        <button type="submit" class="mt-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">Post Reply</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

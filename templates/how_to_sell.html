@@ -1,0 +1,183 @@
+<!-- templates/how_to_sell.html -->
+{% extends 'base.html' %} {% block title %}How to Sell - DarkVault{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">
+    How to Sell on DarkVault
+  </h1>
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <p class="text-gray-600 mb-4">Last Updated: [Insert Date]</p>
+    <p class="text-gray-700 mb-6">
+      Welcome to DarkVault! Selling on our platform is straightforward and
+      secure. Follow these steps to start listing your products and earning
+      Bitcoin (BTC). This guide assumes familiarity with Bitcoin and PGP
+      encryption.
+    </p>
+
+    <!-- Section 1: Create a Vendor Account -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      1. Create a Vendor Account
+    </h2>
+    <p class="text-gray-600 mb-4">
+      To sell on DarkVault, you need a verified vendor account:
+    </p>
+    <ul class="list-decimal pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Register:</strong> Go to
+        <a
+          href="{{ url_for('vendor.vendor_register') }}"
+          class="text-yellow-400 hover:underline"
+          >Vendor Registration</a
+        >
+        and provide a unique username, strong password, Bitcoin address (for
+        payouts), and PGP public key (for encrypted communication).
+      </li>
+      <li>
+        <strong>Verification:</strong> Admin approval is required. This may take
+        [specify timeframe, e.g., 24-48 hours]. You’ll receive a confirmation
+        message via the platform.
+      </li>
+      <li>
+        <strong>Subscription:</strong> Choose a subscription package to activate
+        your vendor status (e.g., monthly fee in BTC). Pay via the provided
+        escrow address.
+      </li>
+    </ul>
+
+    <!-- Section 2: List Your Products -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      2. List Your Products
+    </h2>
+    <p class="text-gray-600 mb-4">
+      Once your account is active, you can create product listings:
+    </p>
+    <ul class="list-decimal pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Access Dashboard:</strong> Log in and go to your Vendor
+        Dashboard.
+      </li>
+      <li>
+        <strong>Add Product:</strong> Click "Add Product," then enter the title,
+        description, price (in BTC), stock quantity, and category. Ensure
+        descriptions are accurate to avoid disputes.
+      </li>
+      <li>
+        <strong>Submit:</strong> Listings are live immediately after submission,
+        provided your subscription is active.
+      </li>
+    </ul>
+
+    <!-- Section 3: Manage Orders -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Manage Orders</h2>
+    <p class="text-gray-600 mb-4">
+      Handle orders efficiently using our escrow system:
+    </p>
+    <ul class="list-decimal pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Receive Orders:</strong> Buyers place orders, sending BTC to a
+        2-of-3 multisig escrow address (buyer, vendor, and DarkVault keys).
+      </li>
+      <li>
+        <strong>Confirm Payment:</strong> Check your Vendor Orders page. Once
+        payment is locked in escrow (status: "paid"), prepare the order.
+      </li>
+      <li>
+        <strong>Ship Product:</strong> Fulfill the order within [specify
+        timeframe, e.g., 48 hours] and mark it as "shipped" on the platform.
+      </li>
+      <li>
+        <strong>Communicate:</strong> Use encrypted messaging to update buyers
+        on shipping details or delays.
+      </li>
+    </ul>
+
+    <!-- Section 4: Receive Payments -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      4. Receive Payments
+    </h2>
+    <p class="text-gray-600 mb-4">Get paid securely via escrow:</p>
+    <ul class="list-decimal pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Buyer Release:</strong> After receiving the product, the buyer
+        releases funds from escrow to your Bitcoin address (status:
+        "completed").
+      </li>
+      <li>
+        <strong>Disputes:</strong> If a buyer raises a dispute within [specify
+        timeframe, e.g., 14 days], admins mediate. Provide evidence (e.g.,
+        shipping proof) if requested.
+      </li>
+      <li>
+        <strong>Payout:</strong> Funds are transferred to your BTC address once
+        released, minus a [specify percentage, e.g., 5%] platform fee.
+      </li>
+    </ul>
+
+    <!-- Section 5: Follow Marketplace Rules -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      5. Follow Marketplace Rules
+    </h2>
+    <p class="text-gray-600 mb-4">
+      Adhere to our guidelines to maintain your vendor status:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        List only permitted items (see
+        <a
+          href="{{ url_for('public.marketplace_rules') }}"
+          class="text-yellow-400 hover:underline"
+          >Marketplace Rules</a
+        >).
+      </li>
+      <li>Deliver products as described and on time.</li>
+      <li>
+        Avoid fraudulent behavior, which may lead to suspension or termination.
+      </li>
+    </ul>
+
+    <!-- Section 6: Tips for Success -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      6. Tips for Success
+    </h2>
+    <p class="text-gray-600 mb-4">
+      Maximize your sales with these best practices:
+    </p>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Detailed Listings:</strong> Use clear descriptions and
+        competitive pricing.
+      </li>
+      <li>
+        <strong>Fast Response:</strong> Reply to buyer inquiries promptly via
+        encrypted messages.
+      </li>
+      <li>
+        <strong>Reliability:</strong> Consistent fulfillment builds trust and
+        repeat customers.
+      </li>
+      <li>
+        <strong>Security:</strong> Use fresh BTC addresses and keep your PGP
+        keys secure.
+      </li>
+    </ul>
+
+    <!-- Section 7: Need Help? -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">7. Need Help?</h2>
+    <p class="text-gray-600 mb-6">
+      If you encounter issues or have questions, contact support via the
+      messaging system or send a PGP-encrypted message to [insert admin PGP key
+      or contact method].
+    </p>
+  </div>
+
+  <!-- Back to Home -->
+  <div class="mt-6">
+    <a
+      href="{{ url_for('public.index') }}"
+      class="inline-block bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+    >
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

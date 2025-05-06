@@ -1,0 +1,195 @@
+<!-- templates/admin/categories.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Categories{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Categories</h2>
+
+<!-- Create Category Form -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Add New Category</h3>
+    <form method="POST" action="{{ url_for('admin.admin_categories') }}" enctype="multipart/form-data">
+        <div class="mb-4">
+            <label for="category_name" class="block text-gray-700 font-semibold mb-2">Category Name</label>
+            <input 
+                type="text" 
+                id="category_name" 
+                name="category_name" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter category name" 
+                required
+            >
+        </div>
+        <div class="mb-4">
+            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter category description" 
+                rows="4"
+            ></textarea>
+        </div>
+        <div class="mb-4">
+            <label for="parent_id" class="block text-gray-700 font-semibold mb-2">Parent Category</label>
+            <select 
+                id="parent_id" 
+                name="parent_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            >
+                <option value="">None (Top-Level Category)</option>
+                {% for category in categories %}
+                <option value="{{ category['id'] }}">{{ category['name'] }} </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="image" class="block text-gray-700 font-semibold mb-2">Category Image</label>
+            <input 
+                type="file" 
+                id="image" 
+                name="image" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+        </div>
+        <div class="text-right">
+            <button 
+                type="submit" 
+                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+            >
+                Add Category
+            </button>
+        </div>
+    </form>
+    {% if error %}
+    <p class="mt-4 text-red-600">{{ error }}</p>
+    {% endif %}
+    {% if success %}
+    <p class="mt-4 text-green-600">{{ success }}</p>
+    {% endif %}
+</div>
+
+<!-- Edit Category Form (Displayed when editing) -->
+{% if edit_category %}
+<div class="bg-white p-6 rounded-lg shadow-md mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Edit Category: {{ edit_category['name'] }}</h3>
+    <form method="POST" action="{{ url_for('admin.admin_edit_category', category_id=edit_category['id']) }}" enctype="multipart/form-data">
+        <div class="mb-4">
+            <label for="category_name" class="block text-gray-700 font-semibold mb-2">Category Name</label>
+            <input 
+                type="text" 
+                id="category_name" 
+                name="category_name" 
+                value="{{ edit_category['name'] }}"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                required
+            >
+        </div>
+        <div class="mb-4">
+            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                rows="4"
+            >{{ edit_category['description'] or '' }}</textarea>
+        </div>
+        <div class="mb-4">
+            <label for="parent_id" class="block text-gray-700 font-semibold mb-2">Parent Category</label>
+            <select 
+                id="parent_id" 
+                name="parent_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            >
+                <option value="">None (Top-Level Category)</option>
+                {% for category in categories %}
+                {% if category['id'] != edit_category['id'] %} <!-- Prevent self-referencing -->
+                <option value="{{ category['id'] }}" {% if category['id'] == edit_category['parent_id'] %}selected{% endif %}>
+                    {{ category['name'] }} 
+                </option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="image" class="block text-gray-700 font-semibold mb-2">Category Image (Leave blank to keep current)</label>
+            <input 
+                type="file" 
+                id="image" 
+                name="image" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+            {% if edit_category['image_path'] %}
+            <p class="text-gray-600 mt-2">Current: <img src="{{ url_for('static', filename=edit_category['image_path']) }}" alt="Current Image" class="h-10 w-10 inline-block"></p>
+            {% endif %}
+        </div>
+        <div class="text-right space-x-2">
+            <button 
+                type="submit" 
+                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+            >
+                Save Changes
+            </button>
+            <a href="{{ url_for('admin.admin_categories') }}" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<!-- Categories List -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Existing Categories</h3>
+    {% if categories %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">ID</th>
+                <th class="py-2 px-4 text-gray-700">Name</th>
+                <th class="py-2 px-4 text-gray-700">Description</th>
+                <th class="py-2 px-4 text-gray-700">Parent Category</th>
+                <th class="py-2 px-4 text-gray-700">Image</th>
+                <th class="py-2 px-4 text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ category['id'] }}</td>
+                <td class="py-2 px-4">{{ category['name'] }}</td>
+                <td class="py-2 px-4">{{ category['description'] or 'No description' }}</td>
+                <td class="py-2 px-4">
+                    {% if category['parent_id'] %}
+                    {% for parent in categories %}
+                        {% if parent['id'] == category['parent_id'] %}
+                            {{ parent['name'] }} 
+                        {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    None
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4">
+                    {% if category['image_path'] %}
+                    <img src="{{ url_for('static', filename=category['image_path']) }}" alt="{{ category['name'] }}" class="h-16 w-16 object-cover rounded">
+                    {% else %}
+                    No image
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4 space-x-2">
+                    <a href="{{ url_for('admin.admin_edit_category', category_id=category['id']) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">Edit</a>
+                    <form method="POST" action="{{ url_for('admin.admin_delete_category', category_id=category['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete {{ category['name'] }}?');">
+                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No categories found.</p>
+    {% endif %}
+</div>
+{% endblock %}

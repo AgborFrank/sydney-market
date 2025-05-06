@@ -1,0 +1,67 @@
+<!-- templates/admin_vendors.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Manage Vendors{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Vendors</h2>
+
+<!-- Vendors Table -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Vendor List</h3>
+    {% if vendors %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">ID</th>
+                <th class="py-2 px-4 text-gray-700">Username</th>
+                <th class="py-2 px-4 text-gray-700">BTC Address</th>
+                <th class="py-2 px-4 text-gray-700">Products</th>
+                <th class="py-2 px-4 text-gray-700">Sales</th>
+                <th class="py-2 px-4 text-gray-700">Status</th>
+                <th class="py-2 px-4 text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vendor in vendors %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ vendor['id'] }}</td>
+                <td class="py-2 px-4">{{ vendor['username'] }}</td>
+                <td class="py-2 px-4">{{ vendor['btc_address'] }}</td>
+                <td class="py-2 px-4">{{ vendor['product_count'] }}</td>
+                <td class="py-2 px-4">{{ vendor['sales_count'] }}</td>
+                <td class="py-2 px-4">
+                    {% if vendor['active'] %}
+                    <span class="text-green-600">Active</span>
+                    {% else %}
+                    <span class="text-red-600">Suspended</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4 space-x-2">
+                    {% if vendor['active'] %}
+                    <form method="POST" action="{{ url_for('admin_suspend_vendor', vendor_id=vendor['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to suspend {{ vendor['username'] }}?');">
+                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Suspend</button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('admin_reactivate_vendor', vendor_id=vendor['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to reactivate {{ vendor['username'] }}?');">
+                        <button type="submit" class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600 transition duration-200">Reactivate</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No vendors found.</p>
+    {% endif %}
+</div>
+
+<!-- Success/Error Messages -->
+{% if success %}
+<p class="mt-4 text-green-600">{{ success }}</p>
+{% endif %}
+{% if error %}
+<p class="mt-4 text-red-600">{{ error }}</p>
+{% endif %}
+{% endblock %}

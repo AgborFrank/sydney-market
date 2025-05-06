@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Payment</title></head>
+<body>
+    <h1>Pay for Order #{{ order_id }}</h1>
+    <p>Send {{ amount }} BTC to: {{ btc_address }}</p>
+    <form method="POST" action="/confirm_payment/{{ order_id }}">
+        Transaction ID: <input type="text" name="txid"><br>
+        <input type="submit" value="Confirm Payment">
+    </form>
+</body>
+</html>

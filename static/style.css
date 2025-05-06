@@ -1,0 +1,14 @@
+:root {
+    --primary-color: {{ settings['primary_color'] }};
+    --secondary-color: {{ settings['secondary_color'] }};
+}
+
+.menu nav a:hover, footer ul li a:hover{
+    color: var(--primary-color) !important;
+}
+footer ul li a{
+   font-size: 14px !important;
+}
+body {
+    background-color: #E3E6E6;
+}

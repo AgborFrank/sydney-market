@@ -1,0 +1,122 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
+{% block admin_content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8 border-b-2 border-yellow-400 pb-2">Admin Vendor Settings</h1>
+
+    <form method="POST" class="space-y-12">
+        <!-- Business Overview -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Business Overview</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Business Name</label>
+                    <input type="text" name="business_name" value="{{ settings['business_name'] }}" 
+                           class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                           placeholder="e.g., Admin Store" required>
+                    <p class="text-gray-600 text-sm mt-1">Provide a name for your admin vendor business.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Description</label>
+                    <textarea name="description" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="4" placeholder="Describe your admin vendor business">{{ settings['description'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">Visible to buyers on your vendor profile.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Support Contact (Encrypted)</label>
+                    <input type="text" name="support_contact" value="{{ settings['support_contact'] }}" 
+                           class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                           placeholder="e.g., PGP email or encrypted contact">
+                    <p class="text-gray-600 text-sm mt-1">How buyers can reach you securely. Encrypt this yourself.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Minimum Order Amount (USD)</label>
+                    <input type="number" name="min_order_amount" value="{{ settings['min_order_amount'] }}" step="0.01" 
+                           class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                           placeholder="e.g., 50.00">
+                    <p class="text-gray-600 text-sm mt-1">Set a minimum order value (optional).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Warehouse and Shipping -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Warehouse and Shipping</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Warehouse Address (Encrypted)</label>
+                    <textarea name="warehouse_address" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="3" placeholder="Encrypt this with your PGP key">{{ settings['warehouse_address'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">Physical address (encrypted for security).</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Shipping Details</label>
+                    <textarea name="shipping_details" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="3" placeholder="e.g., USPS, FedEx, discreet packaging">{{ settings['shipping_details'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">List shipping methods and packaging details.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Product Processing Time</label>
+                    <input type="text" name="processing_time" value="{{ settings['processing_time'] }}" 
+                           class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                           placeholder="e.g., 1-2 business days">
+                    <p class="text-gray-600 text-sm mt-1">Time to prepare orders for shipping.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Shipping Zones</label>
+                    <input type="text" name="shipping_zones" value="{{ settings['shipping_zones'] }}" 
+                           class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                           placeholder="e.g., US, EU, Asia (comma-separated)" required>
+                    <p class="text-gray-600 text-sm mt-1">Regions you ship to (comma-separated).</p>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Where are you shipping from?</label>
+                        <input type="text" name="shipping_location" value="{{ settings['shipping_location'] }}" 
+                               class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                               placeholder="e.g United States" required>
+                        <p class="text-gray-600 text-sm mt-1">Provide the country you are shipping from</p>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Countries you ship to</label>
+                        <input type="text" name="shipping_destinations" value="{{ settings['shipping_destinations'] }}" 
+                               class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                               placeholder="e.g United States or Worldwide" required>
+                        <p class="text-gray-600 text-sm mt-1">List countries you can ship to</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Policies -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Policies</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Shipping Policy</label>
+                    <textarea name="shipping_policy" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="6" placeholder="Detail your shipping terms">{{ settings['shipping_policy'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">Explain shipping costs, timelines, and conditions.</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Return Policy</label>
+                    <textarea name="return_policy" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="6" placeholder="Detail your return/refund policy">{{ settings['return_policy'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">Specify return conditions (if any).</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Rules</label>
+                    <textarea name="rules" class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
+                              rows="4" placeholder="e.g., No bulk discounts, payment upfront">{{ settings['rules'] }}</textarea>
+                    <p class="text-gray-600 text-sm mt-1">Your store-specific rules for buyers.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Save Button -->
+        <div class="mt-8">
+            <button type="submit" class="bg-yellow-400 text-gray-900 font-semibold py-3 px-6 rounded-md hover:bg-yellow-500 transition duration-200 w-full md:w-auto">Save Vendor Settings</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

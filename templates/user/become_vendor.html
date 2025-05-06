@@ -1,0 +1,20 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Become a Vendor - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto bg-white p-6">
+    <h1 class="text-3xl font-bold">Contact Support</h1>
+    <p class="mb-4">Submit your PGP key and a signed message to apply for a DarkVault vendor account.</p>
+    <form method="POST" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+            <label>PGP Public Key</label>
+            <textarea name="pgp_public_key" class="w-full py-2 px-4 rounded-md border" rows="10" required></textarea>
+        </div>
+        <div>
+            <label>Signed Message (e.g., "I am [username] applying to [site_name] on March 24, 2025")</label>
+            <textarea name="signed_message" class="w-full py-2 px-4 rounded-md border" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md">Apply</button>
+    </form>
+</div>
+{% endblock %}

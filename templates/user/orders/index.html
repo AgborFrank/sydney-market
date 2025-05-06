@@ -1,0 +1,27 @@
+{% extends 'user/user_base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Vendor Orders</h1>
+  {% if orders %}
+    <div class="space-y-4">
+      {% for order in orders %}
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex justify-between items-center">
+          <div>
+            <p><strong>Order ID:</strong> {{ order.id }}</p>
+            <p><strong>Buyer:</strong> {{ order.buyer_username }}</p>
+            <p><strong>Product:</strong> {{ order.title }}</p>
+            <p><strong>Amount:</strong> ${{ order.amount_usd }} / {{ order.amount_btc }} BTC</p>
+            <p><strong>Status:</strong> {{ order.status }}</p>
+            <p><strong>Escrow:</strong> {{ order.escrow_status }}</p>
+            <p><strong>Date:</strong> {{ order.created_at }}</p>
+          </div>
+          <a href="{{ url_for('vendor.vendor_order_detail', order_id=order.id) }}" class="text-yellow-400 hover:underline">View Details</a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-gray-700 dark:text-gray-300">No orders found.</p>
+  {% endif %}
+</div>
+{% endblock %}

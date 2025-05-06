@@ -1,0 +1,66 @@
+<!-- templates/admin/vendor_payments.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Vendor Payments{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Vendor Payment Verification</h2>
+
+<!-- Vendor Payments List -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Pending Vendor Payments</h3>
+    {% if payments %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">ID</th>
+                <th class="py-2 px-4 text-gray-700">Vendor</th>
+                <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                <th class="py-2 px-4 text-gray-700">Transaction ID</th>
+                <th class="py-2 px-4 text-gray-700">Status</th>
+                <th class="py-2 px-4 text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payment in payments %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ payment['id'] }}</td>
+                <td class="py-2 px-4">
+                    {% for vendor in vendors %}
+                        {% if vendor['id'] == payment['vendor_id'] %}
+                            {{ vendor['username'] }} (ID: {{ vendor['id'] }})
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="py-2 px-4">{{ payment['btc_amount'] }}</td>
+                <td class="py-2 px-4">{{ payment['btc_txid'] or 'Not Submitted' }}</td>
+                <td class="py-2 px-4">{{ payment['status'] }}</td>
+                <td class="py-2 px-4 space-x-2">
+                    {% if payment['status'] == 'submitted' %}
+                    <form method="POST" action="{{ url_for('admin_approve_vendor_payment', payment_id=payment['id']) }}" class="inline">
+                        <button type="submit" class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600 transition duration-200">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin_reject_vendor_payment', payment_id=payment['id']) }}" class="inline">
+                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Reject</button>
+                    </form>
+                    {% else %}
+                    <span class="text-gray-500">Awaiting Submission</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No pending vendor payments found.</p>
+    {% endif %}
+</div>
+
+<!-- Success/Error Messages -->
+{% if success %}
+<p class="mt-4 text-green-600">{{ success }}</p>
+{% endif %}
+{% if error %}
+<p class="mt-4 text-red-600">{{ error }}</p>
+{% endif %}
+{% endblock %}

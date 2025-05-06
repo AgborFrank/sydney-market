@@ -1,0 +1,334 @@
+<!-- templates/admin/products.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Products{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Products</h2>
+
+<!-- Add Product Form -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Add New Product</h3>
+    <form method="POST" action="{{ url_for('admin_products') }}" enctype="multipart/form-data" class="space-y-4">
+        <div>
+            <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title</label>
+            <input 
+                type="text" 
+                id="title" 
+                name="title" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter product title" 
+                required
+            >
+        </div>
+        <div>
+            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter product description" 
+                rows="4"
+            ></textarea>
+        </div>
+        <div>
+            <label for="price_btc" class="block text-gray-700 font-semibold mb-2">Price (BTC)</label>
+            <input 
+                type="number" 
+                id="price_btc" 
+                name="price_btc" 
+                step="0.0001" 
+                min="0" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter price in BTC" 
+                required
+            >
+        </div>
+        <div>
+            <label for="stock" class="block text-gray-700 font-semibold mb-2">Stock Quantity</label>
+            <input 
+                type="number" 
+                id="stock" 
+                name="stock" 
+                min="0" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                placeholder="Enter stock quantity" 
+                required >
+        </div>
+        <div>
+            <label for="vendor_id" class="block text-gray-700 font-semibold mb-2">Vendor</label>
+            <select 
+                id="vendor_id" 
+                name="vendor_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                
+            >
+                <option value="">Select a vendor</option>
+                {% for vendor in vendors %}
+                <option value="{{ vendor['id'] }}">{{ vendor['username'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="category_id" class="block text-gray-700 font-semibold mb-2">Category</label>
+            <select 
+                id="category_id" 
+                name="category_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                required
+            >
+                <option value="">Select a category</option>
+                {% for category in categories %}
+                <option value="{{ category['id'] }}">
+                    {{ category['name'] }} 
+                    {% if category['parent_id'] %}
+                        {% for parent in categories %}
+                            {% if parent['id'] == category['parent_id'] %}
+                                - Parent: {{ parent['name'] }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="featured_image" class="block text-gray-700 font-semibold mb-2">Featured Image</label>
+            <input 
+                type="file" 
+                id="featured_image" 
+                name="featured_image" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+        </div>
+        <div>
+            <label for="additional_images" class="block text-gray-700 font-semibold mb-2">Additional Images (Multiple)</label>
+            <input 
+                type="file" 
+                id="additional_images" 
+                name="additional_images" 
+                multiple 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+        </div>
+        <div class="text-right">
+            <button 
+                type="submit" 
+                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+            >
+                Add Product
+            </button>
+        </div>
+    </form>
+    {% if error %}
+    <p class="mt-4 text-red-600">{{ error }}</p>
+    {% endif %}
+    {% if success %}
+    <p class="mt-4 text-green-600">{{ success }}</p>
+    {% endif %}
+</div>
+
+<!-- Edit Product Form -->
+{% if edit_product %}
+<div class="bg-white p-6 rounded-lg shadow-md mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Edit Product: {{ edit_product['title'] }}</h3>
+    <form method="POST" action="{{ url_for('admin_edit_product', product_id=edit_product['id']) }}" enctype="multipart/form-data" class="space-y-4">
+        <div>
+            <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title</label>
+            <input 
+                type="text" 
+                id="title" 
+                name="title" 
+                value="{{ edit_product['title'] }}"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                required
+            >
+        </div>
+        <div>
+            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                rows="4"
+            >{{ edit_product['description'] or '' }}</textarea>
+        </div>
+        <div>
+            <label for="price_btc" class="block text-gray-700 font-semibold mb-2">Price (BTC)</label>
+            <input 
+                type="number" 
+                id="price_btc" 
+                name="price_btc" 
+                value="{{ edit_product['price_btc'] }}"
+                step="0.0001" 
+                min="0" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                required
+            >
+        </div>
+        <div>
+            <label for="stock" class="block text-gray-700 font-semibold mb-2">Stock Quantity</label>
+            <input 
+                type="number" 
+                id="stock" 
+                name="stock" 
+                value="{{ edit_product['stock'] }}"
+                min="0" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                required
+            >
+        </div>
+        <div>
+            <label for="vendor_id" class="block text-gray-700 font-semibold mb-2">Vendor</label>
+            <select 
+                id="vendor_id" 
+                name="vendor_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                
+            >
+                <option value="">Select a vendor</option>
+                {% for vendor in vendors %}
+                <option value="{{ vendor['id'] }}" {% if vendor['id'] == edit_product['vendor_id'] %}selected{% endif %}>
+                    {{ vendor['username'] }} 
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="category_id" class="block text-gray-700 font-semibold mb-2">Category</label>
+            <select 
+                id="category_id" 
+                name="category_id" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                required
+            >
+                <option value="">Select a category</option>
+                {% for category in categories %}
+                <option value="{{ category['id'] }}" {% if category['id'] == edit_product['category_id'] %}selected{% endif %}>
+                    {{ category['name'] }} 
+                    {% if category['parent_id'] %}
+                        {% for parent in categories %}
+                            {% if parent['id'] == category['parent_id'] %}
+                                - Parent: {{ parent['name'] }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="featured_image" class="block text-gray-700 font-semibold mb-2">Featured Image (Leave blank to keep current)</label>
+            <input 
+                type="file" 
+                id="featured_image" 
+                name="featured_image" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+            {% if edit_product['featured_image'] %}
+            <p class="text-gray-600 mt-2">Current: <img src="{{ url_for('static', filename=edit_product['featured_image']) }}" alt="Featured Image" class="h-10 w-10 inline-block"></p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="additional_images" class="block text-gray-700 font-semibold mb-2">Additional Images (Add new, leave blank to keep existing)</label>
+            <input 
+                type="file" 
+                id="additional_images" 
+                name="additional_images" 
+                multiple 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                accept="image/*"
+            >
+            {% if additional_images %}
+            <p class="text-gray-600 mt-2">Current Images:</p>
+            <div class="flex space-x-2">
+                {% for img in additional_images %}
+                <img src="{{ url_for('static', filename=img['image_path']) }}" alt="Additional Image" class="h-10 w-10 object-cover rounded">
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="text-right space-x-2">
+            <button 
+                type="submit" 
+                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+            >
+                Save Changes
+            </button>
+            <a href="{{ url_for('admin_products') }}" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<!-- Products List -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Existing Products</h3>
+    {% if products %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">ID</th>
+                <th class="py-2 px-4 text-gray-700">Title</th>
+                <th class="py-2 px-4 text-gray-700">Price (BTC)</th>
+                <th class="py-2 px-4 text-gray-700">Stock</th>
+                <th class="py-2 px-4 text-gray-700">Vendor</th>
+                <th class="py-2 px-4 text-gray-700">Category</th>
+                <th class="py-2 px-4 text-gray-700">Featured Image</th>
+                <th class="py-2 px-4 text-gray-700">Additional Images</th>
+                <th class="py-2 px-4 text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ product['id'] }}</td>
+                <td class="py-2 px-4">{{ product['title'] }}</td>
+                <td class="py-2 px-4">{{ product['price_btc'] }}</td>
+                <td class="py-2 px-4">{{ product['stock'] }}</td>
+                <td class="py-2 px-4">
+                    {% for vendor in vendors %}
+                        {% if vendor['id'] == product['vendor_id'] %}
+                            {{ vendor['username'] }}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="py-2 px-4">
+                    {% for category in categories %}
+                        {% if category['id'] == product['category_id'] %}
+                            {{ category['name'] }}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="py-2 px-4">
+                    {% if product['featured_image'] %}
+                    <img src="{{ url_for('static', filename=product['featured_image']) }}" alt="{{ product['title'] }}" class="h-16 w-16 object-cover rounded">
+                    {% else %}
+                    No image
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4">
+                    {% for img in product_images if img['product_id'] == product['id'] %}
+                    <img src="{{ url_for('static', filename=img['image_path']) }}" alt="Additional Image" class="h-16 w-16 object-cover rounded inline-block mr-2">
+                    {% else %}
+                    No additional images
+                    {% endfor %}
+                </td>
+                <td class="py-2 px-4 space-x-2">
+                    <a href="{{ url_for('admin_edit_product', product_id=product['id']) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">Edit</a>
+                    <form method="POST" action="{{ url_for('admin_delete_product', product_id=product['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete {{ product['title'] }}?');">
+                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No products found.</p>
+    {% endif %}
+</div>
+{% endblock %}

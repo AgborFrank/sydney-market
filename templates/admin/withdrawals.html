@@ -1,0 +1,52 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}Admin - Process Withdrawals - {{ settings['site_name'] }}{% endblock %}
+{% block admin_content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Process Vendor Withdrawals</h1>
+
+    {% if withdrawals %}
+    <div class="bg-white p-6 rounded-lg shadow-md border overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b">
+                    <th class="py-2 px-4">Vendor</th>
+                    <th class="py-2 px-4">Requested At</th>
+                    <th class="py-2 px-4">Amount (USD)</th>
+                    <th class="py-2 px-4">Crypto</th>
+                    <th class="py-2 px-4">Crypto Amount</th>
+                    <th class="py-2 px-4">Wallet Address</th>
+                    <th class="py-2 px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in withdrawals %}
+                <tr class="border-b">
+                    <td class="py-2 px-4">{{ w['username'] }}</td>
+                    <td class="py-2 px-4">{{ w['requested_at'] }}</td>
+                    <td class="py-2 px-4">${{ "%.2f"|format(w['amount_usd']) }}</td>
+                    <td class="py-2 px-4">{{ w['crypto_currency'] }}</td>
+                    <td class="py-2 px-4">{{ "%.6f"|format(w['crypto_amount']) }}</td>
+                    <td class="py-2 px-4">{{ w['wallet_address']|truncate(20, True, '...') }}</td>
+                    <td class="py-2 px-4">
+                        <form method="POST" class="inline">
+                            <input type="hidden" name="withdrawal_id" value="{{ w['id'] }}">
+                            <button type="submit" name="action" value="process" 
+                                    class="bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600">
+                                Process
+                            </button>
+                            <button type="submit" name="action" value="fail" 
+                                    class="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600 ml-2">
+                                Fail
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No pending withdrawals.</p>
+    {% endif %}
+</div>
+{% endblock %}

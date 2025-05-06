@@ -1,0 +1,120 @@
+<!-- templates/category.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ category['name'] }} - {{ settings['site_name'] }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-6 gap-4">
+        <!-- Sidebar: Category Tree -->
+        <div class="lg:col-span-1">
+            <div class="bg-white p-4 rounded-lg shadow-md border sticky top-4">
+                <h2 class="text-md font-semibold text-gray-900 mb-4">Departments</h2>
+                <ul class="space-y-2 text-sm">
+                    {% for cat in top_level_categories %}
+                    <li>
+                        <a href="{{ url_for('public.category_products', category_id=cat['id']) }}" 
+                           class="text-gray-700 hover:text-primary {% if cat['id'] == category['id'] %}font-bold text-primary{% endif %}">
+                            {{ cat['name'] }}
+                        </a>
+                        {% if cat['subcategories'] %}
+                        <ul class="ml-4 space-y-1 mt-1">
+                            {% for subcat in cat['subcategories'] %}
+                            <li>
+                                <a href="{{ url_for('public.category_products', category_id=subcat['id']) }}" 
+                                   class="text-gray-600 hover:text-primary {% if subcat['id'] == category['id'] %}font-bold text-primary{% endif %}">
+                                    {{ subcat['name'] }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content: Category Products -->
+        <div class="lg:col-span-5 bg-white p-4 rounded-lg border shadow-md">
+           
+            <!-- Sponsored Products -->
+            {% if sponsored_products %}
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Sponsored Products</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for product in sponsored_products %}
+                    <div class="bg-yellow-50 p-4 rounded-lg shadow-md border border-yellow-200">
+                        <a href="{{ url_for('ad_click', ad_id=product['ad_id'], product_id=product['id']) }}">
+                            {% if product['featured_image'] %}
+                            <img src="{{ url_for('static', filename=product['featured_image']) }}" alt="{{ product['title'] }}" class="w-full h-48 object-cover rounded-md mb-2">
+                            {% endif %}
+                            <h2 class="text-md font-semibold text-gray-700">{{ product['title'] }}</h2>
+                            <p class="text-gray-600">{{ product['price_btc'] }} BTC</p>
+                            <p class="text-gray-500 text-sm">{{ product['description']|truncate(100) }}</p>
+                            <p class="text-gray-600 text-sm">Sold by: {{ product['username'] if product['username'] else 'Admin' }}</p>
+                            {% set rating_info = get_product_rating(product['id']) %}
+                            <div class="flex items-center mb-4">
+                                <span class="text-yellow-400">★</span>
+                                <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
+                            </div>
+                            <span class="text-primary hover:underline">View Details</span>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {% for product in products %}
+                <div class="bg-white p-4 rounded-lg border">
+                    <a href="{{ url_for('public.product_detail', product_id=product['id']) }}">
+                        {% if product['featured_image'] %}
+                        <div class="w-full h-40">
+                            <img src="{{ url_for('static', filename=product['featured_image']) }}" 
+                             alt="{{ product['title'] }}" 
+                             class="w-full h-full object-contain rounded-md mb-2">
+                        </div>
+                        {% endif %}
+                        <h2 class="text-md font-normal leading-0 text-gray-700">{{ product['title']|truncate(50)  }}</h2>
+                        <div class="flex justify-between">
+                            <p class="text-gray-600 font-bold">{{ product['price_usd'] }} USD</p>
+                            {%if product['original_price_usd'] %}
+                            <del class="text-gray-600">{{ product['original_price_usd'] }} USD</del>
+                            {%endif%}
+                        </div>
+                        
+                        <p class="text-gray-600 text-sm">Sold by: {{ product['username'] if product['username'] else 'Admin' }}</p>
+                        {% set rating_info = get_product_rating(product['id']) %}
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-400">★</span>
+                            <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
+                        </div>
+                        <span class="block w-full bg-primary text-gray-900 font-semibold py-0 px-4 rounded-md hover:bg-primary-90 text-center transition duration-200">See details</span>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% if not products %}
+            <p class="text-gray-600 mt-4">No products found in this category.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="bg-white p-4 rounded-lg border shadow-md mt-8">
+        <h1 class="text-xl font-bold text-gray-900 mb-1">About {{ category['name'] }}</h1>
+        <p class="text-gray-900 mb-6">{{ category['description'] }}</p>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('.has-subcategories').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            this.nextElementSibling.classList.toggle('hidden');
+        });
+    });
+</script>
+<!-- 
+<style>.hidden { display: none; }</style>
+-->
+{% endblock %}

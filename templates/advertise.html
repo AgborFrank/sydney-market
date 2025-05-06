@@ -1,0 +1,106 @@
+<!-- templates/advertise.html -->
+{% extends 'base.html' %}
+
+{% block title %}Advertise Your Products - {{ settings['site_name'] }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12">
+    <!-- Hero Section -->
+    <section class="text-center mb-16">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Advertise Your Products</h1>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">Boost your sales by sponsoring your products on {{ settings['site_name'] }}. Reach more customers with our powerful ads system.</p>
+        <svg class="h-16 w-16 text-primary mx-auto mt-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="mb-16">
+        <h2 class="text-3xl font-semibold text-gray-900 mb-8 text-center">How Our Ads System Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3-16H9" />
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">1. Fund Your Wallet</h3>
+                <p class="text-gray-600">Deposit BTC into your unique wallet address. Your balance funds your ad campaigns.</p>
+            </div>
+            <!-- Step 2 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01" />
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">2. Create Your Ad</h3>
+                <p class="text-gray-600">Choose a product, set a bid (BTC per click), and define a daily budget. Higher bids get better placement.</p>
+            </div>
+            <!-- Step 3 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">3. Reach Customers</h3>
+                <p class="text-gray-600">Your product appears as a sponsored listing. Pay only when customers click, up to your daily budget.</p>
+            </div>
+        </div>
+
+        <!-- Example -->
+        <div class="mt-12 bg-gray-100 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Example</h3>
+            <p class="text-gray-700 mb-2">Imagine you sell a "Crypto Gadget" for 0.01 BTC. You deposit 0.05 BTC into your wallet, then create an ad with:</p>
+            <ul class="list-disc list-inside text-gray-700 mb-4">
+                <li>Bid: 0.001 BTC per click</li>
+                <li>Daily Budget: 0.01 BTC</li>
+            </ul>
+            <p class="text-gray-700">Your gadget appears at the top of the "Electronics" category. If 10 customers click it in a day, you spend 0.01 BTC, hitting your budget. Your product stays visible until the budget is exhausted, driving more sales!</p>
+        </div>
+    </section>
+
+    <!-- Advantages Section -->
+    <section class="mb-16">
+        <h2 class="text-3xl font-semibold text-gray-900 mb-8 text-center">Advantages of Advertising With Us</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Advantage 1 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Increased Visibility</h3>
+                <p class="text-gray-600 text-sm">Sponsored products appear at the top, grabbing attention from more buyers.</p>
+            </div>
+            <!-- Advantage 2 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 8c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Pay-Per-Click Control</h3>
+                <p class="text-gray-600 text-sm">Only pay when customers click, with full control over your budget and bids.</p>
+            </div>
+            <!-- Advantage 3 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Secure BTC Payments</h3>
+                <p class="text-gray-600 text-sm">Fund your ads with Bitcoin, processed securely and credited instantly via our system.</p>
+            </div>
+            <!-- Advantage 4 -->
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Targeted Reach</h3>
+                <p class="text-gray-600 text-sm">Your ads appear in relevant categories, connecting you with interested buyers.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="text-center bg-primary text-gray-900 py-12 rounded-lg">
+        <h2 class="text-2xl font-semibold mb-4">Start Advertising Today</h2>
+        <p class="text-lg mb-6">Ready to grow your sales? Sign up as a vendor and sponsor your products now!</p>
+        <a href="{{ url_for('vendor_ads') }}" class="inline-block bg-white text-primary font-semibold py-3 px-6 rounded-md hover:bg-gray-100 transition duration-200">Get Started</a>
+    </section>
+</div>
+{% endblock %}

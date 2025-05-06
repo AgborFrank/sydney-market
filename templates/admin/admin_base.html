@@ -1,0 +1,142 @@
+<!-- templates/admin/admin_base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin - MarketPlace{% endblock %}</title>
+    <link href="/static/css/style.css" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+    <style>
+        :root {
+            --primary-color: {{ settings['primary_color'] }};
+            --secondary-color: {{ settings['secondary_color'] }};
+        }
+      
+        .bg-primary { background-color: var(--primary-color); }
+          .text-primary { color: var(--primary-color); }
+          .bg-secondary { background-color: var(--secondary-color); }
+          .text-secondary { color: var(--secondary-color); }
+          .focus\:ring-primary:focus { 
+              outline: none; 
+              ring: 2px solid var(--primary-color); 
+              --tw-ring-color: var(--primary-color); 
+          }
+          .hover\:bg-primary-90:hover { 
+              background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9); 
+          }.\
+      </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Admin Header -->
+    <header class="bg-gray-900 text-white py-4 px-6 flex items-center justify-between shadow-md">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 flex items-center space-x-4">
+                {% if settings['logo_path'] %}
+                <a href="{{ url_for('public.index') }}">
+                    <img src="{{ url_for('static', filename=settings['logo_path']) }}" alt="{{ settings['site_name'] }} Logo" class="h-10">
+                </a>
+                {% else %}
+                <span class="text-xl font-bold">{{ settings['site_name'] }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="text-sm">Welcome, {{ session['username'] if session['username'] else 'Admin' }}</span>
+            <a href="{{ url_for('admin.admin_logout') }}" class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500 transition duration-200">Logout</a>
+        </div>
+    </header>
+
+    <!-- Main Layout with Sidebar -->
+    <div class="flex flex-1">
+        <!-- Sidebar -->
+        <aside class="bg-gray-800 text-white w-64 flex-shrink-0">
+            <nav class="py-6">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center px-6 py-3 text-gray-100 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_dashboard' %}bg-gray-700{% endif %}">
+                            <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <!-- In <ul class="space-y-2"> -->
+                    <li>
+                        <a href="{{ url_for('admin.admin_categories') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_categories' %}bg-gray-700{% endif %}">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            Categories
+                        </a>
+                    </li>
+                   
+                    <li>
+                        <a href="{{ url_for('admin.admin_users') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_users' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4a4 4 0 100 8 4 4 0 000-8zm0 10c-3.86 0-7 1.79-7 4v2h14v-2c0-2.21-3.14-4-7-4z" /></svg>
+                       Manage Users
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_all_products') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_all_products' %}bg-gray-700{% endif %}">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                            Manage products
+                        </a>
+                    </li>
+                   
+                    <li>
+                        <a href="{{ url_for('admin.admin_orders') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_orders' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3V3zm2 2v14h14V5H5z" /></svg>
+                        Vendor Orders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_my_orders') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_my_orders' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0V3m0 2h4" /></svg>
+                        My Orders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('wallet.admin_withdrawals') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'wallet.admin_withdrawals' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4 0V3m0 2h4" /></svg>
+                        Withdrawals
+                        </a>
+                    </li>
+                    <!-- In <ul class="space-y-2"> -->
+                    <li>
+                        <a href="{{ url_for('admin.admin_messages') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_messages' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm9 6h.01" /></svg>
+                        Messages
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_packages') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_packages' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l9-6 9 6v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm9 6h.01" /></svg>
+                        Subscription
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_support') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_support' %}bg-gray-700{% endif %}">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-1.414-1.414M5.636 18.364l-1.414 1.414M12 9v6m-3-3h6" /></svg>
+                        Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_settings') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_settings' %}bg-gray-700{% endif %}">
+                          <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 14v2m6-10h2m-14 0H4m15.364-3.364l-1.414-1.414M6.05 17.95l-1.414-1.414M18.364 17.95l-1.414 1.414M5.636 5.636l-1.414 1.414" /></svg>
+                          Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_vendor_settings') }}" class="flex items-center px-4 py-2 hover:bg-gray-700 {% if request.endpoint == 'admin.admin_vendor_settings' %}bg-gray-700{% endif %}">
+                          <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 14v2m6-10h2m-14 0H4m15.364-3.364l-1.414-1.414M6.05 17.95l-1.414-1.414M18.364 17.95l-1.414 1.414M5.636 5.636l-1.414 1.414" /></svg>
+                          Market Settings
+                        </a>
+                      </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-gray-100 p-6">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

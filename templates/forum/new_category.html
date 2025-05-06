@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Create a forum category</h1>
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+    <form method="POST">
+      <div class="mb-4">
+        <label for="title" class="block text-gray-700 dark:text-gray-300 font-semibold">Category name</label>
+        <input type="text" name="title" id="title" placeholder="Enter a name for the forum category" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-gray-100" required>
+      </div>
+      <div class="mb-4">
+        <label for="description" class="block text-gray-700 dark:text-gray-300 font-semibold">Description</label>
+        <textarea name="description" id="description" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-gray-100" rows="4"></textarea>
+        <small class="opacity-70">Tell members what this category is about. Topics are grouped into various forum categories and categories makes it easy to group forum discussions</small>
+      </div>
+      <button type="submit" class="bg-yellow-400 text-gray-900 px-2 py-1 rounded-md hover:bg-yellow-500">Create Category</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

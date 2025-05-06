@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Forum</h1>
+  <div class="flex justify-end mb-4">
+    <a href="{{ url_for('forum.new_category') }}" class="bg-yellow-400 text-gray-900 px-2 py-1 rounded-md hover:bg-yellow-500">New Category</a>
+  </div>
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Categories</h2>
+    {% if categories %}
+      <div class="space-y-4">
+        {% for category in categories %}
+          <div class="border-b dark:border-gray-600 pb-4">
+            <a href="{{ url_for('forum.category', category_id=category.id) }}" class="text-lg font-semibold text-yellow-400 hover:underline">{{ category.title }}</a>
+            <p class="text-gray-700 dark:text-gray-300">{{ category.description or "No description" }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Created by {{ category.creator }} on {{ category.created_at }} | Threads: {{ category.thread_count }} | Posts: {{ category.post_count }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-700 dark:text-gray-300">No categories yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Favorites - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto">
+    <h1 class="text-3xl font-bold">Favorites</h1>
+    {% if favorites %}
+    <div class="grid grid-cols-3 gap-4">
+        {% for product in favorites %}
+        <div class="bg-white p-4 rounded">{{ product['title'] }}</div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No favorites.</p>
+    {% endif %}
+</div>
+{% endblock %}

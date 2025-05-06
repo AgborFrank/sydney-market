@@ -1,0 +1,72 @@
+<!-- templates/admin/users.html -->
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Manage Users - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Users</h2>
+
+<!-- Users Table -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">User List</h3>
+    {% if users %}
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2 px-4 text-gray-700">ID</th>
+                <th class="py-2 px-4 text-gray-700">Username</th>
+                <th class="py-2 px-4 text-gray-700">Role</th>
+                <th class="py-2 px-4 text-gray-700">Registered</th>
+                <th class="py-2 px-4 text-gray-700">Orders</th>
+                <th class="py-2 px-4 text-gray-700">Status</th>
+                <th class="py-2 px-4 text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-4">{{ user['id'] }}</td>
+                <td class="py-2 px-4">{{ user['username'] }}</td>
+                <td class="py-2 px-4">{{ user['role'] | capitalize }}</td>
+                <td class="py-2 px-4">{{ user['registered_at'] }}</td>
+                <td class="py-2 px-4">{{ user['order_count'] }}</td>
+                <td class="py-2 px-4">
+                    {% if user['active'] %}
+                    <span class="text-green-600">Active</span>
+                    {% else %}
+                    <span class="text-red-600">Suspended</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 px-4 space-x-2">
+                    {% if user['active'] %}
+                    <form method="POST" action="{{ url_for('admin.admin_suspend_user', user_id=user['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to suspend {{ user['username'] }}?');">
+                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Suspend</button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('admin.admin_reactivate_user', user_id=user['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to reactivate {{ user['username'] }}?');">
+                        <button type="submit" class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600 transition duration-200">Reactivate</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin.admin_promote_user', user_id=user['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to {% if user['role'] == 'user' %}promote{% else %}demote{% endif %} {{ user['username'] }} {% if user['role'] == 'user' %}to vendor{% else %}to user{% endif %}?');">
+                        <button type="submit" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">
+                            {% if user['role'] == 'user' %}Promote to Vendor{% else %}Demote to User{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No users found.</p>
+    {% endif %}
+</div>
+
+<!-- Success/Error Messages -->
+{% if success %}
+<p class="mt-4 text-green-600">{{ success }}</p>
+{% endif %}
+{% if error %}
+<p class="mt-4 text-red-600">{{ error }}</p>
+{% endif %}
+{% endblock %}

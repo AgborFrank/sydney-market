@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">New Thread in {{ category_title }}</h1>
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+    <form method="POST">
+      <div class="mb-4">
+        <label for="title" class="block text-gray-700 dark:text-gray-300 font-semibold">Thread Title</label>
+        <input type="text" name="title" id="title" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-gray-100" required>
+      </div>
+      <div class="mb-4">
+        <label for="content" class="block text-gray-700 dark:text-gray-300 font-semibold">Initial Post</label>
+        <textarea name="content" id="content" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:text-gray-100" rows="6" required></textarea>
+      </div>
+      <button type="submit" class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">Create Thread</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

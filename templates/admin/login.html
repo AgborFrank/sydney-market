@@ -1,0 +1,100 @@
+<!-- templates/admin/login.html -->
+{% extends 'auth/base.html' %}
+{% block title %}Admin Login - {{ settings['site_name'] }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h1>
+        
+        {% if step == 'pin' %}
+        <!-- Step 2: PIN Entry -->
+        <form method="POST" action="{{ url_for('admin.admin_login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="username" value="{{ username }}">
+            
+            <!-- Login Phrase Display -->
+            <div class="mb-4 p-4 bg-gray-100 rounded-md">
+                <p class="text-gray-700 font-semibold">Your Login Phrase:</p>
+                <p class="text-gray-900">{{ login_phrase }}</p>
+                <p class="text-gray-600 text-sm mt-1">Verify this matches your set phrase to ensure you're on the real site.</p>
+            </div>
+
+            <!-- PIN Field -->
+            <div class="mb-6">
+                <label for="pin" class="block text-gray-700 font-semibold mb-2">2FA PIN</label>
+                <input 
+                    type="text" 
+                    id="pin" 
+                    name="pin" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                    placeholder="Enter your 6-digit PIN" 
+                    pattern="\d{6}" 
+                    maxlength="6" 
+                    required
+                >
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button 
+                    type="submit" 
+                    class="w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+                >
+                    Verify PIN
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <!-- Step 1: Username and Password -->
+        <form method="POST" action="{{ url_for('admin.admin_login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <!-- Username Field -->
+            <div class="mb-4">
+                <label for="username" class="block text-gray-700 font-semibold mb-2">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                    placeholder="Enter your username" 
+                    required
+                >
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 font-semibold mb-2">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
+                    placeholder="Enter your password" 
+                    required
+                >
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button 
+                    type="submit" 
+                    class="w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+                >
+                    Log In
+                </button>
+                <p class="mt-2 text-gray-600">
+                    Need an account? <a href="{{ url_for('admin.admin_register') }}" class="text-yellow-400 hover:text-yellow-500">Register</a>
+                </p>
+            </div>
+        </form>
+        {% endif %}
+
+        <!-- Error Message -->
+        {% if error %}
+        <p class="mt-4 text-red-600 text-center">{{ error }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

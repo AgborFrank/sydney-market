@@ -1,0 +1,17 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Disputes - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto">
+    <h1 class="text-3xl font-bold">Disputes</h1>
+    {% if disputes %}
+    <table class="w-full">
+        <tr><th>ID</th><th>Order</th><th>Vendor</th><th>Reason</th></tr>
+        {% for dispute in disputes %}
+        <tr><td>{{ dispute['id'] }}</td><td>{{ dispute['title'] }}</td><td>{{ dispute['vendor_username'] }}</td><td>{{ dispute['reason'] }}</td></tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>No disputes.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+<!-- templates/how_to_pay.html -->
+{% extends 'base.html' %} {% block title %}How to Pay - DarkVault{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">How to Pay on DarkVault</h1>
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <p class="text-gray-600 mb-4">Last Updated: [Insert Date]</p>
+    <p class="text-gray-700 mb-6">
+      Paying on DarkVault is secure and straightforward using Bitcoin (BTC) via
+      our 2-of-3 multisig escrow system. Follow these steps to complete your
+      purchase. This guide assumes basic knowledge of Bitcoin.
+    </p>
+
+    <!-- Steps Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      <!-- Step 1: Set Up a Bitcoin Wallet -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 1: Set Up a Bitcoin Wallet
+        </h2>
+        <p class="text-gray-600">
+          Download a Bitcoin wallet (e.g., Electrum, Trust Wallet) on your
+          device. Create a new wallet, back up your seed phrase securely, and
+          generate a BTC address. For privacy, use a new address for each
+          transaction.
+        </p>
+      </div>
+
+      <!-- Step 2: Acquire Bitcoin -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 2: Acquire Bitcoin
+        </h2>
+        <p class="text-gray-600">
+          Buy BTC from an exchange (e.g., Binance, LocalBitcoins) or a
+          peer-to-peer service. Transfer it to your wallet. Ensure you have
+          enough BTC to cover the product price plus a small network fee.
+        </p>
+      </div>
+
+      <!-- Step 3: Find a Product -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 3: Find a Product
+        </h2>
+        <p class="text-gray-600">
+          Browse or search for products on DarkVault. Click on a product to view
+          details, then select “Buy Now” to start the checkout process. You’ll
+          need a registered account to proceed.
+        </p>
+      </div>
+
+      <!-- Step 4: Send Payment to Escrow -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 4: Send Payment to Escrow
+        </h2>
+        <p class="text-gray-600">
+          After checkout, you’ll see a multisig escrow address (2-of-3: buyer,
+          vendor, DarkVault). Open your wallet, send the exact BTC amount shown
+          (e.g., 0.001 BTC) to this address. Use the QR code for ease.
+        </p>
+      </div>
+
+      <!-- Step 5: Confirm Payment -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 5: Confirm Payment
+        </h2>
+        <p class="text-gray-600">
+          Once sent, click “Confirm Payment” on the order page. DarkVault
+          verifies the transaction (usually within [specify timeframe, e.g.,
+          10-30 minutes]). The order status updates to “paid” when confirmed.
+        </p>
+      </div>
+
+      <!-- Step 6: Receive Your Product -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 6: Receive Your Product
+        </h2>
+        <p class="text-gray-600">
+          The vendor ships your order after payment is locked in escrow (status:
+          “shipped”). Track updates via your Orders page or encrypted messages.
+          Delivery times vary by vendor.
+        </p>
+      </div>
+
+      <!-- Step 7: Release Funds -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 7: Release Funds
+        </h2>
+        <p class="text-gray-600">
+          After receiving and verifying your product, go to your Orders page and
+          click “Release” to send BTC from escrow to the vendor. This must be
+          done within [specify timeframe, e.g., 7 days].
+        </p>
+      </div>
+
+      <!-- Step 8: Handle Disputes (if needed) -->
+      <div class="bg-gray-50 p-4 rounded-md shadow-sm">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">
+          Step 8: Handle Disputes (if needed)
+        </h2>
+        <p class="text-gray-600">
+          If there’s an issue (e.g., non-delivery), click “Dispute” within
+          [specify timeframe, e.g., 14 days]. Provide evidence via encrypted
+          messages. Admins mediate and may refund or release funds.
+        </p>
+      </div>
+    </div>
+
+    <!-- Additional Tips -->
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Additional Tips</h2>
+    <ul class="list-disc pl-6 text-gray-600 mb-6">
+      <li>
+        <strong>Double-Check:</strong> Verify the escrow address before sending
+        BTC to avoid errors.
+      </li>
+      <li>
+        <strong>Fees:</strong> Include a small network fee in your wallet
+        transaction for faster confirmation.
+      </li>
+      <li>
+        <strong>Security:</strong> Keep your wallet and PGP keys secure to
+        protect your funds and privacy.
+      </li>
+      <li>
+        <strong>Support:</strong> Contact us via the messaging system or
+        PGP-encrypted message to [insert admin PGP key or contact method] if you
+        need help.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Back to Home -->
+  <div class="mt-6">
+    <a
+      href="{{ url_for('public.index') }}"
+      class="inline-block bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+    >
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

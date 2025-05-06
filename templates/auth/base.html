@@ -1,0 +1,58 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="title" content="{{ settings['meta_title'] }}" />
+    <meta name="description" content="{{ settings['meta_description'] }}" />
+    <title>{% block title %}{{ settings['site_name'] }}{% endblock %}</title>
+    <link href="/static/css/style.css" rel="stylesheet" />
+    <link href="/static/style.css" rel="stylesheet" />
+    <style>
+      :root {
+          --primary-color: {{ settings['primary_color'] }};
+          --secondary-color: {{ settings['secondary_color'] }};
+      }
+      .container {
+        max-width: 1280px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .bg-primary { background-color: var(--primary-color); }
+      .text-primary { color: var(--primary-color); }
+      .bg-secondary { background-color: var(--secondary-color); }
+      .text-secondary { color: var(--secondary-color); }
+      .focus\:ring-primary:focus { 
+          outline: none; 
+          ring: 2px solid var(--primary-color); 
+          --tw-ring-color: var(--primary-color); 
+      }
+      .hover\:bg-primary-90:hover { 
+          background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9); 
+      }
+      /* Center the entire page content */
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* Full viewport height */
+        justify-content: center; /* Vertically center */
+        align-items: center; /* Horizontally center */
+        background-color: var(--secondary-color);
+      }
+      main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        flex-grow: 1; /* Allows main to take available space */
+      }
+    </style>
+  </head>
+  <body>
+    
+
+    <main>
+        {% block content %}{% endblock %}</main>
+  </body>
+</html>
