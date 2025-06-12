@@ -1,0 +1,311 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Edit Profile - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-xl text-white">My Profile Information</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney  2xl:text-left font-bold">
+    Update your account details below. Vendors must maintain a PGP key and 2FA. To change your security PIN, provide your mnemonic code.
+  </h3>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form name="formProfile" action="{{ url_for('user.update_profile') }}" method="post" enctype="multipart/form-data" class="w-full 2xl:w-[calc(100%-300px)]">
+    {{ form.csrf_token }}
+    <div class="flex flex-wrap gap-1 px-0.5 py-2 rounded-md w-full text-sydney">
+        <div class="w-full text-lg font-bold text-center text-white bg-sydney uppercase px-2 py-1 mb-2 rounded-md">My Information</div>
+
+        <div class="text-sm mx-auto text-center font-bold uppercase">Here, you can edit your profile information including your password, profile text and PGP key.</div>
+
+        <p class="error text-black">Be careful to avoid putting information that may reveal your true identity, such as real-life website, name, or any piece of information that would allow somebody to find out who you really are.</p>
+
+        <p class="info">We value the privacy and safety of our users. Please note that your username cannot be changed. You can leave the password fields blank if you do not wish to change it.</p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="w-full text-center text-green-500 font-bold">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <style>
+          @media (max-width: 1000px) {
+              #thm-pr:checked ~ #thm-pr-cont,
+              #srh-pr:checked ~ #srh-pr-cont,
+              #mul-pr:checked ~ #mul-pr-cont,
+              #pas-pr:checked ~ #pas-pr-cont,
+              #pin-pr:checked ~ #pin-pr-cont,
+              #sec-pr:checked ~ #sec-pr-cont,
+              #set-pr:checked ~ #set-pr-cont,
+              #vet-pr:checked ~ #vet-pr-cont,
+              #set-pr-cont:focus > #set-pr-l {
+                  height: auto;
+                  width: 100% !important;
+              }
+              #thm-pr:checked ~ #thm-pr-cont #thm-pr-l,
+              #srh-pr:checked ~ #srh-pr-cont #srh-pr-l,
+              #mul-pr:checked ~ #mul-pr-cont #mul-pr-l,
+              #pas-pr:checked ~ #pas-pr-cont #pas-pr-l,
+              #pin-pr:checked ~ #pin-pr-cont #pin-pr-l,
+              #set-pr:checked ~ #set-pr-cont #set-pr-l,
+              #vet-pr:checked ~ #vet-pr-cont #vet-pr-l {
+                  display: grid !important;
+              }
+              #sec-pr:checked ~ #sec-pr-cont #sec-pr-l,
+              #set-pr-cont:focus > #set-pr-l {
+                  display: flex !important;
+              }
+          }
+      </style>
+
+        <input type="checkbox" name="settings" id="set-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="sec-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="mul-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="pas-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="pin-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="thm-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="srh-pr" class="hidden absolute" />
+        <input type="checkbox" name="settings" id="vet-pr" class="hidden absolute" />
+
+        <!-- Profile Information -->
+        <div class="w-full p-2 mb-2 border-solid border-0  border-sydney mt-5 font-bold text-base flex items-center gap-2 "><i class="gg-user"></i> PROFILE SETTINGS SECTION</div>
+
+        <div id="set-pr-cont" class="w-full xl15:w-[49%] 2xl:w-full group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+            <label for="set-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+                <i class="gg-bookmark"></i> Profile Information
+            </label>
+
+            <div id="set-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] gap-y-2 items-center">
+                <span class="font-bold">My Jabber:</span>
+                <input name="da_jabber" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" type="text" value="{{ current_user.jabber|default('') }}" maxlength="255" />
+
+                <span class="font-bold">Profile text:</span>
+                <textarea name="da_description" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" rows="6" cols="80" maxlength="2000">{{ current_user.description|default('') }}</textarea>
+
+                <span class="font-bold">Login phrase:</span>
+                <input name="da_passphrase" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" type="text" value="{{ current_user.login_phrase|default('') }}" maxlength="100" />
+
+                <span class="font-bold w-[100px]">Currency:</span>
+                <select name="da_currencyid" class="border-solid mr-2 rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max bg-white">
+                    {% for currency in ['USD', 'AUD', 'NZD', 'CAD', 'CHF', 'CNY', 'DKK', 'EUR', 'GBP', 'HKD', 'INR', 'JPY', 'PLN', 'RUB', 'SEK', 'NOK', 'RON', 'BRL', 'TRY', 'HUF', 'CZK', 'MXN', 'IDR'] %}
+                        <option value="{{ currency }}" {% if current_user.currencyid == currency %}selected{% endif %}>{{ currency }}</option>
+                    {% endfor %}
+                </select>
+
+                <span class="font-bold w-[100px]">Stealth mode:</span>
+                <select name="da_stealth" class="border-solid mr-2 rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max bg-white">
+                    <option value="1" {% if current_user.stealth == 1 %}selected{% endif %}>Yes</option>
+                    <option value="0" {% if current_user.stealth == 0 %}selected{% endif %}>No</option>
+                </select>
+
+                <div class="col-span-2 text-xs w-full px-3 py-1 rounded-md bg-sydney bg-opacity-10 border-solid border border-border text-center">If you activate stealth mode you will see cars images instead of the original one.</div>
+
+                <span class="font-bold">Change avatar:</span>
+                <input id="da_image" name="da_image" type="file" class="rounded-md px-2 py-[4px] hover:border-sydney text-sydney" accept=".png,.jpg,.jpeg" />
+            </div>
+        </div>
+
+        <!-- Multisig Information -->
+        <div id="mul-pr-cont" class="w-full xl15:w-[49%] 2xl:w-full group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+            <label for="mul-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+                <i class="gg-bot"></i> Multisig Information
+            </label>
+
+            <div id="mul-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+                <span class="font-bold">Public key:</span>
+                <textarea class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" name="da_multisig" cols="80" rows="2" maxlength="2000">{{ current_user.multisig|default('') }}</textarea>
+
+                <span class="font-bold">Refund Address:</span>
+                <textarea class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" name="da_refund" cols="80" rows="2" maxlength="2000">{{ current_user.refund|default('') }}</textarea>
+            </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="w-full p-2 mb-2 border-solid border-0  border-sydney mt-5 font-bold text-base flex items-center gap-2"><i class="gg-user"></i> SECURITY SETTINGS SECTION</div>
+
+        <div id="sec-pr-cont" class="w-full xl15:w-[49%] 2xl:w-full group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+            <label for="sec-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+                <i class="gg-lock"></i> Security Settings
+            </label>
+
+            <div id="sec-pr-l" class="hidden 2xl:flex flex-wrap justify-start items-center gap-y-2">
+                <div class="text-sm text-center mx-auto px-3 py-1 mt-2 border-solid border-r-0 border-l-0 border border-sydney">
+                    For any changes in security settings section is necessary to enter your current pin in the field below this message.
+                </div>
+
+                <div id="sec-cont" class="w-full grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+                    <span class="w-[100px] font-bold">Current PIN:</span>
+                    <input name="da_pincb" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max" minlength="6" maxlength="6" type="password" placeholder="PIN" />
+
+                    <div class="col-span-2">
+                        <p><b>How to add PGP and Activate 2-FA</b></p>
+                        <p>1. Enter your PIN on the field above and add your public PGP Key and click on save changes.</p>
+                        <p>2. Page will reload with a PGP encrypted message, decrypt it and do not forget to introduce your PIN once again before saving changes.</p>
+                        <p>3. Your PGP should have been added now. Click on select enable 2FA and introduce your PIN once again before clicking on save changes.</p>
+                    </div>
+
+                    <span class="font-bold">PGP public key:</span>
+                    <textarea name="da_pgp" class="border-solid text-xs leading-tight rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" rows="17" cols="110" maxlength="5000">{{ current_user.pgp_public_key|default('') }}</textarea>
+
+                    <span class="font-bold">2FA:</span>
+                    <select name="da_factor" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full xl15:w-max bg-white">
+                        <option value="0" {% if not current_user.two_factor_secret %}selected{% endif %}>Disabled</option>
+                        <option value="1" {% if current_user.two_factor_secret %}selected{% endif %}>Enabled</option>
+                    </select>
+
+                    <span class="font-bold">Purchases 1:</span>
+                    <select name="da_canbuy" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full xl15:w-max bg-white">
+                        <option value="1" {% if current_user.canbuy == 1 %}selected{% endif %}>Allow purchasing listings</option>
+                        <option value="0" {% if current_user.canbuy == 0 %}selected{% endif %}>Do not allow purchasing listings</option>
+                    </select>
+
+                    <span class="font-bold">Purchases 2:</span>
+                    <select name="da_pinbuy" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full xl15:w-max bg-white">
+                        <option value="0" {% if current_user.pinbuy == 0 %}selected{% endif %}>Do not require PIN on purchases</option>
+                        <option value="1" {% if current_user.pinbuy == 1 %}selected{% endif %}>Require PIN on purchases</option>
+                    </select>
+
+                    <span id="PhishingProtection" class="font-bold">Phishing Protection:</span>
+                    <select name="da_phis" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full xl15:w-max bg-white">
+                        <option value="0" {% if current_user.phis == 0 %}selected{% endif %}>No</option>
+                        <option value="1" {% if current_user.phis == 1 %}selected{% endif %}>Yes</option>
+                    </select>
+
+                    <div class="col-span-2 text-xs w-full px-3 py-1 mt-0 rounded-md bg-sydney bg-opacity-10 border-solid border border-border">
+                        <p><b>Phishing Protection:</b> This option disables the QR code for deposit automatically generated and replaces it with a PGP signed message that will contain the user deposit address, encrypted with the user's PGP key.</p>
+                        <span class="bg-sydney w-[fit-content] mx-auto px-1 bg-opacity-10 font-bold flex text-center rounded">To use this option your profile must have a PGP key assigned.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex md:flex-row flex-col w-full gap-4">
+        <!-- Password -->
+        <div id="pas-pr-cont" class="w-full xl15:w-[49%] 2xl:w-[calc(50%-4px)] group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+            <label for="pas-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+                <i class="gg-key mr-2"></i> Password Information
+            </label>
+
+            <div id="pas-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+                <span class="font-bold">Current:</span>
+                <input name="da_passac" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" size="60" maxlength="128" type="password" />
+
+                <span class="font-bold">New password:</span>
+                <input name="da_passwd" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" size="60" minlength="8" maxlength="128" type="password" />
+
+                <span class="font-bold">Confirm:</span>
+                <input name="da_passcf" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" size="60" minlength="8" maxlength="128" type="password" />
+            </div>
+        </div>
+
+        <!-- PIN -->
+        <div id="pin-pr-cont" class="w-full xl15:w-[49%] 2xl:w-[calc(50%-4px)] group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+            <label for="pin-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+                <i class="gg-dialpad mr-1"></i> Six-digit PIN Information
+            </label>
+
+            <div id="pin-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+                <span class="font-bold">Current PIN:</span>
+                <input name="da_pinac" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max" size="10" minlength="6" maxlength="6" type="password" />
+
+                <span class="font-bold">New PIN:</span>
+                <input name="da_pinwd" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max" size="10" minlength="6" maxlength="6" type="password" />
+
+                <span class="font-bold">Confirm:</span>
+                <input name="da_pincf" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max" size="10" minlength="6" maxlength="6" type="password" />
+            </div>
+        </div>
+      </div>
+
+        <!-- Theme Settings -->
+        <div class="w-full p-2 mb-2 border-solid border-0  border-sydney mt-5 font-bold text-base flex items-center gap-2"><i class="gg-user"></i> DESIGN / THEME SETTINGS SECTION</div>
+
+       <div class="flex md:flex-row flex-col w-full gap-4">
+        <div id="thm-pr-cont" class="w-full xl15:w-[49%] 2xl:w-[calc(50%-4px)] group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+          <label for="thm-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+              <i class="gg-dark-mode"></i> Theme Settings
+          </label>
+
+          <div id="thm-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+              <span class="font-bold">Menu follow on scroll?</span>
+              <select name="da_menu_follow" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max bg-white">
+                  <option value="1" {% if current_user.menu_follow == 1 %}selected{% endif %}>Yes</option>
+                  <option value="0" {% if current_user.menu_follow == 0 %}selected{% endif %}>No</option>
+              </select>
+
+              <span class="font-bold">Search results feedback system:</span>
+              <select name="da_feedback" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max bg-white">
+                  <option value="0" {% if current_user.feedback == 0 %}selected{% endif %}>Stars</option>
+                  <option value="1" {% if current_user.feedback == 1 %}selected{% endif %}>Numbers</option>
+              </select>
+          </div>
+      </div>
+
+      <!-- Search Settings -->
+      <div id="srh-pr-cont" class="w-full xl15:w-[49%] 2xl:w-[calc(50%-4px)] group mx-auto border-solid border border-border hover:border-sydney rounded-md px-2 py-1">
+          <label for="srh-pr" class="w-full py-1 my-1 border-solid rounded-md border border-sydney text-center mx-auto flex items-center justify-center group-hover:text-white group-hover:bg-sydney bg-sydney text-sydney gap-2">
+              <i class="gg-search"></i> Search Settings
+          </label>
+
+          <div id="srh-pr-l" class="hidden 2xl:grid grid-cols-[100px,calc(100%-100px)] items-center gap-y-2">
+              <div class="col-span-2 flex items-center">
+                  <span class="font-bold w-[100px]">Default Ship-to:</span>
+                  <select style="width: 200px;" name="sd_tocountryid" class="border-solid mr-2 rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max ">
+                      <option value="-1" {% if current_user.tocountryid == -1 %}selected{% endif %}>Any</option>
+                      <option value="331" {% if current_user.tocountryid == 331 %}selected{% endif %}>Australia</option>
+                      <option value="227" {% if current_user.tocountryid == 227 %}selected{% endif %}>United States</option>
+                      <option value="209" {% if current_user.tocountryid == 209 %}selected{% endif %}>Canada</option>
+                      <option value="285" {% if current_user.tocountryid == 285 %}selected{% endif %}>United Kingdom</option>
+                      <option value="257" {% if current_user.tocountryid == 257 %}selected{% endif %}>Germany</option>
+                      <option value="255" {% if current_user.tocountryid == 255 %}selected{% endif %}>France</option>
+                      <option value="301" {% if current_user.tocountryid == 301 %}selected{% endif %}>Japan</option>
+                      <option value="230" {% if current_user.tocountryid == 230 %}selected{% endif %}>Brazil</option>
+                      <option value="296" {% if current_user.tocountryid == 296 %}selected{% endif %}>India</option>
+                      <option value="388" {% if current_user.tocountryid == 388 %}selected{% endif %}>South Africa</option>
+                  </select>
+              </div>
+              <div class="col-span-2 flex items-center">
+                  <span class="font-bold w-[100px]">Default Origin:</span>
+                  <select style="width: 200px;" name="sd_countryid" class="border-solid mr-2 rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-max bg-white">
+                      <option value="-1" {% if current_user.countryid == -1 %}selected{% endif %}>Any</option>
+                      <option value="331" {% if current_user.countryid == 331 %}selected{% endif %}>Australia</option>
+                      <option value="227" {% if current_user.countryid == 227 %}selected{% endif %}>United States</option>
+                      <option value="209" {% if current_user.countryid == 209 %}selected{% endif %}>Canada</option>
+                      <option value="285" {% if current_user.countryid == 285 %}selected{% endif %}>United Kingdom</option>
+                      <option value="257" {% if current_user.countryid == 257 %}selected{% endif %}>Germany</option>
+                      <option value="255" {% if current_user.countryid == 255 %}selected{% endif %}>France</option>
+                      <option value="301" {% if current_user.countryid == 301 %}selected{% endif %}>Japan</option>
+                      <option value="230" {% if current_user.countryid == 230 %}selected{% endif %}>Brazil</option>
+                      <option value="296" {% if current_user.countryid == 296 %}selected{% endif %}>India</option>
+                      <option value="388" {% if current_user.countryid == 388 %}selected{% endif %}>South Africa</option>
+                  </select>
+              </div>
+              <div class="col-span-2 flex items-center">
+                  <span class="font-bold w-[100px]">Discard WW shipping:</span>
+                  <input type="checkbox" name="sd_discardww" value="1" {% if current_user.discardww == 1 %}checked{% endif %} class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" />
+              </div>
+          </div>
+      </div>
+
+       </div>
+
+        <!-- Save Changes -->
+        <div class="w-full text-center">
+            <input type="submit" name="update" value="Save Changes" class="border-solid rounded-md border border-sydney bg-sydney text-white hover:bg-white hover:text-sydney px-4 py-2 mt-4 cursor-pointer" />
+        </div>
+    </div>
+</form>
+</div>
+{% endblock %}

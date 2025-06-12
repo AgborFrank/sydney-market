@@ -1,186 +1,93 @@
-<!-- templates/support.html -->
-{% extends 'user/user_base.html' %}
-
-{% block title %}Support - {{ settings['site_name'] }}{% endblock %}
+{% extends "user/user_base.html" %}
 
 {% block user_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Support Tickets</h2>
+<div class="bg-gray-900 min-h-screen text-gray-100">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-lg leading-[16px] uppercase font-bold mb-2 text-white">Sydney Support</h1>
 
-<!-- Create Ticket Form -->
-{% if not ticket %}
-<div class="bg-white p-6 rounded-lg shadow-md mb-8">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Create a New Ticket</h3>
-    <form method="POST" action="{{ url_for('user.support') }}" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="hidden" name="action" value="create">
-        <div>
-            <label for="subject" class="block text-gray-700 font-semibold mb-2">Subject</label>
-            <input 
-                type="text" 
-                id="subject" 
-                name="subject" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter ticket subject" 
-                required
-            >
+    <!-- Support Ticket Form -->
+    <div class=" p-6 mb-8">
+      <h2 class="text-[18px] leading-[16px] uppercase font-bold mb-8 text-white">Submit a New Ticket</h2>
+      <form method="POST" class="space-y-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="flex items-center space-x-4">
+          <label for="subject" class="block text-sm font-medium text-gray-300">Subject</label>
+          <input type="text" name="subject" id="subject" required
+                 class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 placeholder="Enter ticket subject">
+        </div>
+        <div class="flex items-center space-x-4">
+          <label for="category" class="block text-sm font-medium text-gray-300">Category</label>
+          <select name="category" id="category" required
+                  class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            {% for category in categories %}
+            <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-center space-x-4">
+          <label for="priority" class="block text-sm font-medium text-gray-300">Priority</label>
+          <select name="priority" id="priority" required
+                  class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            {% for priority in priorities %}
+            <option value="{{ priority }}">{{ priority }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-center space-x-4">
+          <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
+          <textarea name="description" id="description" required rows="5"
+                    class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Describe your issue in detail"></textarea>
         </div>
         <div>
-            <label for="category" class="block text-gray-700 font-semibold mb-2">Category</label>
-            <select 
-                id="category" 
-                name="category" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                required
-            >
-                <option value="General">General</option>
-                <option value="Technical">Technical</option>
-                <option value="Billing">Billing</option>
-                {% if session['role'] == 'user' %}
-                <option value="Vendor Request">Become a vendor</option>
-                {%endif%}
-                <option value="Other">Other</option>
-            </select>
+          <button type="submit"
+                  class="bg-red-800 text-white px-6 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Submit Ticket
+          </button>
         </div>
-        <div>
-            <label for="priority" class="block text-gray-700 font-semibold mb-2">Priority</label>
-            <select 
-                id="priority" 
-                name="priority" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                required
-            >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-            </select>
-        </div>
-        <div>
-            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
-            <textarea 
-                id="description" 
-                name="description" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                rows="5" 
-                placeholder="Describe your issue" 
-                required
-            ></textarea>
-        </div>
-        <div class="text-right">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Submit Ticket
-            </button>
-        </div>
-    </form>
-</div>
+      </form>
+    </div>
 
-<!-- Ticket List -->
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Your Tickets</h3>
-    {% if tickets %}
-    <table class="w-full text-left">
-        <thead>
-            <tr class="border-b">
-                <th class="py-2 px-4 text-gray-700">Ticket ID</th>
-                <th class="py-2 px-4 text-gray-700">Subject</th>
-                <th class="py-2 px-4 text-gray-700">Category</th>
-                <th class="py-2 px-4 text-gray-700">Priority</th>
-                <th class="py-2 px-4 text-gray-700">Status</th>
-                <th class="py-2 px-4 text-gray-700">Responses</th>
-                <th class="py-2 px-4 text-gray-700">Last Updated</th>
-                <th class="py-2 px-4 text-gray-700">Action</th>
+    <!-- Existing Tickets -->
+    <div class=" p-6">
+      <h2 class="text-2xl font-semibold mb-6 text-white">Your Tickets</h2>
+      {% if tickets %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-700">
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">ID</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Subject</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Category</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Priority</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Status</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Created</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Actions</th>
             </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
             {% for ticket in tickets %}
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-4">{{ ticket['id'] }}</td>
-                <td class="py-2 px-4">{{ ticket['subject'] }}</td>
-                <td class="py-2 px-4">{{ ticket['category'] }}</td>
-                <td class="py-2 px-4">{{ ticket['priority'] }}</td>
-                <td class="py-2 px-4">{{ ticket['status'] | capitalize }}</td>
-                <td class="py-2 px-4">{{ ticket['response_count'] }}</td>
-                <td class="py-2 px-4">{{ ticket['updated_at'] }}</td>
-                <td class="py-2 px-4">
-                    <a href="{{ url_for('user.view_ticket', ticket_id=ticket['id']) }}" class="text-blue-500 hover:underline">View</a>
-                </td>
+            <tr class="hover:bg-gray-600">
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.id }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.subject }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.category }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.priority }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.status|capitalize }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.created_at }}</td>
+              <td class="border border-gray-600 px-4 py-2">
+                <a href="{{ url_for('user.view_ticket', ticket_id=ticket.id) }}"
+                   class="text-blue-400 hover:text-blue-300">View</a>
+              </td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="text-gray-600">No tickets found.</p>
-    {% endif %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-gray-400">You have no support tickets.</p>
+      {% endif %}
+    </div>
+  </div>
 </div>
-{% endif %}
-
-<!-- Ticket Details -->
-{% if ticket %}
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Ticket #{{ ticket['id'] }}: {{ ticket['subject'] }}</h3>
-    <p><strong>Category:</strong> {{ ticket['category'] }}</p>
-    <p><strong>Priority:</strong> {{ ticket['priority'] }}</p>
-    <p><strong>Status:</strong> {{ ticket['status'] | capitalize }}</p>
-    <p><strong>Created:</strong> {{ ticket['created_at'] }}</p>
-    <p><strong>Last Updated:</strong> {{ ticket['updated_at'] }}</p>
-    <p><strong>Description:</strong> {{ ticket['description'] }}</p>
-    
-    <h4 class="text-md font-semibold text-gray-700 mt-4 mb-2">Responses</h4>
-    {% if responses %}
-    <ul class="space-y-2">
-        {% for response in responses %}
-        <li class="border-b py-2">
-            <p><strong>{{ 'Admin' if response['sender_id'] != session['user_id'] else 'You' }} ({{ response['created_at'] }}):</strong></p>
-            <p>
-                {% if response['encrypted_body'] %}
-                <span class="text-gray-600 italic">Encrypted Response</span>
-                {% else %}
-                {{ response['body'] }}
-                {% endif %}
-            </p>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-gray-600">No responses yet.</p>
-    {% endif %}
-    
-    {% if ticket['status'] not in ['resolved', 'closed'] %}
-    <form method="POST" action="{{ url_for('user.support') }}" class="space-y-4 mt-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="hidden" name="action" value="reply">
-        <input type="hidden" name="ticket_id" value="{{ ticket['id'] }}">
-        <div>
-            <label for="body" class="block text-gray-700 font-semibold mb-2">Your Response</label>
-            <textarea 
-                id="body" 
-                name="body" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                rows="3" 
-                placeholder="Enter your response" 
-                required
-            ></textarea>
-        </div>
-        <div class="text-right">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Send Response
-            </button>
-        </div>
-    </form>
-    {% endif %}
-    <a href="{{ url_for('support') }}" class="mt-4 inline-block text-blue-500 hover:underline">Back to Tickets</a>
-</div>
-{% endif %}
-
-{% if success %}
-<p class="mt-4 text-green-600">{{ success }}</p>
-{% endif %}
-{% if error %}
-<p class="mt-4 text-red-600">{{ error }}</p>
-{% endif %}
 {% endblock %}

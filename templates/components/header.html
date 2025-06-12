@@ -1,153 +1,494 @@
-<!-- templates/header.html -->
-<header class="bg-secondary text-white sticky top-0 z-50 menu">
-    <div class="container mx-auto px-4 py-2">
-        <div class="flex items-center justify-between flex-wrap">
-            <!-- Logo/Name -->
-            <div class="flex-shrink-0 flex items-center space-x-4">
-                {% if settings['logo_path'] %}
-                <a href="{{ url_for('public.index') }}">
-                    <img src="{{ url_for('static', filename=settings['logo_path']) }}" alt="{{ settings['site_name'] }} Logo" class="h-10">
-                </a>
-                {% else %}
-                <span class="text-xl font-bold">{{ settings['site_name'] }}</span>
-                {% endif %}
-            </div>
+<header
+  class="bg-card rounded-b-md w-full z-10 flex flex-col-reverse 2xl:flex-col sticky 2xl:static top-0 mb-2 py-2 px-2"
+>
+  <!-- Mobile Menu Toggle -->
+  <input id="nav" type="checkbox" name="nav" class="absolute hidden" />
+  <label
+    for="nav"
+    id="cover"
+    class="hidden absolute z-10 h-screen w-screen left-1/2 top-0 -translate-x-1/2"
+    style="
+      background-image: linear-gradient(
+        to left,
+        rgba(6, 46, 68, 0.4),
+        rgba(6, 46, 68, 0.5)
+      );
+    "
+  ></label>
 
-            <!-- Search Bar (Full-width on mobile) -->
-            <div class="w-full md:flex-1 md:mx-4 mt-2 md:mt-0 order-2 md:order-1">
-                <form method="GET" action="{{ url_for('public.search_products') }}" class="relative">
-                    <input 
-                        type="text" 
-                        name="q" 
-                        placeholder="What do you want to buy...?" 
-                        class="w-full py-3 px-4 pr-12 rounded-md text-gray-900 focus:ring-primary text-base md:text-sm"
-                        required
-                    >
-                    <button type="submit" class="absolute right-0 top-0 h-full px-4 bg-primary text-gray-900 rounded-r-md hover:bg-primary-90">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
-                </form>
-            </div>
+  <div class="w-full mx-auto flex justify-between items-center">
+    <!-- Mobile Toggle -->
+    <label
+      for="nav"
+      class="text-white h-[30px] border-solid gap-2 border-transparent hover:border-white hover:bg-white hover:text-sydney flex items-center justify-center rounded 2xl:hidden"
+    >
+      <i class="gg-menu"></i> Menu
+    </label>
+    {% if settings['logo_path'] %}
+    <a href="{{ url_for('public.index') }}">
+      <img
+        src="{{ url_for('static', filename=settings['logo_path']) }}"
+        alt="{{ settings['site_name'] }} Logo"
+        class="h-14 hidden md:block"
+      />
+    </a>
+    {% else %}
+    <span class="text-xl font-normal">
+        <img
+        src="{{ url_for('static', filename='images/logo.png') }}"
+        alt="{{ settings['site_name'] }} Logo"
+        class="h-14 hidden md:block"
+      /> 
+    </span>
+    {% endif %}
 
-            <!-- Hamburger Menu Button (Visible on mobile) -->
-            <div class="md:hidden order-1 md:order-2">
-                <button id="menu-toggle" class="text-white focus:outline-none">
-                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                </button>
-            </div>
+    <!-- Search Bar -->
+    <div class="flex-1 mx-4">
+      <form
+        action="{{ url_for('public.search_products') }}"
+        method="GET"
+        class="flex"
+      >
+        <input
+          type="text"
+          name="q"
+          placeholder="Search products, vendors, categories and more..."
+          class="w-full md:px-4 px-3 border  rounded-l text-white ring-0 focus:right-0"
+        />
+        <button
+          type="submit"
+          class="bg-yellow-400 flex gap-2 text-black p-2 rounded-r"
+        >
+          Search
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-4.35-4.35M16.65 11.65a5.65 5.65 0 11-11.3 0 5.65 5.65 0 0111.3 0z"
+            />
+          </svg>
+        </button>
+      </form>
+    </div>
 
-            <!-- Desktop Navigation & Account Links -->
-            <div class="hidden md:flex items-center space-x-6 order-2">
-                {% if 'user_id' in session %}
-                <div class="relative group">
-                    <a href="{{ url_for('user.dashboard') }}" class="hover:text-primary">Hello, {{ session['username'] }}</a>
-                    <span class="block font-bold">Account & Lists</span>
-                </div>
-                <a href="#" class="hover:text-primary">Report</a>
-                <a href="{{ url_for('public.logout') }}" class="hover:text-primary">Logout</a>
-                {% else %}
-                <div class="relative group">
-                    <a href="{{ url_for('user.login') }}" class="hover:text-primary">Hello, Sign in</a>
-                    <span class="block font-bold">Account & Lists</span>
-                </div>
-                <a href="{{ url_for('user.register') }}" class="hover:text-primary">Register</a>
-                {% endif %}
-                <div class="relative">
-                    <a href="{{ url_for('cart.view_cart') }}" class="flex items-center hover:text-primary">
-                        <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span id="cart-count" class="absolute -top-2 -right-2 bg-primary text-gray-900 rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            {% if 'user_id' in session %}
-                                {{ cart_count|default(0) }}
-                            {% else %}
-                                0
-                            {% endif %}
-                        </span>
-                    </a>
-                </div>
-            </div>
+    <div class="flex items-center space-x-4">
+      {% if 'user_id' in session %}
+      <div class="h-[95px] hidden 2xl:flex items-center">
+        <div
+          class="h-16 px-3 py-1 rounded-md border-solid border-[1.5px] border-transparent flex justify-center items-center"
+        >
+          <div style="width: 55px">
+            <a href="{{ url_for('user.profile') }}">
+              <img
+                
+                class="bg-gray-700 avatar-sydney mr-3"
+                {%if profile_data.avatar%}
+                src="{{ profile_data.avatar }}"
+                {%else%}
+                src="{{ url_for('static', filename='images/avatar.jpg') }}"
+                {%endif%}
+              />
+            
+            
+            </a>
+          </div>
+          <div
+            class="h-full flex flex-col items-start justify-center font-bold text-white"
+            style="width: 220px"
+          >
+          
+            <span class="text-white">
+              {% if 'user_id' in session %} Logged in as
+              <a class="hover:text-sydney2 text-white" href="{{ url_for('user.profile') }}"
+                >{{ session.username }}</a
+              > 
+              <a
+                class="bg-sydney hover:bg-sydney2 text-white px-2 py-0.5 rounded"
+                href="{{ url_for('user.logout') }}"
+                >Logout</a
+              >
+              {% else %}
+              <a class="hover:text-sydney2" href="{{ url_for('user.login') }}"
+                >Sign in</a
+              >
+              {% endif %}
+            </span>
+            {% if 'user_id' in session %}
+            <span class="text-white">
+              BTC:
+              <a class="hover:text-sydney2" href="{{ url_for('user.balance') }}"
+                >{{ '%.8f' % profile_data.btc_balance }}</a
+              >
+              / XMR:
+              <a
+                class="hover:text-sydney2"
+                href="{{ url_for('user.balance', crypto='xmr') }}"
+                >{{ '%.8f' % profile_data.xmr_balance }}</a
+              >
+            </span>
+            {% endif %}
+          </div>
         </div>
-
-        <!-- Mobile Menu (Hidden by default, toggled by hamburger) -->
-        <div id="mobile-menu" class="hidden md:hidden w-full mt-2 bg-gray-800 rounded-md shadow-lg">
-            <nav class="flex flex-col space-y-2 p-4 text-sm">
-                <a href="#" class="hover:text-primary">All</a>
-                {% for category in top_level_categories %}
-                <div class="relative">
-                    <a href="{{ url_for('public.category_products', category_id=category['id']) }}" class="hover:text-primary">{{ category['name'] }}</a>
-                    {% if category['subcategories'] %}
-                    <div class="ml-4 mt-1 space-y-1">
-                        {% for subcat in category['subcategories'] %}
-                        <a href="{{ url_for('public.category_products', category_id=subcat['id']) }}" class="block text-gray-300 hover:text-primary">{{ subcat['name'] }}</a>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                <a href="{{ url_for('public.how_to_pay') }}" class="hover:text-primary">Payment</a>
-                <a href="{{ url_for('public.how_to_sell') }}" class="hover:text-primary">How to Sell</a>
-                <a href="{{ url_for('public.privacy_policy') }}" class="hover:text-primary">Privacy</a>
-                <a href="{{ url_for('public.marketplace_rules') }}" class="hover:text-primary">Rules</a>
-                {% if 'user_id' in session %}
-                <a href="#" class="hover:text-primary">Hello, {{ session['username'] }}</a>
-                <a href="#" class="hover:text-primary">Report Vendor</a>
-                <a href="{{ url_for('public.logout') }}" class="hover:text-primary">Logout</a>
-                {% else %}
-                <a href="{{ url_for('user.login') }}" class="hover:text-primary">Sign In</a>
-                <a href="{{ url_for('user.register') }}" class="hover:text-primary">Register</a>
-                {% endif %}
-            </nav>
+      </div>
+      {% else %}
+      <div class="relative group">
+        <button class="hover:text-yellow-400">Hello, Sign in</button>
+        <div
+          class="absolute hidden group-hover:block bg-gray-700 text-white rounded shadow-lg"
+        >
+          <a
+            href="{{ url_for('user.login') }}"
+            class="block px-4 py-2 hover:bg-gray-600"
+            >Account & Lists</a
+          >
+          <a
+            href="{{ url_for('user.register') }}"
+            class="block px-4 py-2 hover:bg-gray-600"
+            >Register</a
+          >
         </div>
+      </div>
+      {% endif %}
 
-        <!-- Desktop Category Navigation -->
-        <div class="hidden md:block py-2 mt-2">
-            <div class="container mx-auto px-4">
-                <nav class="flex items-center space-x-4 text-sm">
-                    <a href="#" class="hover:text-primary">All</a>
-                    {% for category in top_level_categories %}
-                    <div class="relative group">
-                        <a href="{{ url_for('public.category_products', category_id=category['id']) }}" class="hover:text-primary">{{ category['name'] }}</a>
-                        {% if category['subcategories'] %}
-                        <div class="absolute left-0 mt-0 hidden group-hover:block bg-gray-700 text-white rounded-md shadow-lg z-10">
-                            <ul class="py-2">
-                                {% for subcat in category['subcategories'] %}
-                                <li>
-                                    <a href="{{ url_for('public.category_products', category_id=subcat['id']) }}" class="block px-4 py-2 hover:bg-gray-600 whitespace-nowrap">
-                                        {{ subcat['name'] }}
-                                        {% if subcat['subcategories'] %}
-                                        <span class="text-gray-400 text-xs">({{ subcat['subcategories']|length }} subcategories)</span>
-                                        {% endif %}
-                                    </a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                    <a href="{{ url_for('public.how_to_pay') }}" class="hover:text-primary">Payment</a>
-                    <a href="{{ url_for('public.how_to_sell') }}" class="hover:text-primary">How to Sell</a>
-                    <a href="{{ url_for('public.privacy_policy') }}" class="hover:text-primary">Privacy</a>
-                    <a href="{{ url_for('public.marketplace_rules') }}" class="hover:text-primary">Rules</a>
-                </nav>
-            </div>
+      <!--
+            <a href="{{ url_for('cart.view_cart') }}" class="flex items-center hover:text-yellow-400">
+                <svg class="h-6 w-6 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                {% if 'user_id' in session %}
+                    {{ cart_count|default(0) }}
+                {% else %}
+                    0
+                {% endif %}
+            </a>
+            -->
+      <!-- User Profile and Balance -->
+    </div>
+  </div>
+
+  <!-- Currency Prices 
+    <div class="hidden overflow-hidden z-20 2xl:flex bg-sydney px-1.5 py-3 2xl:py-0 2xl:rounded-b-none 2xl:rounded-t-md rounded-b-md rounded-t-none text-right w-auto self-end">
+        <div class="text-white min-w-[450px] text-center flex justify-around relative" style="font-size: 11px !important;">
+            <span class="text-white text-center"><span class="bred">▼</span>USD {{ rates.usd|default('93,853.67') }}</span> 
+            <span class="text-white text-center"><span class="bred">▼</span>CAD {{ rates.cad|default('130,406.88') }}</span> 
+            <span class="text-white text-center"><span class="bred">▼</span>EUR {{ rates.eur|default('82,683.94') }}</span> 
+            <span class="text-white text-center"><span class="bred">▼</span>AUD {{ rates.aud|default('147208.59') }}</span> 
+            <span class="text-white text-center"><span class="bred">▼</span>GBP {{ rates.gbp|default('70,587.11') }}</span> 
         </div>
     </div>
+-->
+  <!-- Navigation Menu -->
+  <div
+    id="nav-menu"
+    class="w-full hidden 2xl:flex flex-col 2xl:flex-row items-center justify-between bg-card rounded-b-md rounded-tl-md"
+  >
+    <div
+      class="flex flex-col gap-1 2xl:gap-0 w-full h-14 2xl:w-auto 2xl:flex-row items-start 2xl:items-center"
+    >
+      <!-- Mobile Header -->
+      <div
+        class="flex 2xl:hidden w-full items-center justify-between px-4 mb-2.5"
+      >
+        <a href="{{ url_for('user.dashboard') }}" class="h-[22px] w-[198px] hidden xl:block">
+          {% if settings.logo_path %}
+          <div
+            class="bg-no-repeat bg-left bg-contain h-[22px] hidden xl:block"
+            style="background-image: url('{{ settings.logo_path }}');"
+          ></div>
+          {% else %}
+          <span class="text-white font-bold">{{ settings.site_name }}</span>
+          {% endif %}
+        </a>
+        <div class="flex items-center gap-2">
+          <a href="/cart" class="relative">
+            <i class="fas fa-shopping-cart text-white text-xl"></i>
+            <span
+              class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+              >{{ cart_count|default(0) }}</span
+            >
+          </a>
+          <label
+            for="nav"
+            class="border-solid border-[1px] hover:rotate-90 text-white rounded-full scale-110"
+            ><i class="gg-close"></i
+          ></label>
+        </div>
+      </div>
+      <span class="block 2xl:hidden w-full h-[1px] bg-white"></span>
+
+      <!-- Mobile User Panel -->
+      {% if 'user_id' in session %}
+      <div
+        class="w-full flex 2xl:hidden flex-col gap-1 items-center px-1 py-1.5 text-white bg-sydney"
+      >
+        <div
+          class="grid grid-cols-[65px,auto] space-y-2 items-center w-full h-full"
+        >
+          <a
+            href="{{ url_for('user.profile') }}"
+            class="h-[60px] w-[60px] border-solid border-white bg-white overflow-hidden rounded-full"
+          >
+          <img
+                
+          class="bg-gray-700 avatar-sydney-sm mr-3"
+          {%if profile_data.avatar%}
+          src="{{ profile_data.avatar }}"
+          {%else%}
+          src="{{ url_for('static', filename='images/avatar.jpg') }}"
+          {%endif%}
+        />
+          </a>
+          <div class="flex flex-col items-start px-1 w-auto overflow-x-hidden">
+            <a
+              class="text-base text-white font-bold underline"
+              href="{{ url_for('user.profile') }}"
+              >{{ session.username }}</a
+            >
+            <div class="flex items-center text-sm">
+              Trust Level:
+              <span
+                class="bg-gray-700 text-sydney font-bold rounded px-1 py-0.5 mx-1"
+                >1</span
+              >
+            </div>
+          </div>
+        </div>
+        <div
+          class="w-full bg-white text-sydney rounded-md flex flex-col items-center"
+        >
+          <a
+            href="{{ url_for('user.balance') }}"
+            class="text-sm font-bold flex items-center gap-2"
+          >
+            <i class="gg-credit-card scale-[90%]"></i> BALANCE
+          </a>
+          <span class="w-full h-[1px] bg-sydney"></span>
+          <div class="flex items-center w-full justify-evenly">
+            <div class="w-1/2 flex flex-col items-center py-1">
+              <div class="flex gap-1 items-center">
+                <div
+                  class="bg-center bg-no-repeat h-6 w-[17px]"
+                  style="background-image: url('/static/images/btc.png')"
+                ></div>
+                Bitcoin
+              </div>
+              <a
+                href="{{ url_for('user.balance') }}"
+                class="bg-sydney hover:bg-sydney2 text-white rounded px-0.5 font-bold text-sm"
+                >00000000</a
+              >
+            </div>
+            <div
+              class="w-1/2 flex flex-col items-center border-solid border-0 border-l border-sydney"
+            >
+              <div class="flex gap-1 items-center">
+                <div
+                  class="bg-center bg-no-repeat h-6 w-6"
+                  style="background-image: url('/static/images/xmr.png')"
+                ></div>
+                Monero
+              </div>
+              <a
+                href="{{ url_for('user.balance', crypto='xmr') }}"
+                class="bg-sydney hover:bg-sydney2 text-white rounded px-0.5 font-bold text-sm"
+                >00000000</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="block 2xl:hidden w-full h-[1px] bg-white"></span>
+      {% endif %}
+
+      <!-- Navigation Links -->
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="{{ url_for('user.dashboard') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-home justify-self-center"></i> Dashboard
+        </div>
+      </a>
+
+      <div
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+      >
+        <a
+          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          href="{{ url_for('user.orders') }}"
+        >
+          <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+            <i class="gg-tag justify-self-center"></i> Orders (0)
+          </div>
+        </a>
+        <div
+          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+        >
+          {% for status in ['pending', 'accepted', 'shipped', 'finalized',
+          'disputed', 'canceled', 'unpaid'] %}
+          <a
+            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            href="{{ url_for('user.orders', status=status) }}"
+            >{{ status|capitalize }} Orders</a
+          >
+          {% endfor %}
+        </div>
+      </div>
+
+      <div
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+      >
+        <a
+          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          href="{{ url_for('user.messages') }}"
+        >
+          <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+            <i class="gg-inbox justify-self-center"></i> Messages (0)
+          </div>
+        </a>
+        <div class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]">
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="">
+                Conversations (0)
+            </a>
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="">Orders</a>
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="">Trash</a>
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="">Invitations</a>
+        </div>
+      </div>
+
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="{{ url_for('user.favorites') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-collage justify-self-center"></i> Favorites
+        </div>
+      </a>
+
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="{{ url_for('user.feedback') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-comment justify-self-center"></i> Feedback
+        </div>
+      </a>
+
+      <div
+      class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+    >
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+        href="{{ url_for('vendor.products_index') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-profile justify-self-center"></i> Product
+        </div>
+      </a>
+      <div
+        class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+      >
+      <a
+          class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+          href="{{ url_for('vendor.products_create') }}"
+          >Add new Product</a
+        >
+        <a
+          class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+          href="{{ url_for('user.edit_profile') }}"
+          >Edit Product</a
+        >
+      </div>
+    </div>
+
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="{{ url_for('user.wallet') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-credit-card justify-self-center"></i> Wallet
+        </div>
+      </a>
+
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="{{ url_for('user.become_vendor') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-link justify-self-center"></i> Start Selling
+        </div>
+      </a>
+
+      <div
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+      >
+        <a
+          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          href="{{ url_for('user.profile') }}"
+        >
+          <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+            <i class="gg-profile justify-self-center"></i> Profile
+          </div>
+        </a>
+        <div
+          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+        >
+        <a
+            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            href="{{ url_for('user.edit_profile') }}"
+            >View Feedback & Profile</a
+          >
+          <a
+            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            href="{{ url_for('user.edit_profile') }}"
+            >Edit Profile</a
+          >
+        </div>
+      </div>
+      <div class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto">
+        <a href="{{ url_for('user.faq') }}" 
+        class="text-white text-[13px] font-normal leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex">
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+            <i class="gg-support justify-self-center"></i> Support
+            </div>
+    </a>
+        <div class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]">
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="{{ url_for('user.support') }}">
+                Create ticket
+            </a>
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="{{ url_for('user.my_tickets') }}">My Tickets</a>
+            <a class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2" href="">View contact details</a>
+        </div>
+        
+    </div>
+      
+  
+
+      {% if 'user_id' in session %}
+      <a
+        class="text-sydney text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex 2xl:hidden bg-white hover:text-white w-full 2xl:w-auto"
+        href="{{ url_for('user.logout') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-log-off justify-self-center"></i> Log Out
+        </div>
+      </a>
+      {% else %}
+      <a
+        class="text-sydney text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex 2xl:hidden bg-white hover:text-white w-full 2xl:w-auto"
+        href="{{ url_for('user.login') }}"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-log-in justify-self-center"></i> Sign In
+        </div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
 </header>
-
-<!-- JavaScript for Hamburger Menu -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const menuToggle = document.getElementById('menu-toggle');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        menuToggle.addEventListener('click', function () {
-            mobileMenu.classList.toggle('hidden');
-        });
-    });
-</script>

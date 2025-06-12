@@ -1,0 +1,62 @@
+<form name="formHomesidebar" action="/search" method="get" class="w-full flex flex-col gap-2">
+  <input type="checkbox" name="cats2" id="cats2" class="absolute peer hidden" />
+  <div id="cat2" class="bg-card border-solid border-[1px] border-border rounded-md p-2 hover:!border-abacus2 mx-auto my-0 !w-full h-[fit-content]">
+    <label for="cats2" class="cursor-pointer 2xl:cursor-default">
+      <h1 class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center !text-sydney !bg-white 2xl:!bg-sydney 2xl:!text-white !rounded-md !border-none py-2">
+       <i class="gg-eye mr-3"></i>
+        Browse Categories
+      </h1>
+    </label>
+    <div id="cats2-cont" class="px-0.5 py-1 hidden 2xl:flex flex-col">
+      <div class="text-xs text-gray-500 my-1 italic text-center" style="margin-top: 2px; margin-bottom: 8px;">
+        Click a category to search products.
+      </div>
+      <ul class="sidebar-categories">
+        {% for category in categories %}
+          <li>
+            <div class="sidebar-categories__item parent">
+              <input name="fcats[]" value="{{ category.id }}" type="checkbox" class="sidebar-categories__checkbox" />
+              <a href="/search?fcats[]={{ category.id }}" class="cat-name text-white">
+                <strong class="mx-2 ">{{ category.name }}</strong>
+                <b style="margin-left: 67%; position: absolute;"> ({{ category.product_count }})</b>
+              </a>
+              {% if category.children %}
+                {% for child in category.children %}
+                  <div class="sub-cat">
+                    <div class="sidebar-categories__item parent">
+                      <input name="fcats[]" value="{{ child.id }}" type="checkbox" class="sidebar-categories__checkbox" />
+                      <a href="/search?fcats[]={{ child.id }}" class="cat-name text-white">
+                        <strong class="mx-2 text-white">{{ child.name }}</strong>
+                        <b style="margin-left: 55%; position: absolute;" class="text-white"> ({{ child.product_count }})</b>
+                      </a>
+                      {% if child.children %}
+                        {% for grandchild in child.children %}
+                          <div class="sub-cat">
+                            <input name="fcats[]" value="{{ grandchild.id }}" type="checkbox" class="sidebar-categories__checkbox2" />
+                            <a href="/search?fcats[]={{ grandchild.id }}" class="cat-name text-white">
+                              <strong class="mx-2 text-white">{{ grandchild.name }}</strong>
+                              <b style="margin-left: 55%; position: absolute;" class="text-white"> ({{ grandchild.product_count }})</b>
+                            </a>
+                          </div>
+                        {% endfor %}
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <hr />
+          </li>
+        {% endfor %}
+        {% if not categories %}
+          <li>
+            <div class="text-white text-center">No categories available.</div>
+          </li>
+        {% endif %}
+      </ul>
+      <div class="mx-auto flex gap-2 items-center">
+        <label for="cats2" class="bg-abacus2 hover:bg-sydney block 2xl:hidden px-2 py-0.5 text-white w-max rounded">Close</label>
+      </div>
+    </div>
+  </div>
+</form>

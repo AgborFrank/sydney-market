@@ -1,0 +1,54 @@
+{% macro exchange_rates(rates) %}
+<div
+  id="pr2-cont"
+  class="flex flex-col w-full bg-card border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 h-[fit-content] text-xs text-sydney gap-1"
+>
+  <label for="pr2" class="cursor-pointer 2xl:cursor-default">
+    <h1
+      class="text-[13px] font-bold pl-[10px] m-0 uppercase bg-sydney flex items-center justify-start 2xl:justify-center !text-sydney !bg-white 2xl:!bg-sydney 2xl:!text-white !rounded-md !border-none py-2"
+    >
+      <i class="gg-arrows-exchange-alt mr-3"></i> Exchange Rates
+    </h1>
+  </label>
+
+  <div id="pr2-items" class="hidden 2xl:flex flex-col">
+    <div class="text-sm font-bold">Bitcoin (BTC)</div>
+    <span class="w-full h-[1px] bg-border"></span>
+    {% for code, name in [ ('USD', 'United States Dollar (USD)'), ('CAD',
+    'Canadian Dollar (CAD)'), ('EUR', 'Euro (EUR)'), ('AUD', 'Australian Dollar
+    (AUD)'), ('GBP', 'British Pound (GBP)') ] %}
+    <div class="flex items-center justify-between hover:bg-hover2">
+      <div class="text-white">{{ name }}</div>
+      <span class="bgreen"
+        >{{ rates.bitcoin.get(code, 0) | format_currency }}</span
+      >
+    </div>
+    {% endfor %}
+    <a
+      href="{{ url_for('user.balance') }}"
+      class="border-solid border-[1px] border-sydney text-sydney hover:text-white hover:bg-sydney text-xs text-center px-2 py-0.5 rounded-md mb-2"
+    >
+      Deposits & Withdrawals (BTC)
+    </a>
+
+    <div class="text-sm font-bold">Monero (XMR)</div>
+    <span class="w-full h-[1px] bg-border"></span>
+    {% for code, name in [ ('USD', 'United States Dollar (USD)'), ('CAD',
+    'Canadian Dollar (CAD)'), ('EUR', 'Euro (EUR)'), ('AUD', 'Australian Dollar
+    (AUD)'), ('GBP', 'British Pound (GBP)') ] %}
+    <div class="flex items-center justify-between hover:bg-hover2">
+      <div class="text-white">{{ name }}</div>
+      <span class="bgreen"
+        >{{ rates.monero.get(code, 0) | format_currency }}</span
+      >
+    </div>
+    {% endfor %}
+    <a
+      href="{{ url_for('user.balance', crypto='xmr') }}"
+      class="border-solid border-[1px] border-sydney text-sydney hover:text-white hover:bg-sydney text-xs text-center px-2 py-0.5 rounded-md"
+    >
+      Deposits & Withdrawals (XMR)
+    </a>
+  </div>
+</div>
+{% endmacro %}

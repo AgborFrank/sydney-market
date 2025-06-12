@@ -1,82 +1,101 @@
-
 {% extends 'user/user_base.html' %}
-{% block title %}User Products - {{ settings['site_name'] }}{% endblock %}
-
+{% block title %}Your Products - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
-    <div class="flex justify-between">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Your Products</h2>
-        </div>
-        <div>
-            <a href="{{ url_for('vendor.products_create') }}" class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500 transition duration-200">
-                Add Product
-            </a>
-        </div>
-    </div>
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Products</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    View and manage your products. Filter by status or category. Products marked as 'pending' or 'rejected' require admin approval or revisions.
+  </h3>
 
-<!-- Products List -->
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Your Products</h3>
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Filter Form -->
+  <form method="get" class="mt-4 max-w-3xl mx-auto flex gap-4">
+    <div class="flex flex-col gap-2">
+      <label class="font-bold text-white">Status</label>
+      <select name="status" class="std">
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+        <option value="disabled" {% if status_filter == 'disabled' %}selected{% endif %}>Disabled</option>
+      </select>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="font-bold text-white">Category</label>
+      <select name="category_id" class="std">
+        <option value="all" {% if category_id_filter == 'all' %}selected{% endif %}>All</option>
+        {% for category in categories %}
+          <option value="{{ category.id }}" {% if category_id_filter == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex items-end">
+      <button type="submit" class="bstd px-4 py-2">Filter</button>
+    </div>
+  </form>
+
+  <!-- Product List -->
+  <div class="mt-8 max-w-5xl mx-auto">
     {% if products %}
-    <table class="w-full text-left">
+      <table class="w-full text-white border-collapse">
         <thead>
-            <tr class="border-b">
-                <th class="py-2 px-4 text-gray-700">ID</th>
-                <th class="py-2 px-4 text-gray-700">Title</th>
-                <th class="py-2 px-4 text-gray-700">Price (USD)</th>
-                <th class="py-2 px-4 text-gray-700">Orig. Price (USD)</th>
-                <th class="py-2 px-4 text-gray-700">Stock</th>
-                <th class="py-2 px-4 text-gray-700">Category</th>
-                <th class="py-2 px-4 text-gray-700">SKU</th>
-                <th class="py-2 px-4 text-gray-700">Status</th>
-                <th class="py-2 px-4 text-gray-700">Featured Image</th>
-                <th class="py-2 px-4 text-gray-700">Additional Images</th>
-                <th class="py-2 px-4 text-gray-700">Actions</th>
-            </tr>
+          <tr class="bg-sydney bg-opacity-20">
+            <th class="p-2 text-left font-bold">Title</th>
+            <th class="p-2 text-left font-bold">Category</th>
+            <th class="p-2 text-left font-bold">Price (USD)</th>
+            <th class="p-2 text-left font-bold">Stock</th>
+            <th class="p-2 text-left font-bold">Status</th>
+            <th class="p-2 text-left font-bold">Created</th>
+            <th class="p-2 text-left font-bold">Actions</th>
+          </tr>
         </thead>
         <tbody>
-            {% for product in products %}
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-4">{{ product['id'] }}</td>
-                <td class="py-2 px-4">{{ product['title'] }}</td>
-                <td class="py-2 px-4">${{ "%.2f" % product['price_usd'] }}</td>
-                <td class="py-2 px-4">
-                    {% if product['original_price_usd'] %}
-                    ${{ "%.2f" % product['original_price_usd'] }}
-                    {% else %}
-                    N/A
-                    {% endif %}
-                </td>
-                <td class="py-2 px-4">{{ product['stock'] }}</td>
-                <td class="py-2 px-4">{{ product['category_name'] }}</td>
-                <td class="py-2 px-4">{{ product['sku'] or 'N/A' }}</td>
-                <td class="py-2 px-4">{{ product['status'] }}</td>
-                <td class="py-2 px-4">
-                    {% if product['featured_image'] %}
-                    <img src="{{ url_for('static', filename=product['featured_image']) }}" alt="{{ product['title'] }}" class="h-16 w-16 object-cover rounded">
-                    {% else %}
-                    No image
-                    {% endif %}
-                </td>
-                <td class="py-2 px-4">
-                    {% for img in product_images if img['product_id'] == product['id'] %}
-                    <img src="{{ url_for('static', filename=img['image_path']) }}" alt="Additional Image" class="h-16 w-16 object-cover rounded inline-block mr-2">
-                    {% else %}
-                    No additional images
-                    {% endfor %}
-                </td>
-                <td class="py-2 px-4 space-x-2">
-                    <a href="{{ url_for('vendor.products_edit', product_id=product['id']) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">Edit</a>
-                    <form method="POST" action="{{ url_for('vendor.delete_product', product_id=product['id']) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete {{ product['title'] }}?');">
-                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Delete</button>
-                    </form>
-                </td>
+          {% for product in products %}
+            <tr class="border-b border-sydney border-opacity-50">
+              <td class="p-2">{{ product.title }}</td>
+              <td class="p-2">{{ product.category_name or 'Uncategorized' }}</td>
+              <td class="p-2">${{ product.price_usd|round(2) }}</td>
+              <td class="p-2">{{ product.stock }}</td>
+              <td class="p-2">
+                <span class="px-2 py-1 rounded text-sm {{
+                  'bg-yellow-600' if product.status == 'pending' else
+                  'bg-green-600' if product.status == 'active' else
+                  'bg-red-600' if product.status == 'rejected' else
+                  'bg-gray-600'
+                }}">
+                  {{ product.status|capitalize }}
+                </span>
+                {% if product.status == 'rejected' and product.rejection_reason %}
+                  <p class="text-sydney text-sm mt-1">Reason: {{ product.rejection_reason }}</p>
+                {% endif %}
+              </td>
+              <td class="p-2">{{ product.created_at.strftime('%Y-%m-%d') }}</td>
+              <td class="p-2 flex gap-2">
+                <a href="{{ url_for('vendor.products_edit', product_id=product.id) }}" class="bstd px-2 py-1 text-sm">Edit</a>
+                <form action="{{ url_for('vendor.delete_product', product_id=product.id) }}" method="post">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="bg-red-600 px-2 py-1 text-sm rounded text-white">Delete</button>
+                </form>
+              </td>
             </tr>
-            {% endfor %}
+          {% endfor %}
         </tbody>
-    </table>
+      </table>
     {% else %}
-    <p class="text-gray-600">No products found.</p>
+      <p class="text-white">No products found. <a href="{{ url_for('vendor.products_create') }}" class="text-sydney">Create a product</a>.</p>
     {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -1,360 +1,437 @@
 {% extends 'base.html' %}
-{% block title %}{{ product['title'] }} - {{ settings['site_name'] }}{% endblock %}
+{% block title %}{{ product.title }} - {{ settings['site_name'] }}{% endblock %}
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-    <!-- Left/Center Section: Images & Product Details -->
-    <div class="col-span-3 shadow-md bg-white border rounded-xl p-2">
-      <div class="grid grid-cols-1 lg:grid-cols-3">
-        <div class="lg:col-span-1">
-          <div class="bg-white p-4">
-            <!-- Main Image with Zoom -->
-            <div class="relative mb-4 overflow-hidden" id="main-image-container">
-              <img
-                src="{% if product['featured_image'] %}{{ url_for('static', filename=product['featured_image']) }}{% else %}{{ url_for('static', filename='uploads/default.png') }}{% endif %}"
-                alt="{{ product['title'] }}"
-                class="w-full h-64 object-contain rounded-md main-image"
-                id="main-image"
-              />
-              <div class="absolute inset-0 pointer-events-none zoom-lens hidden"></div>
-            </div>
+<div class=" text-white min-h-screen p-4">
+  <div class="p-2 flex flex-col md:flex-row md:flex-wrap 2xl:flex-wrap 45xl:flex-nowrap w-full rounded-md 2xl:gap-3 border-solid border border-border hover:border-sydney2 group">
+    <!-- Photos -->
+    <div class="w-[250px] mx-auto 2xl:mx-0 flex flex-col justify-start self-start md:flex-none">
+      <!-- Images Slide -->
+      <style>
+        #in1:checked ~ * #img1,
+        #in2:checked ~ * #img2,
+        #in3:checked ~ * #img3,
+        #in4:checked ~ * #img4,
+        #in5:checked ~ * #img5,
+        #in6:checked ~ * #img6 {
+          order: 0;
+        }
 
-            <!-- Thumbnail Gallery -->
-            <div class="grid grid-cols-3 gap-2">
-              {% if product['featured_image'] %}
-              <img
-                src="{{ url_for('static', filename=product['featured_image']) }}"
-                alt="Featured Image"
-                class="w-full h-20 object-cover rounded-md cursor-pointer hover:opacity-75 thumbnail"
-                data-src="{{ url_for('static', filename=product['featured_image']) }}"
-              />
-              {% endif %}
-              {% for img in additional_images %}
-              <img
-                src="{{ url_for('static', filename=img['image_path']) }}"
-                alt="Additional Image"
-                class="w-full h-20 object-cover rounded-md cursor-pointer hover:opacity-75 thumbnail"
-                data-src="{{ url_for('static', filename=img['image_path']) }}"
-              />
-              {% endfor %}
-            </div>
-          </div>
-        </div>
+        #in1:checked ~ * #lb-1 img,
+        #in2:checked ~ * #lb-2 img,
+        #in3:checked ~ * #lb-3 img,
+        #in4:checked ~ * #lb-4 img,
+        #in5:checked ~ * #lb-5 img,
+        #in6:checked ~ * #lb-6 img {
+          --tw-bg-opacity: 0.5 !important;
+        }
 
-        <!-- Product Details -->
-        <div class="lg:col-span-2">
-          <div class="bg-white p-6">
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ product['title'] }}</h1>
-            {% set rating_info = get_product_rating(product['id']) %}
-            <div class="flex items-center mb-2">
-              <span class="text-yellow-400">★</span>
-              <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
-              <a href="#reviews" class="text-primary hover:underline ml-2 text-sm">See all reviews</a>
-            </div>
-            <p class="text-gray-600 text-lg font-bold mb-2">Price: <span>{{ product['price_usd'] }} <del>{{ product['original_price_usd'] }}</del></span> USD</p>
-            <div class="mb-4">
-              <p class="text-green-700 text-sm ">Stock Quantity: {{ product['stock'] }} available</p>
-              <p class="text-gray-700 text-sm ">Shipping Method: {{ product['shipping_method'] }} </p>
-              <p class="text-gray-700 text-sm ">Packaging Dimensions: {{ product['shipping_dimensions'] }} lb</p>
-              <p class="text-gray-700 text-sm ">MOQ: {{ product['moq'] }}</p>
-              <p class="text-gray-700 text-sm ">Lead Time: {{ product['lead_time'] }}</p>
-            </div>
-            <h2 class="text-md font-semibold text-gray-700 mb-2">Description</h2>
-            <p class="text-gray-500 mb-6 text-sm">{{ product['description']|truncate(300) }}</p>
-          </div>
-        </div>
+        #in1 ~ * #lb-1 img,
+        #in2 ~ * #lb-2 img,
+        #in3 ~ * #lb-3 img,
+        #in4 ~ * #lb-4 img,
+        #in5 ~ * #lb-5 img,
+        #in6 ~ * #lb-6 img {
+          --tw-bg-opacity: 0.1 !important;
+        }
+
+        #img1,
+        #img2,
+        #img3,
+        #img4,
+        #img5,
+        #img6 {
+          order: 1;
+        }
+      </style>
+
+      {% for i in range(1, 7) %}
+        <input type="radio" id="in{{ i }}" name="slide" class="hidden absolute" {% if i == 1 %}checked="checked"{% endif %} />
+      {% endfor %}
+
+      <div class="flex mx-auto gap-2 w-[216px] overflow-x-hidden bg-sydney bg-opacity-10 p-2 rounded-md" style="scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+        {% for img in product.images[:6] %}
+          <a id="img{{ loop.index }}" href="{{ img }}" target="_blank">
+            <img class="w-[200px] rounded-md" src="/static/uploads/products/{{ img|basename}}" alt="{{ product.title }} Image {{ loop.index }}" />
+          </a>
+        {% endfor %}
+        {% if not product.images %}
+          <a id="img1" href="/static/uploads/products/product-placeholder.png" target="_blank">
+            <img class="w-[200px] rounded-md" src="/static/uploads/products/product-placeholder.png" alt="Placeholder Image" />
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Thumb Menu -->
+      <div class="flex justify-center mt-1 gap-0.5">
+        {% for img in product.images[:6] %}
+          <label id="lb-{{ loop.index }}" for="in{{ loop.index }}" class="w-10 h-10 rounded-md">
+            <img class="w-[40px] bg-sydney p-0.5 rounded-md" src="/static/uploads/products/{{ img|basename}}" alt="Thumbnail {{ loop.index }}" />
+          </label>
+        {% endfor %}
+        {% if not product.images %}
+          <label id="lb-1" for="in1" class="w-10 h-10 rounded-md">
+            <img class="w-[40px] bg-sydney p-0.5 rounded-md" src="/static/uploads/products/product-placeholder.png" alt="Thumbnail Placeholder" />
+          </label>
+        {% endif %}
       </div>
     </div>
 
-    <!-- Right Section: Purchase Options & Vendor Details -->
-    <div class="lg:col-span-1">
-      <div class="bg-white p-6 rounded-lg shadow-md sticky top-4 border rounded-xl">
-        <h3 class="text-md font-semibold text-gray-700 mb-2">
-          Sold by:  </h3>
-          <div class="mb-3">
-            <h4 class="font-semibold">{{ vendor['business_name']|default(vendor['username']|default('Admin')) }}</h4>
-            <p class="text-sm text-gray-600">Level: <span class="inline-block bg-green-700 text-white text-sm font-bold px-2 py-0 rounded-full">{{ vendor['level'] }}</span></p>
-            <p class="text-sm text-gray-600 ">Ships from: {{ vendor['shipping_location'] }}</p>
-            <p class="text-sm text-gray-600">Ships to: {{ vendor['shipping_destinations'] }}</p>
+    <!-- Product Info -->
+    <div class="self-start w-full md:flex-1 45xl:w-[500px] 45xl:flex-none">
+      <form class="w-full rounded-md px-2 py-1 flex flex-col gap-y-2" action="/createorder?tk={{ product.id }}" method="get">
+        <!-- Product Name -->
+        <div class="w-full flex gap-0.5 items-center border-solid border-0 border-border border-b group-hover:border-sydney2 text-sm font-bold justify-center 2xl:justify-start py-1 leading-tight">
+          {{ product.title }}
+          <a href="/product/{{ product.id }}?action=favorite" title="Save listing" class="h-6 w-8 flex-shrink-0 border-solid border-gray-400 hover:border-transparent flex items-center justify-center hover:bg-red-600 border-2 text-gray-400 hover:text-white rounded">
+            <i class="gg-heart"></i>
+          </a>
+        </div>
+
+        <!-- Feedback Rating -->
+        <div class="w-full flex items-center justify-center 2xl:justify-start gap-2 font-bold">
+          <div class="bg-sydney rounded-md px-1 py-0.5 text-white">Item price:</div>
+          <div class="flex items-center text-white">
+            <div>USD {{ '%.2f'|format(product.price_usd) }}</div>
+             (Shipping not included)
           </div>
-          
-       
-        <p class="text-gray-600 mb-2">Minimum Order: ${{ vendor['min_order_amount']|default(0.0) }}</p>
-        
-
-        <!-- Quantity Selector -->
-        {% if product['stock'] > 0 %}
-        <div class="flex items-center mb-4">
-          <button id="decrease-qty" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-l-md hover:bg-gray-300">-</button>
-          <input type="number" id="quantity" name="quantity" value="{{ product['moq'] }}" min="{{ product['moq'] }}" max="{{ product['stock'] }}"
-                 class="w-[400px] text-center border-t border-b border-gray-300 focus:outline-none">
-          <button id="increase-qty" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-r-md hover:bg-gray-300">+</button>
         </div>
 
-        <button id="add-to-cart" data-product-id="{{ product['id'] }}"
-                class="block w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 text-center transition duration-200">
-          Add to Cart
-        </button>
-        {% else %}
-        <p class="text-red-600 font-semibold">Out of Stock</p>
-        {% endif %}
+        <div class="w-full flex flex-wrap items-center justify-center 2xl:justify-start gap-1">
+          <div class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold">Item's rating:</div>
+          <span class="rounded text-sydney px-1 flex items-center">
+            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc(calc({{ product.rating|round(2) }} * 2) * 10px - 100px);">
+              <div class="starsover"> </div>
+            </div>
+            <div class="text-center text-white"> | <b class="underline">{{ product.reviews_count }}</b> Reviews.</div>
+          </span>
 
-        <!-- Vendor Stats -->
-        <div class="text-sm text-gray-700 mt-4">
-          <p>Shipping: {{ vendor['shipping_policy']|truncate(50)|default('Not specified') }}</p>
-          <p>Returns: {{ vendor['return_policy']|truncate(50)|default('Not specified') }}</p>
-          <p class="mt-2">Feedback:</p>
-          <ul class="list-disc pl-4">
-            <li>Positive: {{ vendor_feedback['positive'] }}</li>
-            <li>Negative: {{ vendor_feedback['negative'] }}</li>
-          </ul>
+          <div class="flex items-center gap-1">
+            <div class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold">Sold:</div>
+            <div class="px-1 text-center flex text-white"><b class="underline">{{ product.sales_count }}</b> | <b>Since:</b> {{ product.created_at.strftime('%b %d, %Y') }}</div>
+          </div>
         </div>
+
+        <div class="space-y-1.5">
+          <div class="rounded bg-sydney text-white px-1 py-0.5 font-bold w-max mx-auto 2xl:mx-0">Shipping method:</div>
+
+          <style>
+            input#prlist1:checked ~ * #price-calc-fiat::after {
+              content: "{{ (product.price_usd + 0.00)|round(2) }}";
+            }
+            input#prlist1:checked ~ * #price-calc-btc::after {
+              content: "{{ product.price_btc|round(8) }}";
+            }
+            input#prlist1:checked ~ * #price-calc-xmr::after {
+              content: "{{ product.price_xmr|round(8) }}";
+            }
+
+            input#prlist1:checked ~ * label[for="prlist1"] {
+              background-color: #047857;
+              border-color: #047857;
+              color: #fff;
+              font-weight: 700;
+              order: -99;
+              width: 100%;
+              animation: slctd 1s 0.2s ease-in-out forwards;
+            }
+            @keyframes slctd {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.02); }
+              100% { transform: scale(1); }
+            }
+            input#prlist1:checked ~ * label[for="prlist1"] br {
+              display: none;
+            }
+          </style>
+
+          <input type="radio" id="prlist1" name="postageid" value="post1" class="hidden absolute" checked="checked" />
+
+          <div class="flex flex-col h-7 relative">
+            <style>
+              input[id="expand"]:checked ~ * h2 {
+                display: block !important;
+              }
+            </style>
+
+            <input type="checkbox" id="expand" class="hidden absolute peer" />
+            <label for="expand" class="anim anim-FadeIn h-full w-full fixed hidden peer-checked:block top-0 left-0 bg-transparent z-40"> </label>
+
+            <div class="flex flex-col static peer-checked:absolute bg-card peer-checked:h-auto overflow-y-hidden h-7 peer-checked:p-2 justify-between peer-checked:z-50 peer-checked:bg-card rounded peer-checked:shadow-tt border-solid border-0 border-sydney peer-checked:border" style="scroll-behavior: auto; scroll-behavior: smooth;">
+              <h2 class="hidden text-sydney text-center">SELECT YOUR PREFERRED SHIPPING OPTION</h2>
+              <div class="flex flex-wrap justify-center gap-2">
+                <label class="rounded-md bg-sydney bg-opacity-5 hover:scale-x-[1.02] hover:bg-opacity-0 px-2 py-1 border-solid border-sydney2 border text-sydney w-11/12" for="prlist1">
+                  {{ product.shipping_methods }} - <b>0.00 / order</b>
+                </label>
+              </div>
+
+              <!-- Inside Prices -->
+              <div class="text-center flex flex-wrap justify-center gap-x-6 gap-y-1 mt-2">
+                <div class="bg-sydney text-white rounded px-3 py-0.5 w-full font-bold">Item Price + Shipping</div>
+                <div class="bg-sydney text-white flex items-center justify-center gap-1 pl-2 rounded-full pr-2 py-0.5" style="border-radius: 20px 20px 20px 20px;">
+                  <div class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center">
+                    <div class="flag-usd"></div>
+                  </div>
+                  <div id="price-calc-fiat" class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs">USD {{ '%.2f'|format(product.price_usd) }}</div>
+                </div>
+                <div id="price-calc-btc" class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#F58D10] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
+                  <div class="btc-icon bg-cover rounded-full bg-white" style="width: 24px; height: 24px; background-color: #fff !important; margin-left: 3px;" alt="BTC">
+                    <img  src="{{ url_for('static', filename='images/btc.webp') }}" class="w-4 h-4 object-contain" alt="" />
+                  </div>
+                  BITCOIN
+                </div>
+                <div id="price-calc-xmr" class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#505050] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
+                  <div class="xmr-icon rounded-full bg-white" style="width: 24px; height: 24px; background-color: #fff !important; margin-right: 3px;" alt="XMR">
+                    <img  src="{{ url_for('static', filename='images/xmr.png') }}" class="w-4 h-4 object-contain" alt="" />
+                  </div>
+                  MONERO
+                </div>
+              </div>
+              <label for="expand" class="bg-sydney text-white mx-auto text-sm font-bold w-max rounded px-2 py-0.5 mt-2">CLOSE</label>
+            </div>
+
+            <div class="relative peer-checked:hidden -top-7" style="width: -moz-available;">
+              <label class="absolute" for="expand" style="width: -moz-available;">
+                <i class="gg-chevron-down float-right text-white"></i>
+              </label>
+            </div>
+          </div>
+
+          <!-- Listing Prices -->
+          <div class="text-start flex flex-wrap justify-start gap-x-2 4xl:gap-x-6 gap-y-1">
+            <div class="w-full">
+              <div class="bg-sydney text-white rounded px-1 py-0.5 w-max  font-bold">Item Price + Shipping:</div>
+            </div>
+            <div class="bg-sydney text-white flex items-center rounded-full px-2 justify-center gap-1 pl-0.5 pr-2 py-0.5" style="border-radius: 20px 20px 20px 20px;">
+              <div class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center">
+                <div class="flag-usd"></div>
+              </div>
+              <div id="price-calc-fiat" class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs">USD {{ '%.2f'|format(product.price_usd) }}</div>
+            </div>
+            <div id="price-calc-btc" class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#F58D10] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
+              <div class="btc-icon bg-cover rounded-full bg-white" style="width: 24px; height: 24px; margin-left: 3px; background-color: #fff !important;" alt="BTC">
+                <img  src="{{ url_for('static', filename='images/btc.webp') }}" class="w-4 h-4 object-contain" alt="" />
+              </div>
+              BITCOIN
+            </div>
+            <div id="price-calc-xmr" class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#505050] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
+              <div class="xmr-icon rounded-full bg-white" style="width: 24px; height: 24px; margin-right: 3px; background-color: #fff !important;" alt="XMR">
+                <img  src="{{ url_for('static', filename='images/xmr.png') }}" class="w-4 h-4 object-contain" alt="" />
+              </div>
+              MONERO
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full flex flex-col 2xl:flex-row gap-2">
+          <div class="w-full flex flex-col items-center gap-2">
+            <div class="flex flex-wrap items-center justify-start w-full gap-0.5">
+              <input type="hidden" name="tk" value="{{ product.id }}" />
+              <div class="font-bold">QTY:</div>
+              <input type="text" class="bg-white w-10 rounded-md px-2 py-1 border-solid border-sydney2 border text-sydney" name="qty" value="1" />
+              <select name="crypto" class="rounded-md bg-white px-2 py-1 border-solid border-sydney2 border text-sydney">
+                <option value="btc" selected="selected">BTC</option>
+                <option value="xmr">XMR</option>
+              </select>
+              <button type="submit" class="h-6 flex items-center justify-center gap-2 hover:!gap-1 px-4 py-1 rounded bg-green-800 hover:bg-green-700 text-white border-transparent font-bold">
+                <div class="btn-cart transform"><i class="gg-shopping-cart"></i></div>
+                BUY
+              </button>
+              <span class="text-xs text-gray-400">Your BTC Balance: {{ profile_data.btc_balance|default(0.0, true)|round(4) }}</span> |
+              <span class="text-xs text-gray-400">Monero Balance: {{ profile_data.monero_balance|default(0.0, true)|round(4) }}</span>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Features and Description -->
+    <div class="flex flex-col self-start gap-2 items-center w-full 2xl:w-full 45xl:flex-1 5xl:min-w-xl px-2 pb-1 pt-3 border-solid border-0 2xl:border-t 45xl:!border-l group-hover:border-sydney2 border-border">
+      <div class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1">Short Description</div>
+      <div class="m-2 p-2 text-white">
+        {{ product.description }}
+      </div>
+      <div class="grid grid-cols-4 items-center mx-auto w-full break-words">
+        <div class="col-span-full mb-2">
+          <div class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1">Features</div>
+        </div>
+        <div class="font-bold">Product Class</div>
+        <div class="text-white">Physical package</div>
+        <div class="font-bold">Quantity left</div>
+        <div class="text-white">{{ 'Unlimited' if product.stock == 0 else product.stock }}</div>
+        <div class="font-bold">Ends in</div>
+        <div class="text-white">Never</div>
+        <div class="font-bold">Origin country</div>
+        <div class="text-white">{{ product.origin_country }}</div>
+        <div class="font-bold">Ships to</div>
+        <div class="text-white">{{ product.ships_to|default('United States') }}</div>
+        <div class="font-bold">Payment</div>
+        <div class="text-white"><i>Escrow</i></div>
       </div>
     </div>
   </div>
 
-  <!-- Bottom Section: Tabs & Related Products -->
-  <div class="mt-4">
-    <!-- Tabs -->
-    <div class="bg-white rounded-lg shadow-md mb-4 border">
-      <div class="flex border-b">
-        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none active" data-tab="description">Description</button>
-        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="vendor-policy">Vendor Policy</button>
-        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="shipping-policy">Shipping Policy</button>
-        <button class="tab-button px-6 py-3 text-gray-700 font-semibold border-b-2 border-transparent hover:border-yellow-400 focus:outline-none" data-tab="reviews">Reviews</button>
-      </div>
-
-      <!-- Tab Content -->
-      <div class="p-6">
-        <!-- Description Tab -->
-        <div id="description" class="tab-content">
-          <h2 class="text-md font-semibold text-gray-700 mb-4">Product Description</h2>
-          <p class="text-gray-600 text-sm">{{ product['description']|default('No description available.') }}</p>
-        </div>
-
-        <!-- Vendor Policy Tab -->
-        <div id="vendor-policy" class="tab-content hidden">
-          <h2 class="text-md font-semibold text-gray-700 mb-4">Vendor Policy</h2>
-          <p><strong>Business Name:</strong> {{ vendor['business_name']|default(vendor['username']|default('Admin')) }}</p>
-          <p><strong>Vendor Level:</strong> {{ vendor['level'] }}</p>
-          <p><strong>Minimum Order:</strong> ${{ vendor['min_order_amount']|default(0.0) }}</p>
-          <p><strong>Contact:</strong> {{ vendor['support_contact']|default('Encrypted contact not provided') }}</p>
-          <div class="mt-6">
-            {{ vendor['return_policy']|default('Not specified') }}
-          </div>
-        </div>
-
-        <!-- Shipping Policy Tab -->
-        <div id="shipping-policy" class="tab-content hidden">
-          <h2 class="text-md font-semibold text-gray-700 mb-4">Shipping Policy</h2>
-          <p><strong>Shipping From:</strong> {{ vendor['shipping_location'] }}</p>
-          <p><strong>Shipping To:</strong> {{ vendor['shipping_destinations'] }}</p>
-          <p><strong>Shipping Method:</strong> {{ product['shipping_method']|default('Not specified') }}</p>
-          <p><strong>Lead Time:</strong> {{ product['lead_time']|default('Not specified') }}</p>
-          <div class="mt-6">
-            {{ vendor['shipping_policy']|default('Not specified') }}
-          </div>
-        </div>
-
-        <!-- Reviews Tab -->
-        <div id="reviews" class="tab-content hidden">
-          <h2 class="text-md font-semibold text-gray-700 mb-4">Customer Reviews</h2>
-          {% if reviews %}
-          {% for review in reviews %}
-          <div class="border-t border-gray-200 pt-4 mt-4">
-            <div class="flex items-center">
-              <span class="text-yellow-400">★</span>
-              <span class="text-gray-700 ml-1">{{ review['rating'] }}</span>
-              <span class="text-gray-500 text-sm ml-2">{{ review['created_at'] }}</span>
-            </div>
-            <p class="text-gray-600 mt-2">{{ review['comment'] }}</p>
-          </div>
-          {% endfor %}
-          {% if 'user_id' in session %}
-          <a href="{{ url_for('public.review_product', product_id=product['id']) }}"
-             class="mt-4 inline-block text-primary hover:underline">Write a Review</a>
-          {% endif %}
-          {% else %}
-          <p class="text-gray-600">No reviews yet. Be the first to review this product!</p>
-          {% if 'user_id' in session %}
-          <a href="{{ url_for('public.review_product', product_id=product['id']) }}"
-             class="mt-4 inline-block text-primary hover:underline">Write a Review</a>
-          {% endif %}
-          {% endif %}
-        </div>
-      </div>
+  <div class="">
+    <!-- LISTING MENU -->
+    <div class="px-5 pb-3 4xl:py-0 flex flex-wrap 4xl:flex-nowrap gap-2 justify-center 4xl:justify-start">
+      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab1">DESCRIPTION</label>
+      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab2">FEEDBACK ({{ product.reviews_count }})</label>
+      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab3">REFUND POLICY</label>
     </div>
 
-    <!-- Related Products -->
-    <div class="bg-white p-4 rounded-lg shadow-md">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4">Other products in {{ category['name'] }}</h2>
-      {% if related_products %}
-      <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2">
-        {% for related in related_products %}
-        <div class="bg-white border p-4 rounded-lg shadow-sm">
-          <a href="{{ url_for('public.product_detail', product_id=related['id']) }}">
-            {% if related['featured_image'] %}
-            <img
-              src="{{ url_for('static', filename=related['featured_image']) }}"
-              alt="{{ related['title'] }}"
-              class="w-full h-32 object-contain rounded-md mb-2"
-            />
-            {% endif %}
-            <h3 class="text-sm font-medium text-gray-700 mb-1">{{ related['title']|truncate(46) }}</h3>
-            {% set related_rating = get_product_rating(related['id']) %}
-                <div class="flex items-center mb-2">
-                    <span class="text-yellow-400">★</span>
-                    <span class="text-gray-700 ml-1">{{ related_rating['avg_rating'] }} ({{ related_rating['review_count'] }})</span>
-                </div>
-                <!-- Vendor Details -->
-                <p class="text-gray-600 text-xs font-bold">Sold by: <span class="font-normal">{{ related['vendor']['business_name']|default(related['vendor']['username']) }}</span> </p>
-                <p class="text-gray-600 text-xs font-bold">Seller level: <span class="font-normal">{{ related['vendor']['level'] }}</span> </p>
-                <p class="text-gray-600 text-xs font-bold">Shipping from: <span class="font-normal">{{ related['vendor']['shipping_location']|truncate(30)|default('Not specified') }}</span></p>
-                <p class="text-gray-600 text-xs mb-3 font-bold">Shipping to: <span class="font-normal">{{ related['vendor']['shipping_destinations']|truncate(30)|default('Not specified') }}</span></p>
-            <span class="block w-full bg-primary text-gray-900 font-semibold py-1 px-4 rounded-md hover:bg-primary-90 text-center transition duration-200">View details</span>
-          </a>
+    <div class="bg-white border-solid border-[1px] border-sydney2 rounded-md px-[5px] py-3">
+      <!-- Tab1 DESCRIPTION -->
+      <div id="tab1" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
+        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+          <h2 class="text-sydney">Product Description</h2>
+          <div class="text-xs w-full text-left text-white">
+            {{ product.description|replace('\n', '<br />') }}
+          </div>
         </div>
-        {% endfor %}
+        <div class="flex justify-center 2xl:justify-start gap-3 w-full">
+          {% for tag in product.tags|default(['adderall', 'b974', 'DP30', 'meth'], true) %}
+            <a href="/search?s_terms={{ tag }}&s_active=1" class="rounded bg-sydney bg-opacity-10 text-sydney font-bold px-2 py-0.5">{{ tag }}</a>
+          {% endfor %}
+        </div>
       </div>
-      {% else %}
-      <p class="text-gray-600">No related products found in this category.</p>
-      {% endif %}
+
+      <!-- Tab2 FEEDBACK -->
+      <div id="tab2" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
+        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+          <h2 class="text-sydney">Listing's Feedback</h2>
+          <div class="px-3 py-1 text-sm font-bold text-center w-full">
+            <div>Total feedback <b class="text-green-700">{{ feedback_stats.positive }}</b> / <b class="text-gray-700">{{ feedback_stats.neutral }}</b> / <b class="text-red-700">{{ feedback_stats.negative }}</b></div>
+            <div>{{ feedback_stats.positive_percentage|round(2) }}% positive feedback</div>
+            <div class="w-full rounded-md py-1 bg-sydney bg-opacity-10 hidden 2xl:grid grid-cols-[40px,60%,20%,auto] gap-2 my-1">
+              <div></div>
+              <div>Feedback</div>
+              <div>Buyer / Price</div>
+              <div>Date</div>
+            </div>
+
+            {% for f in feedback %}
+              <div class="w-full pr-2 py-1 bg-sydney bg-opacity-5 rounded-md odd:bg-opacity-10 grid grid-cols-1 2xl:grid-cols-[40px,60%,20%,auto] items-center text-xs gap-2 my-2 border-solid border-0 border-b border-t hover:border-sydney 2xl:border-transparent relative">
+                <div class="flex items-center gap-1 flex-row 2xl:flex-col mx-auto">
+                  <div class="w-[17px] h-[17px] picture-positive2"></div>
+                  <label class="text-xs">
+                    <input type="checkbox" class="hidden absolute peer" />
+                    <div class="peer-checked:bg-sydney peer checked:text-white w-[fit-content] mx-auto 2xl:mx-1 leading-none text-[10px] text-center peer-checked:rounded 2xl:mt-3 py-1 px-0.5 border-solid border-0 border-sydney2 border-l 2xl:border-l-0 2xl:border-t">
+                      Show more<br />+
+                    </div>
+                    <div class="hidden peer-checked:absolute peer-checked:flex flex-col items-center justify-center gap-1 w-11/12 2xl:w-max left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-sydney bg-opacity-90 text-white p-3 rounded-md">
+                      <div class="font-bold text-center">
+                        FEEDBACK RATING
+                        <div class="absolute right-2 top-2 hover:scale-105"><i class="gg-close"></i></div>
+                      </div>
+                      <div class="flex flex-wrap w-full items-center justify-center gap-2 p-2 border-solid border-0 border-t border-white">
+                        <!-- Stealth -->
+                        <div>
+                          <div class="font-bold">Stealth</div>
+                          <div class="rounded p-1 bg-back border-sydney2 border-2">
+                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
+                              <div class="starsover"> </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- Quality -->
+                        <div>
+                          <div class="font-bold">Quality</div>
+                          <div class="rounded p-1 bg-back border-sydney2 border-2">
+                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
+                              <div class="starsover"> </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- Delivery -->
+                        <div>
+                          <div class="font-bold">Delivery</div>
+                          <div class="rounded p-1 bg-back border-sydney2 border-2">
+                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
+                              <div class="starsover"> </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                <div class="space-y-1 text-center 2xl:text-left">
+                  <div class="italic">{{ f.comment|default('No comments.') }}</div>
+                  <div class="text-gray-600">{{ product.title }}</div>
+                </div>
+                <div class="space-y-1">
+                  <div>{{ f.buyer_username|default('Anonymous') }}</div>
+                  <div class="text-gray-600">USD {{ '%.2f'|format(product.price_usd) }}</div>
+                </div>
+                <div>{{ f.created_at.strftime('%b %d, %Y at %H:%M') }}</div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Pagination -->
+          <div class="flex flex-wrap items-center justify-center gap-2 w-full text-base font-bold border-solid border-[1px] border-border hover:border-sydney2 rounded-md p-3 mt-2">
+            {% if page > 1 %}
+              <a href="/product/{{ product.id }}?pg=1" class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-push-chevron-left"></i></a>
+              <a href="/product/{{ product.id }}?pg={{ page - 1 }}" class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-chevron-left"></i></a>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+              <a href="/product/{{ product.id }}?pg={{ p }}" class="h-full flex text-sm items-center px-3 rounded-md {{ 'border border-border bg-sydney2 text-white' if p == page else 'text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white' }}">{{ p }}</a>
+            {% endfor %}
+
+            {% if page < total_pages %}
+              <a href="/product/{{ product.id }}?pg={{ page + 1 }}" class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-chevron-right"></i></a>
+              <a href="/product/{{ product.id }}?pg={{ total_pages }}" class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-push-chevron-right"></i></a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab3 REFUND POLICY -->
+      <div id="tab3" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
+        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+          <h2 class="text-sydney">Refund Policy</h2>
+          <div class="text-xs w-full text-left text-white">
+            Format:<br />
+            <br />
+            Jane Doe<br />
+            798 High St<br />
+            Boston, MA 01234<br />
+            <br />
+            **If addresses is not in this format it will be CANCELED<br />
+            <br />
+            NO PO BOXES OR CALIFORNIA ORDERS AT THIS TIME <br />
+            <br />
+            **ORDERS THAT ARE RETURNED TO SENDER FOR ANY REASON WILL NOT BE RESHIPPED OR REFUNDED<br />
+            <br />
+            **IF THE TRACKING NUMBER STATES 'DELIVERED' THERE WILL BE NO REFUNDS/RESHIPS<br />
+            <br />
+            **DOUBLE CHECK YOUR ADDRESS BEFORE SENDING THEM TO US WE JUST COPY AND PASTE<br />
+            <br />
+            **IF A PARCEL IS SEIZED WE OFFER 100% RESHIP TO A NEW ADDRESS. "LOST" GETS 50%<br />
+            <br />
+            <br />
+            **we will look into order issues after 10 days have passed from day order is marked as completed if you message me before this there is a good chance you do not get a responce<br />
+            <br />
+            <br />
+            ***Q&A***<br />
+            Q: can i get tracking number?<br />
+            A: we do not provide tracking due to OPSEC<br />
+            in a dispute situation it will be provided to support.<br />
+            <br />
+            Q: i see my order was shipped but i dont see anything on my<br />
+            informed delivery<br />
+            A: informed delivery is not 100% reliable. sometimes it does not show up<br />
+            <br />
+            Q: I see a shipping label was created on informed for the<br />
+            past 2 days, but nothing shipped.<br />
+            A: Orders are shipped out multiple times a week! shipping label created is normal, Sometimes USPS takes up to 3 days to grab packages. There is nothing we can do about this. Sometimes USPS will NOT scan parcels at pick up. There is nothing we can do about this. If you still have no order after 10 business days reach out!<br />
+            <br />
+            <br />
+            3-5 day shipping does NOT include weekends!
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const mainImage = document.getElementById("main-image");
-    const thumbnails = document.querySelectorAll(".thumbnail");
-    const mainImageContainer = document.getElementById("main-image-container");
-    const zoomLens = document.querySelector(".zoom-lens");
-    const decreaseQty = document.getElementById("decrease-qty");
-    const increaseQty = document.getElementById("increase-qty");
-    const quantityInput = document.getElementById("quantity");
-    const addToCartBtn = document.getElementById("add-to-cart");
-    const cartCountSpan = document.getElementById("cart-count"); // Add this line
-    const tabButtons = document.querySelectorAll(".tab-button");
-    const tabContents = document.querySelectorAll(".tab-content");
-
-    // Image Sliding
-    thumbnails.forEach((thumbnail) => {
-      thumbnail.addEventListener("click", function () {
-        mainImage.src = this.dataset.src;
-      });
-    });
-
-    // Image Zoom
-    mainImageContainer.addEventListener("mouseenter", function () {
-      zoomLens.classList.remove("hidden");
-    });
-    mainImageContainer.addEventListener("mouseleave", function () {
-      zoomLens.classList.add("hidden");
-    });
-    mainImageContainer.addEventListener("mousemove", function (e) {
-      const rect = mainImageContainer.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const lensSize = 100;
-      let lensX = x - lensSize / 2;
-      let lensY = y - lensSize / 2;
-      lensX = Math.max(0, Math.min(lensX, rect.width - lensSize));
-      lensY = Math.max(0, Math.min(lensY, rect.height - lensSize));
-      zoomLens.style.left = `${lensX}px`;
-      zoomLens.style.top = `${lensY}px`;
-      const zoomFactor = 2;
-      const bgX = -(lensX * zoomFactor - rect.width / 2);
-      const bgY = -(lensY * zoomFactor - rect.height / 2);
-      zoomLens.style.backgroundImage = `url(${mainImage.src})`;
-      zoomLens.style.backgroundSize = `${rect.width * zoomFactor}px ${rect.height * zoomFactor}px`;
-      zoomLens.style.backgroundPosition = `${bgX}px ${bgY}px`;
-    });
-
-    // Quantity Selector
-    if (decreaseQty && increaseQty && quantityInput) {
-      decreaseQty.addEventListener("click", function () {
-        let qty = parseInt(quantityInput.value);
-        let min = parseInt(quantityInput.min);
-        if (qty > min) {
-          quantityInput.value = qty - 1;
-        }
-      });
-      increaseQty.addEventListener("click", function () {
-        let qty = parseInt(quantityInput.value);
-        let max = parseInt(quantityInput.max);
-        if (qty < max) {
-          quantityInput.value = qty + 1;
-        }
-      });
-      quantityInput.addEventListener("change", function () {
-        let qty = parseInt(this.value);
-        let min = parseInt(this.min);
-        let max = parseInt(this.max);
-        if (qty < min) this.value = min;
-        else if (qty > max) this.value = max;
-      });
-    }
-
-    // Add to Cart
-    if (addToCartBtn) {
-      addToCartBtn.addEventListener("click", function () {
-        const productId = this.dataset.productId;
-        const quantity = parseInt(quantityInput.value);
-        fetch("{{ url_for('cart.add_to_cart') }}", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ product_id: productId, quantity: quantity }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              alert("Added to cart successfully!");
-            } else {
-              alert("Error adding to cart: " + data.message);
-            }
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("Failed to add to cart.");
-          });
-      });
-    }
-
-    // Tab Functionality
-    tabButtons.forEach(button => {
-      button.addEventListener("click", function () {
-        tabButtons.forEach(btn => {
-          btn.classList.remove("active");
-          btn.classList.remove("border-yellow-400");
-          btn.classList.add("border-transparent");
-        });
-        tabContents.forEach(content => content.classList.add("hidden"));
-
-        this.classList.add("active");
-        this.classList.add("border-yellow-400");
-        this.classList.remove("border-transparent");
-
-        const tabId = this.dataset.tab;
-        document.getElementById(tabId).classList.remove("hidden");
-      });
-    });
-  });
-</script>
-
-<style>
-  .zoom-lens {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    border: 1px solid #ccc;
-    background-color: rgba(255, 255, 255, 0.3);
-    pointer-events: none;
-    z-index: 10;
-  }
-  .tab-button.active {
-    border-bottom: 2px solid #f4b400; /* Matches hover:bg-yellow-400 */
-  }
-</style>
 {% endblock %}

@@ -1,0 +1,60 @@
+{% extends "user/user_base.html" %}
+
+{% block user_content %}
+<div class="bg-gray-900 min-h-screen text-gray-100">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8 text-white">My Tickets</h1>
+
+    <!-- Tickets Table -->
+    <div class="bg-gray-800 shadow-lg rounded-lg p-6">
+      <h2 class="text-2xl font-semibold mb-6 text-white">Your Support Tickets</h2>
+      {% if tickets %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-700">
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">ID</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Subject</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Category</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Priority</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Status</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Created</th>
+              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+            <tr class="hover:bg-gray-600">
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.id }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.subject }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.category }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.priority }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.status|capitalize }}</td>
+              <td class="border border-gray-600 px-4 py-2">{{ ticket.created_at }}</td>
+              <td class="border border-gray-600 px-4 py-2">
+                <a href="{{ url_for('user.view_ticket', ticket_id=ticket.id) }}"
+                   class="text-blue-400 hover:text-blue-300">View</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="mt-4 flex justify-center gap-2">
+        {% for p in range(1, total_pages + 1) %}
+        <a href="{{ url_for('user.my_tickets', page=p) }}"
+           class="px-3 py-1 border rounded {% if p == page %}bg-blue-600 text-white{% else %}bg-gray-700 text-gray-200{% endif %} hover:bg-blue-500 hover:text-white">
+          {{ p }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <p class="text-gray-400">You have no support tickets.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

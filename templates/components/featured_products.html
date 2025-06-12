@@ -1,0 +1,78 @@
+{% if featured_products %}
+<div class="bg-card border-solid border border-border rounded-md px-[5px] py-3 m-0 w-full flex flex-wrap mb-4 justify-around">
+    <div class="min-w-full mb-[5px] font-bold">
+        <span class="text-[13px] font-bold m-0 uppercase leading-9 flex items-center text-gray-300 rounded-md border-solid border border-border px-3">
+            <i class="text-xl mr-2">★</i>Featured Listings
+        </span>
+    </div>
+
+    {% for product in featured_products %}
+    <div class="border-solid border mx-[3px] mb-[3px] rounded-md p-[6px] group flex flex-wrap justify-between flex-1 text-sm min-w-[250px] w-11/12 2xl:w-1/3 6xl:min-w-[15%] border-border hover:bg-card hover:border-sydney2">
+        <div class="w-full border-solid border-border border rounded-md px-2 mb-1 py-1 flex items-center flex-wrap">
+            <a class="text-xs font-bold text-white" href="{{ url_for('public.product_detail', product_id=product.id) }}">
+                {{ product.title|truncate(50) }}
+            </a>
+        </div>
+
+        <div class="w-full grid grid-cols-[8.8em,auto]">
+            <div class="p-1 w-[8.8em] h-[8.55em] my-1 bg-card border-solid border border-border text-center rounded-md">
+                <a href="{{ url_for('public.product_detail', product_id=product.id) }}">
+                    <img
+                    class="group-hover:scale-110 w-full h-full inline-block mx-auto my-0 rounded-md"
+                    src="/static/uploads/products/{{ product.featured_image|basename if product.featured_image else 'product-placeholder.png' }}"
+                    alt="{{ product.title }}"
+                />
+                </a>
+            </div>
+            <div class="px-2 py-1 flex flex-col gap-1">
+                <span class="text-white text-left text-xs font-bold">{{ product.category_name|default('Unknown Category') }}</span>
+
+                <div class="text-white font-bold text-xs pb-1 border-solid border-0 border-b border-sydney flex flex-wrap">
+                    Sold by:
+                    <a class="ml-1 font-normal" href="{{ url_for('public.profile', user_id=product.vendor_id) }}">
+                        {{ product.vendor_username }} ({{ product.sales_count|default(0) }})
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-2 w-full text-xs text-sydney divide-solid divide-x divide-y-0 divide-sydney">
+                    <div class="text-center">
+                        <div class="text-white">Feedback</div>
+                        <div class="text-white bg-green w-max mx-auto rounded-md px-1">
+                            {{ product.feedback_percentage|default(0.0)|round(1) }}%
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-white">Vendor Lvl</div>
+                        <span class="px-2 py-0.5 rounded bg-lvl{{ product.vendor_level|default(1) }} text-white">
+                            {{ product.vendor_level|default(1) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 items-center w-full border-solid border-0 border-t border-sydney text-xs text-sydney divide-solid divide-x divide-y-0 pt-1 divide-sydney">
+                    <span class="text-sm text-white font-bold w-full text-center pt-2">
+                        USD {{ product.price_usd|default(0.0)|round(2) }}
+                    </span>
+                    <div class="text-center flex flex-col items-center justify-center">
+                        <div class="text-white">Ships From:</div>
+                        <span class="px-0.5 py-0.5 max-w-[fit-content] mx-1 flex items-center group-hover:bg-sydney rounded bg-sydney text-white text-[9px] leading-none break-normal font-bold">
+                            {{ product.origin_country|default('Unknown') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <a
+                href="{{ url_for('public.product_detail', product_id=product.id) }}"
+                class="col-span-2 flex items-center justify-center gap-2 hover:gap-0.5 bg-sydney hover:bg-sydney2 text-white text-center rounded text-sm px-4 py-0.5 leading-none"
+            >
+                View Product <i class="gg-arrow-right ml-2"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-card border-solid border border-border rounded-md px-[5px] py-3 m-0 w-full text-center">
+    <span class="text-[13px] font-bold text-gray-300">No featured products available</span>
+</div>
+{% endif %}

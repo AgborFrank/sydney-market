@@ -1,11 +1,20 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from utils.database import get_db_connection, get_product_count
-from utils.security import validate_csrf_token
+from utils.database import get_db_connection, get_product_count, get_featured_products, get_random_products
+#from utils.security import validate_csrf_token
 from datetime import datetime, timedelta
 from utils.bitcoin import check_payment, send_btc, ESCROW_KEY
+from flask_login import login_required, current_user, login_user
+#from utils.monero import send_monero
+from utils.database import get_user_profile_data
+from utils.crypto import get_exchange_rates
 import traceback
+import logging
+from pytz import timezone
+import json
 
 public_bp = Blueprint('public', __name__, url_prefix='')
+logger = logging.getLogger(__name__)
+
 def get_product_rating(product_id, cursor):
     """Fetch average rating and review count for a product."""
     cursor.execute("""
@@ -17,66 +26,401 @@ def get_product_rating(product_id, cursor):
     return {'avg_rating': round(result['avg_rating'] or 0, 1), 'review_count': result['review_count']}
 
 @public_bp.route('/')
+@login_required
 def index():
-    if 'user_id' not in session:
-        flash('Please log in to access the marketplace.', 'error')
-        return redirect(url_for('user.login'))
-    
-    try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Fetch all products in stock with vendor settings
-            c.execute("""
-                SELECT p.*, u.pusername as vendor_username, vs.business_name, vs.shipping_location, vs.shipping_destinations
-                FROM products p 
-                LEFT JOIN users u ON p.vendor_id = u.id 
-                LEFT JOIN vendor_settings vs ON p.vendor_id = vs.user_id
-                WHERE p.stock > 0
-            """)
-            products = [dict(row) for row in c.fetchall()]
-            
-            # Fetch featured products from vendors with 'admin' role with vendor settings
-            c.execute("""
-                SELECT p.*, u.pusername as vendor_username, vs.shipping_location, vs.shipping_destinations
-                FROM products p 
-                LEFT JOIN users u ON p.vendor_id = u.id 
-                LEFT JOIN vendor_settings vs ON p.vendor_id = vs.user_id
-                WHERE u.role = 'admin' AND p.stock > 0
-            """)
-            featured_products = [dict(row) for row in c.fetchall()]
-            
-            # Fetch all categories
-            c.execute("SELECT * FROM categories")
-            categories = [dict(row) for row in c.fetchall()]
-            
-            # Fetch featured categories
-            c.execute("""
-                SELECT * 
-                FROM categories 
-                WHERE parent_id IS NULL AND image_path IS NOT NULL AND featured = 1 
-                LIMIT 3
-            """)
-            featured_categories = [dict(row) for row in c.fetchall()]
-            
-            # Build category tree
-            category_tree = {cat['id']: dict(cat, subcategories=[]) for cat in categories}
-            for cat in categories:
-                if cat['parent_id']:
-                    category_tree[cat['parent_id']]['subcategories'].append(category_tree[cat['id']])
-            top_level_categories = [cat for cat in category_tree.values() if not cat['parent_id']]
-            
-            for category in top_level_categories:
-                category['product_count'] = get_product_count(category['id'], category_tree, c)
-    
-    except Exception as e:
-        flash(f"Error loading marketplace: {str(e)}", 'error')
-        return redirect(url_for('user.login'))
+    # Fetch featured and random products
+    featured_products = get_featured_products(limit=6)
+    random_products = get_random_products(limit=6)
 
-    return render_template('index.html', products=products, featured_products=featured_products, 
-                         categories=categories, top_level_categories=top_level_categories, 
-                         featured_categories=featured_categories)
+    logger.info(f"Index route: {len(featured_products)} featured, {len(random_products)} random products")
+
+    # Fetch user profile data
+    profile_data, error = get_user_profile_data(session['user_id'])
+    if error:
+        flash(error, 'error')
+
+    # Exchange rates
+    rates = get_exchange_rates()
+    if not rates:
+        flash("Unable to fetch exchange rates.", 'error')
+        rates = {"bitcoin": {}, "monero": {}}
+
+    return render_template('index.html',
+                         featured_products=featured_products,
+                         random_products=random_products,
+                         profile_data=profile_data,
+                         rates=rates)
+@public_bp.route('/product/<int:product_id>')
+@login_required
+def product_detail(product_id):
+    db = get_db_connection()
+
+    # Fetch product details
+    product = db.execute(
+        "SELECT p.*, u.pusername as vendor_username "
+        "FROM products p "
+        "LEFT JOIN users u ON p.vendor_id = u.id "
+        "WHERE p.id = ?",
+        (product_id,)
+    ).fetchone()
+
+    if not product:
+        db.close()
+        return render_template('error.html', message="Product not found"), 404
+
+    # Convert product to dict
+    product_dict = dict(product)
+
+    # Fetch product images
+    images = db.execute(
+        "SELECT image_path FROM product_images WHERE product_id = ? ORDER BY created_at DESC",
+        (product_id,)
+    ).fetchall()
+    product_dict['images'] = [img['image_path'] for img in images] if images else []
+
+    # Fetch reviews for rating
+    reviews = db.execute(
+        "SELECT rating FROM reviews WHERE product_id = ?",
+        (product_id,)
+    ).fetchall()
+    product_rating = sum(r['rating'] for r in reviews) / len(reviews) if reviews else 0.0
+    product_dict['rating'] = product_rating
+    product_dict['reviews_count'] = len(reviews)
+
+    # Fetch sales count for the product
+    product_sales_count = db.execute(
+        "SELECT COUNT(*) as count FROM orders WHERE product_id = ? AND status = 'completed'",
+        (product_id,)
+    ).fetchone()['count']
+    product_dict['sales_count'] = product_sales_count
+
+    # Convert created_at to datetime and adjust to WAT
+    try:
+        product_dict['created_at'] = datetime.strptime(product_dict['created_at'], '%Y-%m-%d %H:%M:%S')
+        product_dict['created_at'] = product_dict['created_at'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
+    except ValueError as e:
+        logger.error(f"Failed to parse created_at: {e}")
+        product_dict['created_at'] = datetime.now(tz=timezone('Africa/Lagos'))
+
+    # Fetch vendor details
+    vendor = db.execute(
+        "SELECT id, pusername as username, last_login, level, pgp_public_key, pgp_public_key "
+        "FROM users WHERE id = ?",
+        (product_dict['vendor_id'],)
+    ).fetchone()
+
+    if not vendor:
+        db.close()
+        return render_template('error.html', message="Vendor not found"), 404
+
+    # Convert vendor to dict for easier manipulation
+    vendor_dict = dict(vendor)
+
+    # Fetch sales count for the vendor from completed orders
+    vendor_sales_count = db.execute(
+        "SELECT COUNT(*) as count FROM orders WHERE vendor_id = ? AND status = 'completed'",
+        (product_dict['vendor_id'],)
+    ).fetchone()['count']
+    vendor_dict['sales_count'] = vendor_sales_count
+
+    # Fetch all reviews for the vendor's products to calculate feedback_positive_percentage
+    vendor_reviews = db.execute(
+        "SELECT r.rating "
+        "FROM reviews r "
+        "JOIN products p ON r.product_id = p.id "
+        "WHERE p.vendor_id = ?",
+        (product_dict['vendor_id'],)
+    ).fetchall()
+
+    # Calculate feedback_positive_percentage
+    if vendor_reviews:
+        positive_reviews = sum(1 for r in vendor_reviews if r['rating'] >= 4)
+        total_reviews = len(vendor_reviews)
+        vendor_dict['feedback_positive_percentage'] = (positive_reviews / total_reviews) * 100
+    else:
+        vendor_dict['feedback_positive_percentage'] = 0.0
+
+    # Calculate trust_level based on sales and feedback
+    base_trust_level = 1  # Starting level
+    trust_level = base_trust_level
+    trust_level += vendor_sales_count // 100  # Add 1 level for every 100 sales
+    if vendor_dict['feedback_positive_percentage'] > 95:
+        trust_level += 1
+    vendor_dict['trust_level'] = min(trust_level, 10)  # Cap at 10
+
+    # Mock external marketplace fields (since they're not in the database)
+    vendor_dict['external_market_count'] = 0  # No external marketplace data
+    vendor_dict['external_sales_count'] = 0
+    vendor_dict['external_feedback_percentage'] = 0.0
+
+    # Convert last_login to datetime and adjust to WAT
+    if vendor_dict['last_login'] is not None:
+        try:
+            vendor_dict['last_login'] = datetime.strptime(vendor_dict['last_login'], '%Y-%m-%d %H:%M:%S')
+            vendor_dict['last_login'] = vendor_dict['last_login'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
+        except ValueError as e:
+            logger.error(f"Failed to parse vendor last_login: {e}")
+            vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+    else:
+        logger.warning(f"last_login is None for vendor {vendor_dict['id']}")
+        vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+
+    # Fetch detailed feedback with pagination
+    page = request.args.get('pg', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    feedback = db.execute(
+        "SELECT r.rating, r.comment, r.created_at, u.pusername as buyer_username "
+        "FROM reviews r "
+        "LEFT JOIN users u ON r.user_id = u.id "
+        "WHERE r.product_id = ? "
+        "ORDER BY r.created_at DESC "
+        "LIMIT ? OFFSET ?",
+        (product_id, per_page, offset)
+    ).fetchall()
+
+    # Calculate feedback stats
+    feedback_stats = db.execute(
+        "SELECT "
+        "SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as positive, "
+        "SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as neutral, "
+        "SUM(CASE WHEN rating < 3 THEN 1 ELSE 0 END) as negative "
+        "FROM reviews WHERE product_id = ?",
+        (product_id,)
+    ).fetchone()
+
+    feedback_stats = {
+        'positive': feedback_stats['positive'] or 0,
+        'neutral': feedback_stats['neutral'] or 0,
+        'negative': feedback_stats['negative'] or 0,
+        'total': len(reviews),
+        'positive_percentage': (feedback_stats['positive'] / len(reviews) * 100) if reviews else 0.0
+    }
+    favorite_status = db.execute(
+        "SELECT id FROM favorite_vendors WHERE user_id = ? AND vendor_id = ?",
+        (session['user_id'], product_dict['vendor_id'])
+    ).fetchone() is not None
+    # Convert feedback to list of dicts and parse created_at to WAT
+    feedback_list = []
+    for f in feedback:
+        f_dict = dict(f)
+        try:
+            f_dict['created_at'] = datetime.strptime(f_dict['created_at'], '%Y-%m-%d %H:%M:%S')
+            f_dict['created_at'] = f_dict['created_at'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
+        except ValueError:
+            f_dict['created_at'] = datetime.now(tz=timezone('Africa/Lagos'))
+        feedback_list.append(f_dict)
+
+    # Calculate pagination
+    total_pages = (len(reviews) + per_page - 1) // per_page
+
+    # Fetch user profile data
+    profile_data, error = get_user_profile_data(session['user_id'])
+    if not profile_data:
+        db.close()
+        return render_template('error.html', message="User not found"), 404
+
+    # Fetch exchange rates
+    rates = get_exchange_rates()
+    if not rates:
+        flash("Unable to fetch exchange rates.", 'error')
+        rates = {"bitcoin": {}, "monero": {}}
+
+    db.close()
+    return render_template(
+        'product_detail.html',
+        product=product_dict,
+        vendor=vendor_dict,
+        profile_data=profile_data,
+        rates=rates,
+        feedback=feedback_list,
+        feedback_stats=feedback_stats,
+        page=page,
+        favorite_status=favorite_status,
+        total_pages=total_pages,
+        per_page=per_page
+    )
+
+
+@public_bp.route('/vendor/<int:vendor_id>')
+@login_required
+def vendor_profile(vendor_id):
+    db = get_db_connection()
+
+    # Fetch vendor details
+    vendor = db.execute(
+        "SELECT id, pusername as username, last_login, level, pgp_key, pgp_public_key "
+        "FROM users WHERE id = ?",
+        (vendor_id,)
+    ).fetchone()
+
+    if not vendor:
+        db.close()
+        return render_template('error.html', message="Vendor not found"), 404
+
+    # Convert vendor to dict for easier manipulation
+    vendor_dict = dict(vendor)
+    favorite_status = db.execute(
+        "SELECT id FROM favorite_vendors WHERE user_id = ? AND vendor_id = ?",
+        (session['user_id'], vendor_id)
+    ).fetchone() is not None
+    # Fetch sales count for the vendor from completed orders
+    vendor_sales_count = db.execute(
+        "SELECT COUNT(*) as count FROM orders WHERE vendor_id = ? AND status = 'completed'",
+        (vendor_id,)
+    ).fetchone()['count']
+    vendor_dict['sales_count'] = vendor_sales_count
+
+    # Fetch all reviews for the vendor's products to calculate feedback_positive_percentage
+    vendor_reviews = db.execute(
+        "SELECT r.rating "
+        "FROM reviews r "
+        "JOIN products p ON r.product_id = p.id "
+        "WHERE p.vendor_id = ?",
+        (vendor_id,)
+    ).fetchall()
+
+    # Calculate feedback_positive_percentage
+    if vendor_reviews:
+        positive_reviews = sum(1 for r in vendor_reviews if r['rating'] >= 4)
+        total_reviews = len(vendor_reviews)
+        vendor_dict['feedback_positive_percentage'] = (positive_reviews / total_reviews) * 100
+    else:
+        vendor_dict['feedback_positive_percentage'] = 0.0
+
+    # Calculate trust_level based on sales and feedback
+    base_trust_level = 1  # Starting level
+    trust_level = base_trust_level
+    trust_level += vendor_sales_count // 100  # Add 1 level for every 100 sales
+    if vendor_dict['feedback_positive_percentage'] > 95:
+        trust_level += 1
+    vendor_dict['trust_level'] = min(trust_level, 10)  # Cap at 10
+
+    # Mock external marketplace fields (since they're not in the database)
+    vendor_dict['external_market_count'] = 0
+    vendor_dict['external_sales_count'] = 0
+    vendor_dict['external_feedback_percentage'] = 0.0
+
+    # Convert last_login to datetime and adjust to WAT
+    if vendor_dict['last_login'] is not None:
+        try:
+            vendor_dict['last_login'] = datetime.strptime(vendor_dict['last_login'], '%Y-%m-%d %H:%M:%S')
+            vendor_dict['last_login'] = vendor_dict['last_login'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
+        except ValueError as e:
+            logger.error(f"Failed to parse vendor last_login: {e}")
+            vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+    else:
+        logger.warning(f"last_login is None for vendor {vendor_dict['id']}")
+        vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+
+    # Fetch all published products by the vendor
+    products = db.execute(
+        "SELECT p.*, "
+        "(SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as reviews_count, "
+        "(SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating "
+        "FROM products p "
+        "WHERE p.vendor_id = ? AND p.published = 1 "
+        "ORDER BY p.created_at DESC",
+        (vendor_id,)
+    ).fetchall()
+
+    # Convert products to list of dicts and process dates
+    products_list = []
+    for prod in products:
+        prod_dict = dict(prod)
+        # Convert created_at to datetime and adjust to WAT
+        if prod_dict['created_at'] is not None:
+            try:
+                prod_dict['created_at'] = datetime.strptime(prod_dict['created_at'], '%Y-%m-%d %H:%M:%S')
+                prod_dict['created_at'] = prod_dict['created_at'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
+            except ValueError as e:
+                logger.error(f"Failed to parse product created_at: {e}")
+                prod_dict['created_at'] = datetime.now(tz=timezone('Africa/Lagos'))
+        else:
+            prod_dict['created_at'] = datetime.now(tz=timezone('Africa/Lagos'))
+
+        # Fetch product images (first image only for preview)
+        first_image = db.execute(
+            "SELECT image_path FROM product_images WHERE product_id = ? ORDER BY created_at ASC LIMIT 1",
+            (prod_dict['id'],)
+        ).fetchone()
+        prod_dict['first_image'] = first_image['image_path'] if first_image else None
+
+        products_list.append(prod_dict)
+
+    # Fetch user profile data
+    profile_data, error = get_user_profile_data(session['user_id'])
+    if not profile_data:
+        db.close()
+        return render_template('error.html', message="User not found"), 404
+
+    db.close()
+    return render_template(
+        'vendor_profile_full.html',
+        vendor=vendor_dict,
+        products=products_list,
+        profile_data=profile_data,
+        favorite_status=favorite_status
+    )
+@public_bp.route('/favorite_vendor/<int:vendor_id>', methods=['GET'])
+@login_required
+def favorite_vendor(vendor_id):
+    db = get_db_connection()
+    user_id = session['user_id']
+
+    # Check if the vendor is already favorited
+    existing_favorite = db.execute(
+        "SELECT id FROM favorite_vendors WHERE user_id = ? AND vendor_id = ?",
+        (user_id, vendor_id)
+    ).fetchone()
+
+    if existing_favorite:
+        # Remove favorite
+        db.execute(
+            "DELETE FROM favorite_vendors WHERE user_id = ? AND vendor_id = ?",
+            (user_id, vendor_id)
+        )
+        flash('Vendor removed from favorite_vendors.', 'success')
+    else:
+        # Add favorite
+        db.execute(
+            "INSERT INTO favorite_vendors (user_id, vendor_id) VALUES (?, ?)",
+            (user_id, vendor_id)
+        )
+        flash('Vendor added to favorite_vendors.', 'success')
+
+    db.commit()
+    db.close()
+
+    # Redirect back to the referring page (e.g., product detail or vendor profile)
+    referer = request.headers.get('Referer')
+    if referer:
+        return redirect(referer)
+    return redirect(url_for('public.index'))
+
+@public_bp.route('/profile/<int:user_id>')
+@login_required
+def profile(user_id):
+    db = get_db_connection()
+    user = db.execute(
+        "SELECT id, pusername, role, created_at, last_login, last_logout "
+        "FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
     
+    if not user:
+        return render_template('error.html', message="User not found"), 404
+    
+    products = db.execute(
+        "SELECT * FROM products WHERE vendor_id = ? AND stock > 0",
+        (user_id,)
+    ).fetchall()
+    
+    return render_template('profile.html', user=user, products=products)
+  
 @public_bp.route('/category/<int:category_id>')
+@login_required
 def category_products(category_id):
     if 'user_id' not in session:
         flash('Please log in to access this category.', 'error')
@@ -126,124 +470,7 @@ def category_products(category_id):
 
     return render_template('category.html', category=category, products=products, 
                          top_level_categories=top_level_categories)
-@public_bp.route('/product/<int:product_id>')
-def product_detail(product_id):
-    if 'user_id' not in session:
-        flash('Please log in to access the marketplace.', 'error')
-        return redirect(url_for('user.login'))
-    try:
-        print(f"Attempting to load product ID: {product_id}")
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Fetch product
-            c.execute("SELECT * FROM products WHERE id = ?", (product_id,))
-            product = c.fetchone()
-            if not product:
-                print(f"Product ID {product_id} not found in products table.")
-                flash("Product not found.", 'error')
-                return redirect(url_for('public.index'))
-            product = dict(product)
-            print(f"Product found: {product['title']}")
 
-            # Fetch vendor details for main product
-            c.execute("""
-                SELECT u.username, u.id as vendor_id, vs.business_name, vs.min_order_amount, vs.shipping_location, 
-                       vs.shipping_destinations, vs.shipping_policy, vs.return_policy, vs.support_contact
-                FROM users u
-                LEFT JOIN vendor_settings vs ON u.id = vs.user_id
-                WHERE u.id = ?
-            """, (product['vendor_id'],))
-            vendor = c.fetchone()
-            if not vendor:
-                print(f"No vendor found for vendor_id: {product['vendor_id']}")
-            vendor = dict(vendor) if vendor else {
-                'username': 'Admin', 'vendor_id': None, 'business_name': 'Admin', 'min_order_amount': 0.0,
-                'shipping_location': 'Not specified', 'shipping_destinations': 'Not specified',
-                'shipping_policy': '', 'return_policy': '', 'support_contact': ''
-            }
-            print(f"Vendor: {vendor['username']}")
-
-            # Calculate vendor level
-            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'completed'", (product['vendor_id'],))
-            result = c.fetchone()
-            sales = result[0] if result else 0
-            vendor['level'] = 'Gold' if sales > 1000 else 'Silver' if sales > 500 else 'Bronze' if sales > 100 else 'Level 1' if sales < 1 else 'Level 1'
-            print(f"Vendor sales: {sales}, level: {vendor['level']}")
-
-            # Fetch vendor feedback
-            c.execute("""
-                SELECT COUNT(*) 
-                FROM reviews r
-                JOIN products p ON r.product_id = p.id
-                WHERE p.vendor_id = ? AND r.rating >= 4
-            """, (product['vendor_id'],))
-            result = c.fetchone()
-            positive = result[0] if result else 0
-            c.execute("""
-                SELECT COUNT(*) 
-                FROM reviews r
-                JOIN products p ON r.product_id = p.id
-                WHERE p.vendor_id = ? AND r.rating < 4
-            """, (product['vendor_id'],))
-            result = c.fetchone()
-            negative = result[0] if result else 0
-            vendor_feedback = {'positive': positive, 'negative': negative}
-            print(f"Vendor feedback: positive={positive}, negative={negative}")
-
-            # Fetch additional data
-            c.execute("SELECT * FROM product_images WHERE product_id = ?", (product_id,))
-            additional_images = [dict(row) for row in c.fetchall()] or []
-            c.execute("SELECT * FROM reviews WHERE product_id = ?", (product_id,))
-            reviews = [dict(row) for row in c.fetchall()] or []
-            c.execute("SELECT * FROM categories WHERE id = ?", (product['category_id'],))
-            result = c.fetchone()
-            category = dict(result) if result else {'name': 'Unknown Category'}
-            print(f"Category: {category['name']}")
-
-            # Fetch related products with vendor details
-            c.execute("""
-                SELECT p.*, 
-                       u.username, vs.business_name, vs.min_order_amount, vs.shipping_location, 
-                       vs.shipping_destinations, vs.shipping_policy, vs.return_policy, vs.support_contact
-                FROM products p
-                LEFT JOIN users u ON p.vendor_id = u.id
-                LEFT JOIN vendor_settings vs ON u.id = vs.user_id
-                WHERE p.category_id = ? AND p.stock > 0 AND p.id != ?
-            """, (product['category_id'], product_id))
-            related_products_raw = c.fetchall()
-            related_products = []
-            for row in related_products_raw:
-                product_dict = dict(row)
-                # Extract vendor details into a nested dict
-                vendor_dict = {
-                    'username': product_dict.pop('username', 'Admin'),
-                    'business_name': product_dict.pop('business_name', 'Admin'),
-                    'min_order_amount': product_dict.pop('min_order_amount', 0.0),
-                    'shipping_location': product_dict.pop('shipping_location', 'Not specified'),
-                    'shipping_destinations': product_dict.pop('shipping_destinations', 'Not specified'),
-                    'shipping_policy': product_dict.pop('shipping_policy', ''),
-                    'return_policy': product_dict.pop('return_policy', ''),
-                    'support_contact': product_dict.pop('support_contact', '')
-                }
-                # Calculate level for this vendor
-                c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'completed'", (product_dict['vendor_id'],))
-                sales = c.fetchone()[0] or 0
-                vendor_dict['level'] = 'Gold' if sales > 1000 else 'Silver' if sales > 500 else 'Bronze' if sales > 100 else 'Level 1' if sales < 1 else 'Level 1'
-                product_dict['vendor'] = vendor_dict
-                related_products.append(product_dict)
-            print(f"Related products found: {len(related_products)}")
-
-        print("Rendering product_detail.html")
-        return render_template('product_detail.html', product=product, vendor=vendor, vendor_feedback=vendor_feedback,
-                              additional_images=additional_images, reviews=reviews, category=category,
-                              related_products=related_products)
-    except Exception as e:
-        print(f"Error in product_detail: {str(e)}")
-        print(traceback.format_exc())
-        flash(f"An error occurred while loading the product page: {str(e)}", 'error')
-        return redirect(url_for('public.index'))
-    
-  
 @public_bp.route('/advertise')
 def advertise():
     if 'user_id' not in session:
@@ -262,8 +489,9 @@ def escrow():
     if 'user_id' not in session:
         flash('Please log in to access the marketplace.', 'error')
         return redirect(url_for('user.login'))
-    return render_template('escrow.html', title="Multisig Escrow - DarkVault",
+    return render_template('escrow.html', title="Multisig Escrow - Sydney",
                           description="Learn how our multisig escrow system ensures secure transactions.")
+
 
 @public_bp.route('/search')
 def search_products():
@@ -272,16 +500,57 @@ def search_products():
         return redirect(url_for('user.login'))
     
     query = request.args.get('q', '').strip()
-    if not query:
-        return redirect(url_for('public.index'))
+    category_id = request.args.get('category_id', type=int)
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    min_rating = request.args.get('min_rating', type=float)
+    sort_by = request.args.get('sort_by', 'relevance')
     
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM products WHERE title LIKE ? OR description LIKE ?",
-                  (f"%{query}%", f"%{query}%"))
-        products = c.fetchall()
+        sql = """
+            SELECT p.*, AVG(r.rating) as avg_rating
+            FROM products p
+            LEFT JOIN reviews r ON p.id = r.product_id
+            WHERE p.stock > 0
+        """
+        params = []
+        
+        if query:
+            sql += " AND (p.title LIKE ? OR p.description LIKE ?)"
+            params.extend([f"%{query}%", f"%{query}%"])
+        
+        if category_id:
+            sql += " AND p.category_id = ?"
+            params.append(category_id)
+        
+        if min_price is not None:
+            sql += " AND p.price_usd >= ?"
+            params.append(min_price)
+        
+        if max_price is not None:
+            sql += " AND p.price_usd <= ?"
+            params.append(max_price)
+        
+        if min_rating is not None:
+            sql += " AND (AVG(r.rating) >= ? OR AVG(r.rating) IS NULL)"
+            params.append(min_rating)
+        
+        sql += " GROUP BY p.id"
+        
+        if sort_by == 'price_asc':
+            sql += " ORDER BY p.price_usd ASC"
+        elif sort_by == 'price_desc':
+            sql += " ORDER BY p.price_usd DESC"
+        elif sort_by == 'rating_desc':
+            sql += " ORDER BY avg_rating DESC NULLS LAST"
+        else:
+            sql += " ORDER BY p.created_at DESC"
+        
+        c.execute(sql, params)
+        products = [dict(row) for row in c.fetchall()]
     
-    return render_template('search_results.html', products=products, query=query)
+    return render_template('search_results.html', products=products, query=query, filters=request.args)
 
 @public_bp.route('/privacy-policy')
 def privacy_policy():
@@ -399,7 +668,7 @@ def old_report_vendor():
         return redirect(url_for('user.login'))
     
     if request.method == 'POST':
-        validate_csrf_token()
+       # validate_csrf_token()
         vendor_username = request.form.get('vendor_username', '').strip()
         reason = request.form.get('reason', '').strip()
         evidence = request.form.get('evidence', '').strip()
@@ -442,18 +711,13 @@ def how_to_pgp():
         return redirect(url_for('user.login'))
     return render_template('how_to_pgp.html')
 
-@public_bp.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    session.pop('vendor_id', None)
-    return redirect(url_for('public.index'))
 
 @public_bp.route('/order/confirm/<int:order_id>', methods=['POST'])
 def confirm_order(order_id):
     if 'user_id' not in session:
         return redirect(url_for('user.login'))
     
-    validate_csrf_token()
+    #validate_csrf_token()
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM orders WHERE id = ? AND buyer_id = ?", (order_id, session['user_id']))
@@ -478,7 +742,7 @@ def dispute_order(order_id):
     if 'user_id' not in session:
         return redirect(url_for('user.login'))
     
-    validate_csrf_token()
+    #validate_csrf_token()
     reason = request.form.get('reason', '').strip()
     if not reason:
         flash("Dispute reason is required", 'error')
@@ -498,19 +762,29 @@ def dispute_order(order_id):
         conn.commit()
         flash("Dispute submitted, awaiting admin resolution", 'success')
         return redirect(url_for('public.orders'))
-
+    
 def check_expired_orders():
     with get_db_connection() as conn:
         c = conn.cursor()
-        expiry_time = datetime.utcnow() - timedelta(days=7)
-        c.execute("SELECT o.id, e.multisig_address, e.buyer_address, e.btc_amount FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.status = 'paid' AND e.created_at < ?", (expiry_time,))
-        expired_orders = c.fetchall()
+        expiry_time = datetime.utcnow() - timedelta(days=14)
+        c.execute("""
+            SELECT o.id, e.multisig_address, e.buyer_address, e.amount_btc, e.amount_usd, e.crypto_currency
+            FROM orders o
+            JOIN escrow e ON o.id = e.order_id
+            WHERE o.status = 'paid' AND e.created_at < ? AND o.dispute_status IS NULL
+        """, (expiry_time,))
+        expired_orders = [dict(row) for row in c.fetchall()]
         
         for order in expired_orders:
-            buyer_key = Key(order['buyer_address'], network='testnet')
-            txid = send_btc(buyer_key, order['buyer_address'], order['btc_amount'])  # Simplified refund
-            if txid:
-                c.execute("UPDATE orders SET status = 'refunded', escrow_status = 'refunded' WHERE id = ?", (order['id'],))
-                c.execute("UPDATE escrow SET status = 'refunded', txid = ? WHERE order_id = ?", (txid, order['id']))
-                conn.commit()
-                print(f"Automatically refunded order {order['id']}")
+            if order['crypto_currency'] == 'BTC':
+                buyer_key = Key(order['buyer_address'], network='testnet')
+                txid = send_btc(buyer_key, order['buyer_address'], order['amount_btc'])
+                if txid:
+                    c.execute("UPDATE orders SET status = 'refunded', escrow_status = 'refunded' WHERE id = ?", (order['id'],))
+                    c.execute("UPDATE escrow SET status = 'refunded', txid = ? WHERE order_id = ?", (txid, order['id']))
+                    conn.commit()
+                    print(f"Automatically refunded order {order['id']} in BTC")
+            # Skip Monero orders
+            else:
+                print(f"Skipping refund for order {order['id']} (Monero disabled)")
+                continue

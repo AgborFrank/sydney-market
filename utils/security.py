@@ -1,6 +1,7 @@
 import secrets
-from flask import session, request, abort
+from flask import session
 import pgpy
+import hashlib
 import logging
 from config import Config
 
@@ -8,25 +9,16 @@ from config import Config
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def generate_csrf_token():
-    if 'csrf_token' not in session:
-        session['csrf_token'] = secrets.token_hex(16)
-    return session['csrf_token']
-
-def validate_csrf_token():
-    token = session.get('csrf_token')
-    if not token or token != request.form.get('csrf_token'):
-        logger.warning("CSRF token validation failed")
-        abort(403, "CSRF token validation failed")
-
 def regenerate_session():
+    """Regenerate the session ID while preserving user_id and role."""
     user_id = session.get('user_id')
     role = session.get('role')
     session.clear()
-    session['csrf_token'] = secrets.token_hex(16)
     if user_id:
         session['user_id'] = user_id
         session['role'] = role
+    session.modified = True
+    logger.debug("Session regenerated, user_id: %s, role: %s", user_id, role)
 
 def encrypt_message(pgp_public_key, message):
     try:

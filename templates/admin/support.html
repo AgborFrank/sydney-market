@@ -1,198 +1,88 @@
-<!-- templates/admin/support.html -->
-{% extends 'admin/admin_base.html' %}
-
-{% block title %}Admin - Support - {{ settings['site_name'] }}{% endblock %}
+{% extends "admin/admin_base.html" %}
 
 {% block admin_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Support Tickets</h2>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">Support Tickets</h1>
 
-<!-- Search/Filter -->
-{% if not ticket %}
-<div class="bg-white p-6 rounded-lg shadow-md mb-8">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Tickets</h3>
-    <form method="GET" action="{{ url_for('admin.admin_support') }}" class="space-y-4">
-        <div class="flex space-x-4">
-            <div class="flex-1">
-                <label for="search" class="block text-gray-700 font-semibold mb-2">Search</label>
-                <input 
-                    type="text" 
-                    id="search" 
-                    name="search" 
-                    value="{{ search_query }}" 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                    placeholder="Search by subject or username"
-                >
-            </div>
-            <div class="flex-1">
-                <label for="status" class="block text-gray-700 font-semibold mb-2">Status</label>
-                <select 
-                    id="status" 
-                    name="status" 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                >
-                    <option value="">All</option>
-                    <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
-                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
-                    <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
-                    <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
-                </select>
-            </div>
-            <div class="flex-1">
-                <label for="category" class="block text-gray-700 font-semibold mb-2">Category</label>
-                <select 
-                    id="category" 
-                    name="category" 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                >
-                    <option value="">All</option>
-                    <option value="General" {% if category_filter == 'General' %}selected{% endif %}>General</option>
-                    <option value="Technical" {% if category_filter == 'Technical' %}selected{% endif %}>Technical</option>
-                    <option value="Billing" {% if category_filter == 'Billing' %}selected{% endif %}>Billing</option>
-                    <option value="Other" {% if category_filter == 'Other' %}selected{% endif %}>Other</option>
-                </select>
-            </div>
-        </div>
-        <div class="text-right">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Filter
-            </button>
-        </div>
-    </form>
-</div>
-
-<!-- Ticket List -->
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">All Tickets</h3>
-    {% if tickets %}
-    <table class="w-full text-left">
-        <thead>
-            <tr class="border-b">
-                <th class="py-2 px-4 text-gray-700">Ticket ID</th>
-                <th class="py-2 px-4 text-gray-700">User</th>
-                <th class="py-2 px-4 text-gray-700">Subject</th>
-                <th class="py-2 px-4 text-gray-700">Category</th>
-                <th class="py-2 px-4 text-gray-700">Priority</th>
-                <th class="py-2 px-4 text-gray-700">Status</th>
-                <th class="py-2 px-4 text-gray-700">Responses</th>
-                <th class="py-2 px-4 text-gray-700">Last Updated</th>
-                <th class="py-2 px-4 text-gray-700">Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ticket in tickets %}
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-4">{{ ticket['id'] }}</td>
-                <td class="py-2 px-4">{{ ticket['username'] }}</td>
-                <td class="py-2 px-4">{{ ticket['subject'] }}</td>
-                <td class="py-2 px-4">{{ ticket['category'] }}</td>
-                <td class="py-2 px-4">{{ ticket['priority'] }}</td>
-                <td class="py-2 px-4">{{ ticket['status'] | capitalize }}</td>
-                <td class="py-2 px-4">{{ ticket['response_count'] }}</td>
-                <td class="py-2 px-4">{{ ticket['updated_at'] }}</td>
-                <td class="py-2 px-4">
-                    <a href="{{ url_for('admin.admin_view_ticket', ticket_id=ticket['id']) }}" class="text-blue-500 hover:underline">View</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="text-gray-600">No tickets found.</p>
-    {% endif %}
-</div>
-{% endif %}
-
-<!-- Ticket Details -->
-{% if ticket %}
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Ticket #{{ ticket['id'] }}: {{ ticket['subject'] }}</h3>
-    <p><strong>User:</strong> {{ ticket['username'] }}</p>
-    <p><strong>Category:</strong> {{ ticket['category'] }}</p>
-    <p><strong>Priority:</strong> {{ ticket['priority'] }}</p>
-    <p><strong>Status:</strong> {{ ticket['status'] | capitalize }}</p>
-    <p><strong>Created:</strong> {{ ticket['created_at'] }}</p>
-    <p><strong>Last Updated:</strong> {{ ticket['updated_at'] }}</p>
-    <p><strong>Description:</strong> {{ ticket['description'] }}</p>
-    
-    <h4 class="text-md font-semibold text-gray-700 mt-4 mb-2">Responses</h4>
-    {% if responses %}
-    <ul class="space-y-2">
-        {% for response in responses %}
-        <li class="border-b py-2">
-            <p><strong>{{ 'Admin' if response['sender_id'] == session['admin_id'] else 'User' }} ({{ response['created_at'] }}):</strong></p>
-            <p>
-                {% if response['encrypted_body'] %}
-                <span class="text-gray-600 italic">Encrypted Response</span>
-                {% else %}
-                {{ response['body'] }}
-                {% endif %}
-            </p>
-        </li>
+  <!-- Filters -->
+  <form method="GET" class="mb-6 flex flex-wrap gap-4">
+    <div class="flex-1 min-w-[200px]">
+      <label for="status" class="block text-sm font-medium">Status</label>
+      <select name="status" id="status" class="w-full border rounded px-3 py-2">
+        <option value="">All Statuses</option>
+        {% for status in statuses %}
+        <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status|capitalize }}</option>
         {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-gray-600">No responses yet.</p>
-    {% endif %}
-    
-    {% if ticket['status'] not in ['resolved', 'closed'] %}
-    <form method="POST" action="{{ url_for('admin.admin_support') }}" class="space-y-4 mt-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="hidden" name="action" value="reply">
-        <input type="hidden" name="ticket_id" value="{{ ticket['id'] }}">
-        <div>
-            <label for="body" class="block text-gray-700 font-semibold mb-2">Your Response</label>
-            <textarea 
-                id="body" 
-                name="body" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                rows="3" 
-                placeholder="Enter your response" 
-                required
-            ></textarea>
-        </div>
-        <div class="text-right space-x-2">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Send Response
-            </button>
-            <form method="POST" action="{{ url_for('admin.admin_support') }}" class="inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <input type="hidden" name="action" value="resolve">
-                <input type="hidden" name="ticket_id" value="{{ ticket['id'] }}">
-                <button 
-                    type="submit" 
-                    class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600 transition duration-200"
-                >
-                    Resolve
-                </button>
-            </form>
-            <form method="POST" action="{{ url_for('admin.admin_support') }}" class="inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <input type="hidden" name="action" value="close">
-                <input type="hidden" name="ticket_id" value="{{ ticket['id'] }}">
-                <button 
-                    type="submit" 
-                    class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200"
-                >
-                    Close
-                </button>
-            </form>
-        </div>
-    </form>
-    {% endif %}
-    <a href="{{ url_for('admin.admin_support') }}" class="mt-4 inline-block text-blue-500 hover:underline">Back to Tickets</a>
-</div>
-{% endif %}
+      </select>
+    </div>
+    <div class="flex-1 min-w-[200px]">
+      <label for="category" class="block text-sm font-medium">Category</label>
+      <select name="category" id="category" class="w-full border rounded px-3 py-2">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+        <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex-1 min-w-[200px]">
+      <label for="search" class="block text-sm font-medium">Search</label>
+      <input type="text" name="search" id="search" value="{{ search }}" placeholder="Search by subject or description" class="w-full border rounded px-3 py-2">
+    </div>
+    <div class="self-end">
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Filter</button>
+    </div>
+  </form>
 
-{% if success %}
-<p class="mt-4 text-green-600">{{ success }}</p>
-{% endif %}
-{% if error %}
-<p class="mt-4 text-red-600">{{ error }}</p>
-{% endif %}
+  <!-- Tickets Table -->
+  <div class="overflow-x-auto">
+    <table class="min-w-full border-collapse border">
+      <thead>
+        <tr class="bg-gray-200">
+          <th class="border px-4 py-2">ID</th>
+          <th class="border px-4 py-2">User</th>
+          <th class="border px-4 py-2">Subject</th>
+          <th class="border px-4 py-2">Category</th>
+          <th class="border px-4 py-2">Priority</th>
+          <th class="border px-4 py-2">Status</th>
+          <th class="border px-4 py-2">Created</th>
+          <th class="border px-4 py-2">Updated</th>
+          <th class="border px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ticket in tickets %}
+        <tr>
+          <td class="border px-4 py-2">{{ ticket.id }}</td>
+          <td class="border px-4 py-2">{{ ticket.pusername }}</td>
+          <td class="border px-4 py-2">{{ ticket.subject }}</td>
+          <td class="border px-4 py-2">{{ ticket.category }}</td>
+          <td class="border px-4 py-2">{{ ticket.priority }}</td>
+          <td class="border px-4 py-2">{{ ticket.status|capitalize }}</td>
+          <td class="border px-4 py-2">{{ ticket.created_at }}</td>
+          <td class="border px-4 py-2">{{ ticket.updated_at }}</td>
+          <td class="border px-4 py-2">
+            <a href="{{ url_for('admin.view_ticket', ticket_id=ticket.id) }}" class="text-blue-500 hover:underline">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="border px-4 py-2 text-center">No tickets found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="mt-4 flex justify-center gap-2">
+    {% for p in range(1, total_pages + 1) %}
+    <a href="{{ url_for('admin.manage_support', page=p, status=status_filter, category=category_filter, search=search) }}"
+       class="px-3 py-1 border rounded {% if p == page %}bg-blue-500 text-white{% else %}bg-white{% endif %}">
+      {{ p }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

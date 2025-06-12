@@ -1,0 +1,153 @@
+{% extends "user/user_base.html" %}
+{% block user_content %}
+<div class="w-full 2xl:w-[calc(100%-300px)] flex flex-col mx-auto justify-start gap-4 text-sydney">
+    <!-- Header -->
+    <div class="w-full text-lg font-bold text-center text-white bg-sydney uppercase px-2 py-1 rounded-md flex items-center justify-center gap-2">
+        <i class="gg-support"></i> SYDNEY MARKET HELPDESK
+    </div>
+
+    <!-- Most Popular Questions -->
+    <div class="border-solid border-0 border-b border-sydney p-2 mx-auto text-base uppercase font-bold">
+        Most Popular Questions
+    </div>
+
+    <div class="flex flex-col items-center gap-2">
+        {% for faq in popular_faqs %}
+        <style>
+            #faq-{{ loop.index }}:checked ~ #faq-{{ loop.index }}-cont span {
+                display: block;
+                opacity: 1;
+            }
+            #faq-{{ loop.index }}:checked ~ #faq-{{ loop.index }}-cont {
+                --tw-bg-opacity: 0.15;
+                opacity: 1;
+                width: 100%;
+            }
+            #faq-{{ loop.index }}:checked ~ #faq-{{ loop.index }}-cont label i {
+                transform: rotate(90deg);
+            }
+        </style>
+
+        <input type="checkbox" id="faq-{{ loop.index }}" class="hidden absolute" />
+
+        <div id="faq-{{ loop.index }}-cont" class="order-2 w-11/12 px-3 py-2 rounded-md bg-sydney bg-opacity-10 opacity-80 hover:opacity-100 space-y-2">
+            <label for="faq-{{ loop.index }}" class="flex items-center gap-2">
+                <i class="gg-chevron-right"></i>
+                <div class="text-lg leading-tight">
+                    {{ faq.question | escape }}
+                </div>
+            </label>
+            <span class="hidden opacity-0 col-span-2 text-sm leading-tight">
+                {{ faq.answer | escape | safe }}
+            </span>
+        </div>
+        {% else %}
+        <div class="w-11/12 px-3 py-2 rounded-md bg-sydney bg-opacity-10 opacity-80 text-sm text-center">
+            No popular FAQs available at this time.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Still Need Help -->
+    <div class="border-solid border-0 border-b border-sydney2 p-2 mx-auto text-base uppercase font-bold">
+        Still need Help?
+        <div class="rounded-md bg-sydney bg-opacity-10 px-1.5 py-0.5 mx-auto text-sm normal-case text-center font-normal">
+            Choose a topic
+        </div>
+    </div>
+
+    <!-- Category FAQs -->
+    <div class="flex flex-wrap justify-center gap-2">
+        {% for category in categories %}
+        {% set cat_index = loop.index %}
+        {% set section = category.name | lower | replace(' ', '') %}
+        <style>
+            #faqb-{{ cat_index }}:checked ~ #faqb-{{ cat_index }}-cont > div {
+                display: flex;
+            }
+            #faqb-{{ cat_index }}:checked ~ label[for="faqb-{{ cat_index }}"] {
+                color: #fff;
+                background-color: #084d71;
+                font-weight: 700;
+                transform: scale(1.1);
+            }
+            #faqb-{{ cat_index }}:checked ~ #faqb-{{ cat_index }}-cont {
+                display: block;
+                border-radius: 6px;
+                border-width: 1px;
+            }
+            #faqb-{{ cat_index }}:checked ~ #faqb-{{ cat_index }}-cont {
+                --tw-bg-opacity: 0.15;
+                opacity: 1;
+                width: 100%;
+                order: 5;
+            }
+        </style>
+
+        <input type="radio" name="faqb" id="faqb-{{ cat_index }}" class="hidden absolute" {% if loop.first %}checked="checked"{% endif %} />
+
+        <label for="faqb-{{ cat_index }}" class="flex items-center gap-2 order-1 px-3 py-1 rounded border-solid border border-sydney hover:bg-sydney hover:text-white">
+            <i class="gg-{{ category.icon | default('more-o') }}"></i>
+            <div class="text-lg leading-tight">{{ category.name | escape }}</div>
+        </label>
+
+        <div id="faqb-{{ cat_index }}-cont" class="order-2 px-3 py-2 border-solid border-0 border-sydney w-full {% if not loop.first %}hidden{% endif %}">
+            <div class="hidden flex-wrap justify-center gap-2">
+                {% for faq in category.faqs %}
+                {% set faq_index = loop.index0 + (cat_index * 100) %}
+                <style>
+                    #faqc-{{ faq_index }}:checked ~ #faqc-{{ faq_index }}-cont span {
+                        display: block;
+                        opacity: 1;
+                    }
+                    #faqc-{{ faq_index }}:checked ~ #faqc-{{ faq_index }}-cont {
+                        --tw-bg-opacity: 0.15;
+                        opacity: 1;
+                        width: 100%;
+                    }
+                    @media (min-width: 1000px) {
+                        #faqc-{{ faq_index }}:checked ~ #faqc-{{ faq_index }}-cont {
+                            order: 1;
+                        }
+                    }
+                    #faqc-{{ faq_index }}:checked ~ #faqc-{{ faq_index }}-cont label i {
+                        transform: rotate(90deg);
+                    }
+                </style>
+
+                <input type="checkbox" id="faqc-{{ faq_index }}" class="hidden absolute" />
+
+                <div id="faqc-{{ faq_index }}-cont" class="order-2 w-11/12 2xl:w-[49%] px-3 py-2 rounded-md bg-sydney bg-opacity-10 opacity-80 hover:opacity-100 space-y-2">
+                    <label for="faqc-{{ faq_index }}" class="flex items-center gap-2">
+                        <i class="gg-chevron-right"></i>
+                        <div class="text-lg leading-tight">
+                            {{ faq.question | escape }}
+                        </div>
+                    </label>
+                    <span class="hidden opacity-0 col-span-2 text-sm leading-tight">
+                        {{ faq.answer | escape | safe }}
+                    </span>
+                </div>
+                {% else %}
+                <div class="order-2 w-11/12 px-3 py-2 rounded-md bg-sydney bg-opacity-10 opacity-80 text-sm">
+                    No FAQs available in this category.
+                </div>
+                {% endfor %}
+
+                <div class="border-solid border-0 border-t w-6/10 border-sydney p-2 mt-5 mx-auto text-base uppercase font-bold flex flex-col items-center order-5">
+                    <b>Still need Help?</b>
+                    <a href="/support/newticket?section={{ section }}"
+                       class="border-solid border-[1px] border-sydney text-sydney hover:text-white hover:bg-sydney text-sm text-center px-2 py-0.5 rounded-md font-normal normal-case">
+                        Open a ticket
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="w-11/12 px-3 py-2 rounded-md bg-sydney bg-opacity-10 opacity-80 text-sm text-center">
+            No FAQ categories available at this time.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

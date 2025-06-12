@@ -1,92 +1,154 @@
 <!-- templates/user/messages.html -->
-{% extends 'user/user_base.html' %}
-{% block title %}Messages - {{ settings['site_name'] }}{% endblock %}
-{% block user_content %}
+{% extends 'user/user_base.html' %} {% block title %}Messages - {{
+settings['site_name'] }}{% endblock %} {% block user_content %}
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold  mb-8 border-b-2 border-yellow-400 pb-2">Secure Messages</h1>
+  <h1 class="text-4xl font-bold mb-8 border-b-2 border-yellow-400 pb-2">
+    Secure Messages
+  </h1>
 
-    <!-- Private Key Upload (if not set) -->
-    {% if not has_private_key %}
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-gary-100">
-        <h2 class="text-md font-semibold text-gray-800 mb-1">Upload PGP Private Key</h2>
-        <p class="text-gray-600 mb-4">You must upload your PGP private key to decrypt and view messages. This will be encrypted with your passphrase.</p>
-        <form method="POST" action="{{ url_for('user.messages') }}" class="space-y-4">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="action" value="upload_private_key">
-            <div>
-                <label class="block text-gray-600 font-semibold mb-2">PGP Private Key</label>
-                <textarea name="private_key" class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none" rows="6" required></textarea>
+  <!-- Private Key Upload (if not set) -->
+  {% if not has_private_key %}
+  <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-gary-100">
+    <h2 class="text-md font-semibold text-gray-800 mb-1">
+      Upload PGP Private Key
+    </h2>
+    <p class="text-gray-600 mb-4">
+      You must upload your PGP private key to decrypt and view messages. This
+      will be encrypted with your passphrase.
+    </p>
+    <form
+      method="POST"
+      action="{{ url_for('user.messages') }}"
+      class="space-y-4"
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="upload_private_key" />
+      <div>
+        <label class="block text-gray-600 font-semibold mb-2"
+          >PGP Private Key</label
+        >
+        <textarea
+          name="private_key"
+          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          rows="6"
+          required
+        ></textarea>
+      </div>
+      <div>
+        <label class="block text-gray-600 font-semibold mb-2">Passphrase</label>
+        <input
+          type="password"
+          name="passphrase"
+          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          required
+        />
+      </div>
+      <button
+        type="submit"
+        class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+      >
+        Upload
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Conversations and Messages -->
+  {% if has_private_key %}
+  <div class="flex flex-col md:flex-row gap-6">
+    <!-- Conversations List -->
+    <div class="w-full md:w-1/3 bg-gray-800 p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold text-gray-100 mb-4">Conversations</h2>
+      {% if conversations %}
+      <ul class="space-y-2">
+        {% for convo in conversations %}
+        <li>
+          <a
+            href="{{ url_for('user.messages', recipient_id=convo['recipient_id']) }}"
+            class="block p-4 rounded-md hover:bg-gray-700 {% if selected_recipient_id == convo['recipient_id'] %}bg-yellow-600{% endif %}"
+          >
+            <div class="flex justify-between items-center">
+              <span class="text-gray-100 font-semibold"
+                >{{ convo['recipient_name'] }}</span
+              >
+              <span class="text-gray-400 text-sm"
+                >{{ convo['last_message_time'] or 'No messages' }}</span
+              >
             </div>
-            <div>
-                <label class="block text-gray-600 font-semibold mb-2">Passphrase</label>
-                <input type="password" name="passphrase" class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none" required>
-            </div>
-            <button type="submit" class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Upload</button>
-        </form>
+            <p class="text-gray-400 text-sm truncate">
+              {{ convo['last_message'] or 'Start a conversation' }}
+            </p>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-400">No conversations yet.</p>
+      {% endif %}
     </div>
-    {% endif %}
 
-    <!-- Conversations and Messages -->
-    {% if has_private_key %}
-    <div class="flex flex-col md:flex-row gap-6">
-        <!-- Conversations List -->
-        <div class="w-full md:w-1/3 bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold text-gray-100 mb-4">Conversations</h2>
-            {% if conversations %}
-            <ul class="space-y-2">
-                {% for convo in conversations %}
-                <li>
-                    <a href="{{ url_for('user.messages', recipient_id=convo['recipient_id']) }}" 
-                       class="block p-4 rounded-md hover:bg-gray-700 {% if selected_recipient_id == convo['recipient_id'] %}bg-yellow-600{% endif %}">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-100 font-semibold">{{ convo['recipient_name'] }}</span>
-                            <span class="text-gray-400 text-sm">{{ convo['last_message_time'] or 'No messages' }}</span>
-                        </div>
-                        <p class="text-gray-400 text-sm truncate">{{ convo['last_message'] or 'Start a conversation' }}</p>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-gray-400">No conversations yet.</p>
-            {% endif %}
+    <!-- Message Pane -->
+    <div class="w-full md:w-2/3 bg-gray-800 p-6 rounded-lg shadow-md">
+      {% if selected_recipient_id %}
+      <h2 class="text-2xl font-semibold text-gray-100 mb-4">
+        Chat with {{ selected_recipient_name }}
+      </h2>
+
+      <!-- Messages Display -->
+      <div
+        class="h-96 overflow-y-auto border border-gray-600 rounded-md p-4 mb-4 bg-gray-900"
+      >
+        {% if messages %} {% for msg in messages %}
+        <div
+          class="mb-4 {% if msg['sender_id'] == session['user_id'] %}text-right{% else %}text-left{% endif %}"
+        >
+          <p class="text-gray-300 font-semibold">
+            {{ msg['sender_name'] }}
+            <span class="text-gray-500 text-sm">({{ msg['created_at'] }})</span>
+          </p>
+          <p
+            class="bg-gray-700 p-3 rounded-md inline-block max-w-md text-gray-100 {% if msg['sender_id'] == session['user_id'] %}bg-yellow-600{% endif %}"
+          >
+            {{ msg['content'] }}
+          </p>
         </div>
+        {% endfor %} {% else %}
+        <p class="text-gray-400 text-center">
+          No messages in this conversation.
+        </p>
+        {% endif %}
+      </div>
 
-        <!-- Message Pane -->
-        <div class="w-full md:w-2/3 bg-gray-800 p-6 rounded-lg shadow-md">
-            {% if selected_recipient_id %}
-            <h2 class="text-2xl font-semibold text-gray-100 mb-4">Chat with {{ selected_recipient_name }}</h2>
-            
-            <!-- Messages Display -->
-            <div class="h-96 overflow-y-auto border border-gray-600 rounded-md p-4 mb-4 bg-gray-900">
-                {% if messages %}
-                {% for msg in messages %}
-                <div class="mb-4 {% if msg['sender_id'] == session['user_id'] %}text-right{% else %}text-left{% endif %}">
-                    <p class="text-gray-300 font-semibold">{{ msg['sender_name'] }} <span class="text-gray-500 text-sm">({{ msg['created_at'] }})</span></p>
-                    <p class="bg-gray-700 p-3 rounded-md inline-block max-w-md text-gray-100 {% if msg['sender_id'] == session['user_id'] %}bg-yellow-600{% endif %}">
-                        {{ msg['content'] }}
-                    </p>
-                </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-gray-400 text-center">No messages in this conversation.</p>
-                {% endif %}
-            </div>
-
-            <!-- Send Message Form -->
-            <form method="POST" action="{{ url_for('user.messages', recipient_id=selected_recipient_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <input type="hidden" name="action" value="send_message">
-                <div class="flex gap-4">
-                    <textarea name="message" class="w-full py-2 px-4 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none" rows="3" placeholder="Type your message (PGP encrypted)..." required></textarea>
-                    <button type="submit" class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Send</button>
-                </div>
-            </form>
-            {% else %}
-            <p class="text-gray-400 text-center">Select a conversation to start chatting.</p>
-            {% endif %}
+      <!-- Send Message Form -->
+      <form
+        method="POST"
+        action="{{ url_for('user.messages', recipient_id=selected_recipient_id) }}"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="action" value="send_message" />
+        <div class="flex gap-4">
+          <textarea
+            name="message"
+            class="w-full py-2 px-4 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            rows="3"
+            placeholder="Type your message (PGP encrypted)..."
+            required
+          ></textarea>
+          <button
+            type="submit"
+            class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+          >
+            Send
+          </button>
         </div>
+      </form>
+      {% else %}
+      <p class="text-gray-400 text-center">
+        Select a conversation to start chatting.
+      </p>
+      {% endif %}
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

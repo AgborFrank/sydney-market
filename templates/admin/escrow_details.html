@@ -1,0 +1,75 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Escrow Details - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Escrow Details: Order #{{ escrow.order_id }}</h2>
+
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Escrow Information</h3>
+    <p class="text-sm text-gray-500 mb-4">Details of the escrow transaction for an order you sold.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <p><strong>Order ID:</strong> {{ escrow.order_id }}</p>
+            <p><strong>Buyer:</strong> {{ escrow.buyer_username }}</p>
+            <p><strong>Product:</strong> {{ escrow.product_title }}</p>
+            <p><strong>Amount (BTC):</strong> {{ "%.4f"|format(escrow.amount_btc) }}</p>
+            <p><strong>Amount (USD):</strong> {{ "%.2f"|format(escrow.amount_usd) }}</p>
+        </div>
+        <div>
+            <p><strong>Escrow Status:</strong> 
+                {% if escrow.status == 'pending' %}
+                <span class="text-yellow-600">Pending</span>
+                {% elif escrow.status == 'held' %}
+                <span class="text-blue-600">Held</span>
+                {% elif escrow.status == 'released' %}
+                <span class="text-green-600">Released</span>
+                {% elif escrow.status == 'refunded' %}
+                <span class="text-red-600">Refunded</span>
+                {% elif escrow.status == 'disputed' %}
+                <span class="text-red-800">Disputed</span>
+                {% endif %}
+            </p>
+            <p><strong>Order Status:</strong> {{ escrow.order_status | capitalize }}</p>
+            <p><strong>Crypto Currency:</strong> {{ escrow.crypto_currency }}</p>
+            <p><strong>Transaction Date:</strong> {{ escrow.created_at }}</p>
+        </div>
+    </div>
+    <h4 class="text-md font-semibold text-gray-700 mt-6 mb-3">Escrow Addresses</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <p><strong>Multisig Address:</strong> {{ escrow.multisig_address }}</p>
+            <p><strong>Buyer Address:</strong> {{ escrow.buyer_address }}</p>
+        </div>
+        <div>
+            <p><strong>Vendor Address:</strong> {{ escrow.vendor_address }}</p>
+            <p><strong>Escrow Address:</strong> {{ escrow.escrow_address }}</p>
+        </div>
+    </div>
+    <p><strong>Transaction ID:</strong> {{ escrow.txid or 'N/A' }}</p>
+    {% if escrow.status in ['pending', 'held'] %}
+    <h4 class="text-md font-semibold text-gray-700 mt-6 mb-3">Manage Escrow</h4>
+    <form method="POST" action="{{ url_for('admin.admin_update_escrow', order_id=escrow.order_id) }}" class="space-y-4">
+        <div>
+            <label for="action" class="block text-sm font-medium text-gray-700">Escrow Action</label>
+            <p class="text-sm text-gray-500 mb-2">Release funds to vendor or refund to buyer.</p>
+            <select name="action" id="action" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" required>
+                <option value="release">Release Funds to Vendor</option>
+                <option value="refund">Refund Funds to Buyer</option>
+            </select>
+        </div>
+        <div class="text-right">
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Execute Action</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<div class="mt-6">
+    <a href="{{ url_for('admin.admin_escrow') }}" class="bg-gray-300 text-gray-900 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200">Back to Escrow Transactions</a>
+</div>
+
+{% for message in get_flashed_messages(with_categories=true) %}
+<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
+{% endfor %}
+{% endblock %}

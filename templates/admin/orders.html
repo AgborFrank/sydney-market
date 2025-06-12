@@ -1,57 +1,124 @@
-<!-- templates/admin/orders.html -->
 {% extends 'admin/admin_base.html' %}
 
-{% block title %}Admin - All Orders - {{ settings['site_name'] }}{% endblock %}
+{% block title %}Admin - My Orders - {{ settings['site_name'] }}{% endblock %}
 
 {% block admin_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">All Orders</h2>
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage My Orders</h2>
+
+<!-- Filter and Search -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Orders</h3>
+    <form method="GET" action="{{ url_for('admin.admin_orders') }}" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <label for="search" class="block text-sm font-medium text-gray-700">Search by Order ID or Buyer Username</label>
+            <p class="text-sm text-gray-500 mb-2">Enter an order ID or buyer's username to find specific orders.</p>
+            <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 py-2 bg-gray-100 px-6 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" placeholder="Enter order ID or username">
+        </div>
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700">Order Status</label>
+            <p class="text-sm text-gray-500 mb-2">Filter orders by their current status.</p>
+            <select name="status" id="status" class="mt-1 block w-full border-gray-300 py-2 bg-gray-100 px-6 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
+                <option value="">All Statuses</option>
+                <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="processing" {% if request.args.get('status') == 'processing' %}selected{% endif %}>Processing</option>
+                <option value="shipped" {% if request.args.get('status') == 'shipped' %}selected{% endif %}>Shipped</option>
+                <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                <option value="disputed" {% if request.args.get('status') == 'disputed' %}selected{% endif %}>Disputed</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table -->
 <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Order List</h3>
+    <p class="text-sm text-gray-500 mb-4">Below are the orders for products you have sold as a vendor.</p>
     {% if orders %}
-    <table class="w-full text-left">
-        <thead>
-            <tr class="border-b">
-                <th class="py-2 px-4 text-gray-700">Order ID</th>
-                <th class="py-2 px-4 text-gray-700">Product</th>
-                <th class="py-2 px-4 text-gray-700">Amount (USD)</th>
-                <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
-                <th class="py-2 px-4 text-gray-700">Status</th>
-                <th class="py-2 px-4 text-gray-700">Escrow Status</th>
-                <th class="py-2 px-4 text-gray-700">Dispute Status</th>
-                <th class="py-2 px-4 text-gray-700">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-4">{{ order['id'] }}</td>
-                <td class="py-2 px-4">{{ order['title'] }}</td>
-                <td class="py-2 px-4">${{ "%.2f" % order['amount_usd'] }}</td>
-                <td class="py-2 px-4">{{ "%.8f" % order['amount_btc'] }} BTC</td>
-                <td class="py-2 px-4">{{ order['status'] | capitalize }}</td>
-                <td class="py-2 px-4">{{ order['escrow_status'] | capitalize }}</td>
-                <td class="py-2 px-4">{{ order['dispute_status'] or 'None' | capitalize }}</td>
-                <td class="py-2 px-4">
-                    {% if order['dispute_status'] == 'pending' %}
-                    <form method="POST" action="{{ url_for('admin.admin_resolve_dispute', order_id=order['id']) }}" class="space-x-2 inline">
-                        <input type="hidden" name="action" value="release">
-                        <button type="submit" class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600">Release</button>
-                        <input type="hidden" name="action" value="refund">
-                        <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600">Refund</button>
-                    </form>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b">
+                    <th class="py-2 px-4 text-gray-700">Order ID</th>
+                    <th class="py-2 px-4 text-gray-700">Buyer</th>
+                    <th class="py-2 px-4 text-gray-700">Product</th>
+                    <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                    <th class="py-2 px-4 text-gray-700">Status</th>
+                    <th class="py-2 px-4 text-gray-700">Date</th>
+                    <th class="py-2 px-4 text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-4">{{ order.id }}</td>
+                    <td class="py-2 px-4">{{ order.buyer_username }}</td>
+                    <td class="py-2 px-4">{{ order.product_title }}</td>
+                    <td class="py-2 px-4">{{ "%.4f"|format(order.amount_btc) }}</td>
+                    <td class="py-2 px-4">
+                        {% if order.status == 'pending' %}
+                        <span class="text-yellow-600">Pending</span>
+                        {% elif order.status == 'processing' %}
+                        <span class="text-blue-600">Processing</span>
+                        {% elif order.status == 'shipped' %}
+                        <span class="text-green-600">Shipped</span>
+                        {% elif order.status == 'completed' %}
+                        <span class="text-green-800">Completed</span>
+                        {% elif order.status == 'cancelled' %}
+                        <span class="text-red-600">Cancelled</span>
+                        {% elif order.status == 'disputed' %}
+                        <span class="text-red-800">Disputed</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4">{{ order.created_at }}</td>
+                    <td class="py-2 px-4 space-x-2">
+                        <a href="{{ url_for('admin.admin_order_details', order_id=order.id) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">View Details</a>
+                        {% if order.status not in ['completed', 'cancelled', 'disputed'] %}
+                        <form method="POST" action="{{ url_for('admin.admin_update_order_status', order_id=order.id) }}" class="inline">
+                            <select name="status" class="border-gray-300 rounded-md text-sm" onchange="this.form.submit()">
+                                <option value="">Update Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p class="text-gray-600">No orders found.</p>
+    <p class="text-gray-600">No orders found for your products.</p>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="mt-4 flex justify-between items-center">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing {{ (page - 1) * per_page + 1 }} to {{ (page - 1) * per_page + orders|length }} of {{ total_orders }} orders
+            </p>
+        </div>
+        <div class="flex space-x-2">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.admin_orders', page=page-1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.admin_orders', page=page+1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Next</a>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 </div>
-{% if success %}
-<p class="mt-4 text-green-600">{{ success }}</p>
-{% endif %}
-{% if error %}
-<p class="mt-4 text-red-600">{{ error }}</p>
-{% endif %}
+
+{% for message in get_flashed_messages(with_categories=true) %}
+<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
+{% endfor %}
 {% endblock %}

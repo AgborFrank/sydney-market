@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from utils.database import get_db_connection
-from utils.security import validate_csrf_token
+#from utils.security import validate_csrf_token
 from utils.auth import has_active_subscription
 from routes import require_role
 from werkzeug.utils import secure_filename
@@ -38,7 +38,6 @@ for folder in [UPLOAD_FOLDER_CATEGORIES, UPLOAD_FOLDER, UPLOAD_FOLDER_PRODUCTS, 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 def require_vendor_role(func):
     def wrapper(*args, **kwargs):
@@ -99,9 +98,9 @@ def calculate_vendor_level(vendor_id):
         
         return level
 
-@vendor_bp.route('/dashboard')
+@vendor_bp.route('/stats')
 @require_vendor_role
-def vendor_dashboard():
+def vendor_stats():
     if 'user_id' not in session:
         flash("Please log in to view your dashboard.", 'error')
         return redirect(url_for('user.login'))
@@ -200,7 +199,7 @@ def vendor_dashboard():
         'logo': logo
     }
     
-    return render_template('user/vendor_dashboard.html', vendor_name=vendor_name, stats=stats, recent_orders=recent_orders, recent_reviews=recent_reviews, recent_messages=recent_messages, title="Vendor Dashboard - DarkVault")
+    return render_template('user/vendor_dashboard.html', vendor_name=vendor_name, stats=stats, recent_orders=recent_orders, recent_reviews=recent_reviews, recent_messages=recent_messages, title="Vendor Dashboard - Sydney")
 
 @vendor_bp.route('/business-details', methods=['GET', 'POST'])
 @require_role('vendor')
@@ -320,34 +319,89 @@ def products_index():
     if 'user_id' not in session:
         flash("Please log in to view your products.", 'error')
         return redirect(url_for('user.login'))
-    
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("""
-            SELECT p.*
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
-            WHERE vendor_id = ?
-            ORDER BY created_at DESC
-        """, (session['user_id'],))
-        products = [dict(row) for row in c.fetchall()]
-    
-    return render_template('user/products/index.html', products=products, title="Your Products - DarkVault")
 
+    # Get filter parameters
+    status_filter = request.args.get('status', 'all')
+    category_id_filter = request.args.get('category_id', 'all')
+
+    # Validate status filter
+    valid_statuses = ['all', 'pending', 'active', 'rejected', 'disabled']
+    if status_filter not in valid_statuses:
+        flash("Invalid status filter.", 'error')
+        status_filter = 'all'
+
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+
+            # Fetch categories for filter dropdown
+            c.execute("SELECT id, name FROM categories ORDER BY name")
+            categories = [dict(row) for row in c.fetchall()]
+
+            # Build query
+            query = """
+                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.rejection_reason, c.name as category_name
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.vendor_id = ?
+            """
+            params = [session['user_id']]
+
+            # Apply filters
+            if status_filter != 'all':
+                query += " AND p.status = ?"
+                params.append(status_filter)
+            if category_id_filter != 'all':
+                try:
+                    category_id = int(category_id_filter)
+                    query += " AND p.category_id = ?"
+                    params.append(category_id)
+                except ValueError:
+                    flash("Invalid category filter.", 'error')
+                    category_id_filter = 'all'
+
+            query += " ORDER BY p.created_at DESC"
+            c.execute(query, params)
+            products = [dict(row) for row in c.fetchall()]
+
+    except Exception as e:
+        logger.error(f"Database error: {str(e)}")
+        flash("Unable to load products due to a database error. Please try again.", 'error')
+        products = []
+        categories = []
+
+    return render_template(
+        'user/products/index.html',
+        products=products,
+        categories=categories,
+        status_filter=status_filter,
+        category_id_filter=category_id_filter,
+        title="Your Products - Sydney"
+    )
 @vendor_bp.route('/products/create', methods=['GET', 'POST'])
-@require_vendor_role
+#@require_vendor_role
 def products_create():
-    
     if 'user_id' not in session:
         flash("Please log in to create a product.", 'error')
         return redirect(url_for('user.login'))
-    
-    #if 'user_id' not in session or not has_active_subscription(session['user_id']):
-    #    flash("You must have an active subscription to post products.", 'error')
-    #    return redirect(url_for('vendor.subscribe'))
-    
+
+    # Verify vendor eligibility
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT is_vendor, pgp_public_key, two_factor_secret FROM users WHERE id = ?", (session['user_id'],))
+        user = c.fetchone()
+        if not user or not user['is_vendor']:
+            flash("You must be a verified vendor to create products.", 'error')
+            return redirect(url_for('user.dashboard'))
+        if not user['pgp_public_key']:
+            flash("PGP public key is required to create products.", 'error')
+            return redirect(url_for('user.edit_profile'))
+        if not user['two_factor_secret']:
+            flash("2FA is mandatory to create products.", 'error')
+            return redirect(url_for('user.edit_profile'))
+
     if request.method == 'POST':
-        validate_csrf_token()
+        # Form fields
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         price_usd = request.form.get('price_usd', '').strip()
@@ -359,63 +413,97 @@ def products_create():
         shipping_weight = request.form.get('shipping_weight', '').strip()
         shipping_dimensions = request.form.get('shipping_dimensions', '').strip()
         shipping_method = request.form.get('shipping_method', '').strip()
+        shipping_origin = request.form.get('shipping_origin', '').strip()
+        shipping_destinations = request.form.get('shipping_destinations', '').strip()
         moq = request.form.get('moq', '').strip()
         lead_time = request.form.get('lead_time', '').strip()
         packaging_details = request.form.get('packaging_details', '').strip()
         tags = request.form.get('tags', '').strip()
-        status = request.form.get('status', '').strip()
+        product_type = request.form.get('product_type', '').strip()
+        return_policy = request.form.get('return_policy', '').strip()
         featured_image = request.files.get('featured_image')
         additional_images = request.files.getlist('additional_images')
 
-        if not all([title, price_usd, stock, category_id]):
-            flash("Required fields are missing.", 'error')
+        # Validation
+        if not all([title, price_usd, stock, category_id, shipping_destinations, product_type]):
+            flash("Required fields (title, price, stock, category, shipping destinations, product type) are missing.", 'error')
             return render_template('user/products/create.html', form_data=request.form.to_dict())
-        
-        featured_image_path = None
-        if featured_image and allowed_file(featured_image.filename):
-            filename = secure_filename(featured_image.filename)
-            featured_image_path = os.path.join('uploads/products', filename).replace('\\', '/')
-            featured_image.save(os.path.join(UPLOAD_FOLDER_PRODUCTS, filename))
-            
+
+        # Validate no URLs (Rule #10)
+        if re.search(r'\bhttp[s]?://|www\.|\.com\b', description + tags, re.I):
+            flash("Description and tags cannot contain URLs or promotional content.", 'error')
+            return render_template('user/products/create.html', form_data=request.form.to_dict())
+
+        # Validate numeric fields
         try:
             price_usd = float(price_usd)
             stock = int(stock)
             category_id = int(category_id)
             original_price_usd = float(original_price_usd) if original_price_usd else None
-            shipping_weight = float(shipping_weight) if shipping_weight else None
+            shipping_weight = float(shipping_weight) if shipping_weight and product_type == 'physical' else None
             moq = int(moq) if moq else 1
-            if price_usd <= 0 or stock < 0 or (original_price_usd is not None and original_price_usd <= 0) or (shipping_weight is not None and shipping_weight < 0) or moq < 1:
+            if price_usd <= 0 or stock < 0 or (original_price_usd and original_price_usd <= 0) or (shipping_weight and shipping_weight < 0) or moq < 1:
                 raise ValueError("Invalid numeric values")
         except ValueError:
             flash("Numeric fields must be valid and positive (except stock can be 0).", 'error')
             return render_template('user/products/create.html', form_data=request.form.to_dict())
 
+        # Validate product type and shipping
+        if product_type not in ['physical', 'digital']:
+            flash("Product type must be physical or digital.", 'error')
+            return render_template('user/products/create.html', form_data=request.form.to_dict())
+        if product_type == 'physical' and not shipping_method:
+            flash("Shipping method is required for physical products.", 'error')
+            return render_template('user/products/create.html', form_data=request.form.to_dict())
+
+        # Calculate crypto prices
+        price_btc = price_usd / BTC_USD_RATE
+        price_xmr = price_usd / XMR_USD_RATE
+
+        # Handle featured image
+        featured_image_path = None
+        if featured_image and allowed_file(featured_image.filename):
+            filename = secure_filename(f"{session['user_id']}_{featured_image.filename}")
+            featured_image_path = f"uploads/products/{filename}"
+            featured_image.save(os.path.join(UPLOAD_FOLDER_PRODUCTS, filename))
+
+        # Insert product
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("""
-                INSERT INTO products (title, description, price_usd, original_price_usd, discount_active, stock, category_id, vendor_id, sku, shipping_weight, shipping_dimensions, shipping_method, moq, lead_time, packaging_details, tags, status, featured_image)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (title, description, price_usd, original_price_usd, discount_active, stock, category_id, session['user_id'], sku, shipping_weight, shipping_dimensions, shipping_method, moq, lead_time, packaging_details, tags, status, featured_image_path))
+                INSERT INTO products (
+                    title, description, price_usd, price_btc, price_xmr, original_price_usd, discount_active,
+                    stock, category_id, vendor_id, sku, shipping_weight, shipping_dimensions, shipping_method,
+                    shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
+                    product_type, return_policy, status, featured_image
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                title, description, price_usd, price_btc, price_xmr, original_price_usd, discount_active,
+                stock, category_id, session['user_id'], sku, shipping_weight, shipping_dimensions, shipping_method,
+                shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
+                product_type, return_policy, 'pending', featured_image_path
+            ))
             product_id = c.lastrowid
-            conn.commit()
-            
+
+            # Handle additional images
             for image in additional_images:
-                    if image and allowed_file(image.filename):
-                        filename = secure_filename(image.filename)
-                        image_path = os.path.join('uploads/products', filename).replace('\\', '/')  
-                        image.save(os.path.join(UPLOAD_FOLDER_PRODUCTS, filename))
-                        c.execute("INSERT INTO product_images (product_id, image_path) VALUES (?, ?)", (product_id, image_path))
+                if image and allowed_file(image.filename):
+                    filename = secure_filename(f"{session['user_id']}_{image.filename}")
+                    image_path = f"uploads/products/{filename}"
+                    image.save(os.path.join(UPLOAD_FOLDER_PRODUCTS, filename))
+                    c.execute("INSERT INTO product_images (product_id, image_path) VALUES (?, ?)", (product_id, image_path))
+
             conn.commit()
-                
-            flash("Product created successfully!", 'success')
-            return redirect(url_for('vendor.products_index'))
+
+        flash("Product created and is pending admin approval.", 'success')
+        return redirect(url_for('vendor.products_index'))
 
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT id, name FROM categories")
+        c.execute("SELECT id, name FROM categories ORDER BY name")
         categories = [dict(row) for row in c.fetchall()]
-    
-    return render_template('user/products/create.html', categories=categories, title="Create Product - DarkVault")
+
+    return render_template('user/products/create.html', categories=categories, title="Create Product - Sydney")
 
 @vendor_bp.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
 @require_vendor_role
@@ -498,7 +586,7 @@ def products_edit(product_id):
         c.execute("SELECT id, name FROM categories")
         categories = [dict(row) for row in c.fetchall()]
     
-    return render_template('user/products/edit.html', product=dict(product), categories=categories, title="Edit Product - DarkVault")
+    return render_template('user/products/edit.html', product=dict(product), categories=categories, title="Edit Product - Sydney")
 
 @vendor_bp.route('/products/delete/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
@@ -542,7 +630,7 @@ def vendor_orders():
         """, (session['user_id'],))
         orders = [dict(row) for row in c.fetchall()]
     
-    return render_template('user/orders/index.html', orders=orders, title="Vendor Orders - DarkVault")
+    return render_template('user/orders/index.html', orders=orders, title="Vendor Orders - Sydney")
 
 @vendor_bp.route('/orders/<int:order_id>', methods=['GET', 'POST'])
 @require_vendor_role
@@ -585,7 +673,7 @@ def vendor_order_detail(order_id):
             flash("Order updated successfully!", 'success')
             return redirect(url_for('vendor.vendor_orders'))
 
-    return render_template('user/orders/detail.html', order=dict(order), title="Order Details - DarkVault")
+    return render_template('user/orders/detail.html', order=dict(order), title="Order Details - Sydney")
 
 def verify_btc_payment(txid, amount_btc, address):
     url = f"https://blockchain.info/rawtx/{txid}"

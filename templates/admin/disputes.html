@@ -1,0 +1,123 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Dispute Management - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<div class="flex justify-between">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Disputes</h2>
+    <div>
+        <a href="{{ url_for('admin.admin_vendor_disputes') }}" class="text-black  bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Vendor Disputes</a>
+    </div>
+</div>
+
+
+<!-- Filter and Search -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Disputes</h3>
+    <form method="GET" action="{{ url_for('admin.admin_disputes') }}" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <label for="search" class="block text-sm font-medium text-gray-700">Search by Order ID or Buyer Username</label>
+            <p class="text-sm text-gray-500 mb-2">Enter an order ID or buyer's username to find specific disputes.</p>
+            <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 py-2 px-6 bg-gray-100 focus:border-yellow-400 sm:text-sm" placeholder="Enter order ID or username">
+        </div>
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700">Dispute Status</label>
+            <p class="text-sm text-gray-500 mb-2">Filter disputes by their current status.</p>
+            <select name="status" id="status" class="mt-1 block w-full py-2 px-6 bg-gray-100 border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
+                <option value="">All Statuses</option>
+                <option value="open" {% if request.args.get('status') == 'open' %}selected{% endif %}>Open</option>
+                <option value="resolved" {% if request.args.get('status') == 'resolved' %}selected{% endif %}>Resolved</option>
+                <option value="escalated" {% if request.args.get('status') == 'escalated' %}selected{% endif %}>Escalated</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Disputes Table -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Dispute List</h3>
+    <p class="text-sm text-gray-500 mb-4">Below are the disputes for orders where you are the vendor.</p>
+    {% if disputes %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b">
+                    <th class="py-2 px-4 text-gray-700">Dispute ID</th>
+                    <th class="py-2 px-4 text-gray-700">Order ID</th>
+                    <th class="py-2 px-4 text-gray-700">Buyer</th>
+                    <th class="py-2 px-4 text-gray-700">Product</th>
+                    <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                    <th class="py-2 px-4 text-gray-700">Dispute Status</th>
+                    <th class="py-2 px-4 text-gray-700">Reason</th>
+                    <th class="py-2 px-4 text-gray-700">Date</th>
+                    <th class="py-2 px-4 text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dispute in disputes %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-4">{{ dispute.id }}</td>
+                    <td class="py-2 px-4">{{ dispute.order_id }}</td>
+                    <td class="py-2 px-4">{{ dispute.buyer_username }}</td>
+                    <td class="py-2 px-4">{{ dispute.product_title }}</td>
+                    <td class="py-2 px-4">{{ "%.4f"|format(dispute.amount_btc) }}</td>
+                    <td class="py-2 px-4">
+                        {% if dispute.status == 'open' %}
+                        <span class="text-yellow-600">Open</span>
+                        {% elif dispute.status == 'resolved' %}
+                        <span class="text-green-600">Resolved</span>
+                        {% elif dispute.status == 'escalated' %}
+                        <span class="text-red-600">Escalated</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4">{{ dispute.reason | truncate(50, true) }}</td>
+                    <td class="py-2 px-4">{{ dispute.created_at }}</td>
+                    <td class="py-2 px-4 space-x-2">
+                        <a href="{{ url_for('admin.admin_dispute_details', dispute_id=dispute.id) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">View Details</a>
+                        {% if dispute.status == 'open' %}
+                        <form method="POST" action="{{ url_for('admin.admin_resolve_dispute', dispute_id=dispute.id) }}" class="inline">
+                            <select name="action" class="border-gray-300 rounded-md text-sm" onchange="this.form.submit()">
+                                <option value="">Select Action</option>
+                                <option value="release">Release Funds</option>
+                                <option value="refund">Refund Funds</option>
+                                <option value="escalate">Escalate</option>
+                            </select>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No disputes found for your orders.</p>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="mt-4 flex justify-between items-center">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing {{ (page - 1) * per_page + 1 }} to {{ (page - 1) * per_page + disputes|length }} of {{ total_disputes }} disputes
+            </p>
+        </div>
+        <div class="flex space-x-2">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.admin_disputes', page=page-1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.admin_disputes', page=page+1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% for message in get_flashed_messages(with_categories=true) %}
+<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
+{% endfor %}
+{% endblock %} py-2 px-6 bg-gray-100

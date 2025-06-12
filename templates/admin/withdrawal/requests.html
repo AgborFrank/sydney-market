@@ -1,0 +1,112 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Withdrawal Management - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Vendor Withdrawals</h2>
+
+<!-- Filter and Search -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Withdrawals</h3>
+    <form method="GET" action="{{ url_for('admin.admin_withdrawals') }}" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <label for="search" class="block text-sm font-medium text-gray-700">Search by Withdrawal ID or Vendor Username</label>
+            <p class="text-sm text-gray-500 mb-2">Enter a withdrawal ID or vendor's username to find specific requests.</p>
+            <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 py-2 px-6 bg-gray-100 focus:border-yellow-400 sm:text-sm" placeholder="Enter withdrawal ID or vendor username">
+        </div>
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700">Withdrawal Status</label>
+            <p class="text-sm text-gray-500 mb-2">Filter withdrawals by their current status.</p>
+            <select name="status" id="status" class="mt-1 block w-full py-2 px-6 bg-gray-100 border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
+                <option value="">All Statuses</option>
+                <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="approved" {% if request.args.get('status') == 'approved' %}selected{% endif %}>Approved</option>
+                <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Withdrawals Table -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Withdrawal Requests</h3>
+    <p class="text-sm text-gray-500 mb-4">Below are all vendor withdrawal requests for review.</p>
+    {% if withdrawals %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b">
+                    <th class="py-2 px-4 text-gray-700">Withdrawal ID</th>
+                    <th class="py-2 px-4 text-gray-700">Vendor</th>
+                    <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                    <th class="py-2 px-4 text-gray-700">BTC Address</th>
+                    <th class="py-2 px-4 text-gray-700">Status</th>
+                    <th class="py-2 px-4 text-gray-700">Date</th>
+                    <th class="py-2 px-4 text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for withdrawal in withdrawals %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-4">{{ withdrawal.id }}</td>
+                    <td class="py-2 px-4">{{ withdrawal.vendor_username }}</td>
+                    <td class="py-2 px-4">{{ "%.4f"|format(withdrawal.amount_btc) }}</td>
+                    <td class="py-2 px-4">{{ withdrawal.btc_address | truncate(20, true) }}</td>
+                    <td class="py-2 px-4">
+                        {% if withdrawal.status == 'pending' %}
+                        <span class="text-yellow-600">Pending</span>
+                        {% elif withdrawal.status == 'approved' %}
+                        <span class="text-green-600">Approved</span>
+                        {% elif withdrawal.status == 'rejected' %}
+                        <span class="text-red-600">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4">{{ withdrawal.created_at }}</td>
+                    <td class="py-2 px-4 space-x-2">
+                        <a href="{{ url_for('admin.admin_withdrawal_details', withdrawal_id=withdrawal.id) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">View Details</a>
+                        {% if withdrawal.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('admin.admin_approve_withdrawal', withdrawal_id=withdrawal.id) }}" class="inline">
+                            <button type="submit" class="bg-green-500 text-white py-1 px-2 rounded-md hover:bg-green-600 transition duration-200">Approve</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.admin_reject_withdrawal', withdrawal_id=withdrawal.id) }}" class="inline">
+                            <input type="hidden" name="rejection_reason" value="Invalid request">
+                            <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Reject</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No withdrawal requests found.</p>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="mt-4 flex justify-between items-center">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing {{ (page - 1) * per_page + 1 }} to {{ (page - 1) * per_page + withdrawals|length }} of {{ total_withdrawals }} withdrawals
+            </p>
+        </div>
+        <div class="flex space-x-2">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.admin_withdrawals', page=page-1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.admin_withdrawals', page=page+1, search=request.args.get('search', ''), status=request.args.get('status', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% for message in get_flashed_messages(with_categories=true) %}
+<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
+{% endfor %}
+{% endblock %}

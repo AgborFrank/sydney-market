@@ -1,20 +1,52 @@
 {% extends 'user/user_base.html' %}
 {% block title %}Become a Vendor - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
-<div class="container mx-auto bg-white p-6">
-    <h1 class="text-3xl font-bold">Contact Support</h1>
-    <p class="mb-4">Submit your PGP key and a signed message to apply for a DarkVault vendor account.</p>
-    <form method="POST" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div>
-            <label>PGP Public Key</label>
-            <textarea name="pgp_public_key" class="w-full py-2 px-4 rounded-md border" rows="10" required></textarea>
-        </div>
-        <div>
-            <label>Signed Message (e.g., "I am [username] applying to [site_name] on March 24, 2025")</label>
-            <textarea name="signed_message" class="w-full py-2 px-4 rounded-md border" rows="5" required></textarea>
-        </div>
-        <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md">Apply</button>
-    </form>
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Become a Vendor</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    Here you can activate your vendor account. Take time to read the vendor rules below, and click on accept. After that, you will be able to create listings and start selling here. Be careful to acknowledge the rules, as breaching them may result in account suspension.
+  </h3>
+  <div class="px-2 pt-10 text-sydney">
+    #1: FE (Finalized Early) is not permitted unless you get explicit permission later. You will get banned without refund if you ask for FE without permission.<br><br>
+    #2: The default auto-finalize for digital orders are 48 hours and 7 days for physical orders. Still you will be able to modify default values from your vendor panel.<br><br>
+    #3: If you get too many scam reports, we may revoke your vendor account at any time.<br><br>
+    #4: There is a vendor bond non refundable of USD $200 ({{ bond.btc|default('0.01331861') }} BTC / {{ bond.xmr|default('5.45994597') }} XMR).<br><br>
+    #5: All sellers must have a PGP key in their profile before starting to sell.<br><br>
+    #6: Fentanyl, prostitution, child porn, murder services, poisons and weapons are not permitted.<br><br>
+    #7: Any dox threat will result in an immediate ban.<br><br>
+    #8: Two-factor authentication (2FA) is mandatory for all vendors.<br><br>
+    #9: Describe properly, do not put products in wrong cats, creating duplicates can lead to permanent bans.<br><br>
+    #10: If you redirect users to any platforms like Telegram, WhatsApp, Signal, Email or any other external platform outside of Sydney Market, to proceed with DD you will be permanently banned.<br><br>
+    #11: If you wish you change your public username you must open a ticket BEFORE upgrading your account. Make sure everything is right, we do not allow changes later.<br><br>
+    #12: You cannot upgrade your account if you already did some purchases (even if you have one unpaid or canceled orders you cannot upgrade your account). Just create a new account.<br><br>
+  </div>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form action="" method="post" class="rounded-md p-4 space-y-2 w-max mx-auto bg-sydney bg-opacity-10">
+    <div class="flex items-center gap-2 font-bold text-white">
+      <input name="accept_terms" type="checkbox" value="yes" required>
+      I have read and accept the rules mentioned above.
+    </div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="flex flex-col 2xl:flex-row gap-2 items-center justify-center 2xl:justify-start">
+      <select name="e_crypto" class="std">
+        <option value="btc" selected>Bitcoin - {{ bond.btc|default('0.01331861') }} BTC</option>
+        <option value="xmr">Monero - {{ bond.xmr|default('5.45994597') }} XMR</option>
+      </select>
+      <input name="upgrade" class="bstd" value="Become A Vendor" type="submit">
+    </div>
+  </form>
 </div>
 {% endblock %}

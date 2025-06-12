@@ -1,0 +1,21 @@
+<div class="bg-card border-solid border-[1px] border-border rounded-md m-0 !p-2 text-sydney hover:!border-abacus2 overflow-hidden flex flex-col gap-2 sydney-blog">
+    <h1 class="infobox flex items-center justify-start 2xl:justify-center bg-sydney !text-sydney !bg-white 2xl:!bg-sydney 2xl:!text-white !rounded-md !border-none py-2">
+      <i class="gg-layout-list mr-2"></i>
+      Latest News
+    </h1>
+    <div class="flex flex-col gap-1 py-1 pr-1 overflow-y-auto max-h-96">
+      {% if news_articles %}
+        {% for article in news_articles %}
+          <p class="rounded-md my-0 bg-sydney bg-opacity-[5%] px-3 py-1 hover:bg-opacity-10">
+            <span class="text-sydney"><b>{{ article.created_at_formatted }}</b></span>
+            <br />
+            <span class="text-white leading-tight">{{ article.content|truncate(100, True) }}</span>
+          </p>
+        {% endfor %}
+      {% else %}
+        <p class="rounded-md my-0 bg-sydney bg-opacity-[5%] px-3 py-1 text-white">
+          No news articles available.
+        </p>
+      {% endif %}
+    </div>
+  </div>

@@ -1,0 +1,80 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}Vendor Profile - {{ settings['site_name'] }}{% endblock %}
+{% block admin_content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Vendor Profile: {{ vendor.pusername }}</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    View vendor details and their products.
+  </h3>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Vendor Details -->
+  <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
+    <h2 class="text-xl font-bold text-white">Details</h2>
+    <div class="mt-4 space-y-2">
+      <p><span class="font-bold text-white">Public Username:</span> {{ vendor.pusername }}</p>
+      <p><span class="font-bold text-white">Bitcoin Address:</span> {{ vendor.btc_address or 'Not set' }}</p>
+      <p><span class="font-bold text-white">PGP Public Key:</span> {{ vendor.pgp_public_key or 'Not set' }}</p>
+      <p><span class="font-bold text-white">Role:</span> {{ vendor.role|capitalize }}</p>
+      <p><span class="font-bold text-white">Vendor Status:</span> {{ vendor.vendor_status or 'N/A' }}</p>
+      <p><span class="font-bold text-white">Level:</span> {{ vendor.level }}</p>
+    </div>
+    <div class="mt-4">
+      <a href="{{ url_for('admin.edit_user', user_id=vendor.id) }}" class="bstd px-4 py-2">Edit Vendor</a>
+      {% if 'admin_vendor_disputes' in url_for %}
+        <a href="{{ url_for('admin.admin_vendor_disputes', vendor_id=vendor.id) }}" class="bstd px-4 py-2">View Disputes</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Vendor Products -->
+  <div class="mt-8 max-w-5xl mx-auto">
+    <h2 class="text-xl font-bold text-white">Products</h2>
+    {% if products %}
+      <table class="w-full text-white border-collapse">
+        <thead>
+          <tr class="bg-sydney bg-opacity-20">
+            <th class="p-2 text-left font-bold">Title</th>
+            <th class="p-2 text-left font-bold">Price (USD)</th>
+            <th class="p-2 text-left font-bold">Stock</th>
+            <th class="p-2 text-left font-bold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr class="border-b border-sydney border-opacity-50">
+              <td class="p-2">{{ product.title }}</td>
+              <td class="p-2">${{ product.price_usd|round(2) }}</td>
+              <td class="p-2">{{ product.stock }}</td>
+              <td class="p-2">
+                <span class="px-2 py-1 rounded text-sm {{
+                  'bg-yellow-600' if product.status == 'pending' else
+                  'bg-green-600' if product.status == 'active' else
+                  'bg-red-600' if product.status == 'rejected' else
+                  'bg-gray-600'
+                }}">
+                  {{ product.status|capitalize }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-white">No products found for this vendor.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

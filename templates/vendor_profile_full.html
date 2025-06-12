@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}{{ vendor.username }}'s Profile - {{ settings['site_name'] }}{% endblock %}
+{% block content %}
+<div class="bg-gray-900 text-white min-h-screen p-4">
+  <!-- Vendor Profile Section -->
+  <div class="w-full mb-4">
+    <h1 class="text-2xl font-bold text-center text-abacus">{{ vendor.username }}'s Profile</h1>
+    <!-- Reuse the vendor_profile component -->
+    <div class="flex justify-center">
+      <div class="w-full max-w-md">
+        {% include 'components/vendor_profile.html' %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Published Products Section -->
+  <div class="w-full">
+    <h2 class="text-xl font-bold text-center text-abacus mb-4">Published Products</h2>
+    {% if products %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for product in products %}
+          <div class="bg-white border-solid border-[1px] border-border rounded-md p-4 hover:border-abacus2">
+            <!-- Product Image -->
+            <div class="w-full h-48 mb-2">
+              {% if product.first_image %}
+                <a href="{{ url_for('public.product_detail', product_id=product.id) }}">
+                  <img src="/static/uploads/products/{{ product.first_image|basename }}" alt="{{ product.title }}" class="w-full h-full object-cover rounded-md">
+                </a>
+              {% else %}
+                <a href="{{ url_for('public.product_detail', product_id=product.id) }}">
+                  <img src="/static/uploads/products/product-placeholder.png" alt="Placeholder Image" class="w-full h-full object-cover rounded-md">
+                </a>
+              {% endif %}
+            </div>
+
+            <!-- Product Details -->
+            <div class="flex flex-col gap-1">
+              <a href="{{ url_for('public.product_detail', product_id=product.id) }}" class="text-abacus font-bold hover:underline">{{ product.title }}</a>
+              <div class="text-sm">Price: USD {{ '%.2f'|format(product.price_usd) }}</div>
+              <div class="text-sm">
+                Rating: 
+                {% if product.avg_rating %}
+                  {{ '%.1f'|format(product.avg_rating) }} / 5 ({{ product.reviews_count }} reviews)
+                {% else %}
+                  No reviews yet
+                {% endif %}
+              </div>
+              <div class="text-sm">Listed on: {{ product.created_at.strftime('%b %d, %Y') }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-center text-gray-400">This vendor has no published products.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

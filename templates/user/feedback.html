@@ -1,0 +1,75 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Vendor Feedback - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Vendor Feedback</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    Share your experience with vendors to help others make informed decisions. Please provide honest, respectful feedback tied to completed orders. Spam or abusive content will be removed.
+  </h3>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Feedback Form -->
+  <form action="" method="post" class="rounded-md p-4 space-y-4 md:w-max w-full bg-sydney bg-opacity-10">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="flex flex-col gap-2">
+      <label class="font-bold text-white">Select Order</label>
+      <select name="order_id" class="std" required>
+        <option value="">Choose an order...</option>
+        {% for order in orders %}
+          <option value="{{ order.id }}">Order #{{ order.id }} - Vendor: {{ order.vendor_username }} ({{ order.created_at.strftime('%Y-%m-%d') }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label class="font-bold text-white">Rating (1-5 Stars)</label>
+      <select name="rating" class="std" required>
+        <option value="">Select rating...</option>
+        {% for i in range(1, 6) %}
+          <option value="{{ i }}">{{ i }} Star{{ 's' if i > 1 else '' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <label class="font-bold text-white">Comment (Max 500 characters)</label>
+      <textarea name="comment" class="std" rows="4" maxlength="500" required placeholder="Describe your experience..."></textarea>
+    </div>
+
+    <div class="flex justify-center">
+      <input type="submit" value="Submit Feedback" class="bstd">
+    </div>
+  </form>
+
+  <!-- Feedback List -->
+  <div class="mt-8 max-w-3xl mx-auto">
+    <h2 class="text-xl font-bold text-white">Recent Feedback</h2>
+    {% if feedback_list %}
+      {% for feedback in feedback_list %}
+        <div class="p-4 mt-4 bg-sydney bg-opacity-10 rounded-md text-white">
+          <p><strong>Vendor:</strong> {{ feedback.vendor_username }} (Avg Rating: {{ feedback.avg_rating|round(1) }})</p>
+          <p><strong>Rating:</strong> {{ feedback.rating }} Star{{ 's' if feedback.rating > 1 else '' }}</p>
+          <p><strong>Comment:</strong> {{ feedback.comment }}</p>
+          <p><strong>Date:</strong> {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+          <p><a href="{{ url_for('user.report_feedback', feedback_id=feedback.id) }}" class="text-sydney text-sm">Report Inappropriate Content</a></p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-white">No feedback available.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

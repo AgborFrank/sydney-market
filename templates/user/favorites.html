@@ -1,16 +1,60 @@
 {% extends 'user/user_base.html' %}
 {% block title %}Favorites - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
-<div class="container mx-auto">
-    <h1 class="text-3xl font-bold">Favorites</h1>
-    {% if favorites %}
-    <div class="grid grid-cols-3 gap-4">
-        {% for product in favorites %}
-        <div class="bg-white p-4 rounded">{{ product['title'] }}</div>
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Favorites</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    View and manage your favorite products.
+  </h3>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
         {% endfor %}
-    </div>
-    {% else %}
-    <p>No favorites.</p>
+      </div>
     {% endif %}
+  {% endwith %}
+
+  <!-- Favorites List -->
+  <div class="mt-8 max-w-5xl mx-auto">
+    {% if favorites %}
+      <table class="w-full text-white border-collapse">
+        <thead>
+          <tr class="bg-sydney bg-opacity-20">
+            <th class="p-2 text-left font-bold">Product</th>
+            <th class="p-2 text-left font-bold">Price (USD)</th>
+            <th class="p-2 text-left font-bold">Stock</th>
+            <th class="p-2 text-left font-bold">Vendor</th>
+            <th class="p-2 text-left font-bold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for favorite in favorites %}
+            <tr class="border-b border-sydney border-opacity-50">
+              <td class="p-2">
+                <a href="{{ url_for('main.product', product_id=favorite.id) }}" class="text-sydney">{{ favorite.title }}</a>
+              </td>
+              <td class="p-2">${{ favorite.price_usd|round(2) }}</td>
+              <td class="p-2">{{ favorite.stock }}</td>
+              <td class="p-2">{{ favorite.vendor_name }}</td>
+              <td class="p-2">
+                <form method="post" action="{{ url_for('user.remove_favorite', product_id=favorite.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="bg-red-600 px-2 py-1 text-sm rounded text-white">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-white">You have no favorite products. <a href="{{ url_for('main.index') }}" class="text-sydney">Browse products</a>.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

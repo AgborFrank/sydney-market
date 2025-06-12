@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from utils.database import get_db_connection
-from utils.security import validate_csrf_token
+#from utils.security import validate_csrf_token
 import sqlite3
 import logging
 

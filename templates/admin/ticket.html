@@ -1,0 +1,65 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">Support Ticket #{{ ticket.id }}</h1>
+
+  <!-- Ticket Details -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-xl font-semibold mb-4">Ticket Details</h2>
+    <p><strong>User:</strong> {{ ticket.pusername }}</p>
+    <p><strong>Subject:</strong> {{ ticket.subject }}</p>
+    <p><strong>Category:</strong> {{ ticket.category }}</p>
+    <p><strong>Priority:</strong> {{ ticket.priority }}</p>
+    <p><strong>Status:</strong> {{ ticket.status|capitalize }}</p>
+    <p><strong>Created:</strong> {{ ticket.created_at }}</p>
+    <p><strong>Updated:</strong> {{ ticket.updated_at }}</p>
+    <p><strong>Description:</strong> {{ ticket.description }}</p>
+  </div>
+
+  <!-- Update Status -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-xl font-semibold mb-4">Update Status</h2>
+    <form method="POST">
+      <input type="hidden" name="action" value="update_status">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="mb-4">
+        <label for="status" class="block text-sm font-medium">Status</label>
+        <select name="status" id="status" class="w-full border rounded px-3 py-2">
+          {% for status in statuses %}
+          <option value="{{ status }}" {% if ticket.status == status %}selected{% endif %}>{{ status|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Update Status</button>
+    </form>
+  </div>
+
+  <!-- Responses -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-xl font-semibold mb-4">Responses</h2>
+    {% for response in responses %}
+    <div class="border-b py-4">
+      <p><strong>{{ response.pusername }}</strong> <span class="text-gray-500 text-sm">{{ response.created_at }}</span></p>
+      <p>{{ response.body }}</p>
+    </div>
+    {% else %}
+    <p>No responses yet.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Add Response -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-xl font-semibold mb-4">Add Response</h2>
+    <form method="POST">
+      <input type="hidden" name="action" value="respond">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="mb-4">
+        <label for="response_body" class="block text-sm font-medium">Response</label>
+        <textarea name="response_body" id="response_body" class="w-full border rounded px-3 py-2" rows="5" required></textarea>
+      </div>
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Submit Response</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

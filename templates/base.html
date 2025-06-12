@@ -1,45 +1,221 @@
-<!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="title" content="{{ settings['meta_title'] }}" />
-    <meta name="description" content="{{ settings['meta_description'] }}" />
-    <title>{% block title %}{{ settings['site_name'] }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="title" content="{{ settings.meta_title }}" />
+    <meta name="description" content="{{ settings.meta_description }}" />
+    <link href="{{ url_for('static', filename='images/favicon.png') }}" rel="shortcut icon">
+    <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
+    
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='dist/styles.css') }}"
+    />
+
+    <link
+      rel="stylesheet"<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}"
+  />
+      href="{{ url_for('static', filename='dist/media.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+   
+    <link href="https://css.gg/css" rel="stylesheet" />
     <style>
       :root {
-          --primary-color: {{ settings['primary_color'] }};
-          --secondary-color: {{ settings['secondary_color'] }};
+          --primary-color: {{ settings.primary_color | default('#3b82f6') }};
+          --secondary-color: {{ settings.secondary_color | default('#16a34a') }};
+          --primary-color-rgb: {{ settings.primary_color_rgb | default('59, 130, 246') }};
       }
-      .container {
-        max-width: 1280px
-      }
+      .container { max-width: 1280px; }
       .bg-primary { background-color: var(--primary-color); }
-        .text-primary { color: var(--primary-color); }
-        .bg-secondary { background-color: var(--secondary-color); }
-        .text-secondary { color: var(--secondary-color); }
-        .focus\:ring-primary:focus { 
-            outline: none; 
-            ring: 2px solid var(--primary-color); 
-            --tw-ring-color: var(--primary-color); 
-        }
-        .hover\:bg-primary-90:hover { 
-            background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9); 
-        }.\
-
+      .text-primary { color: var(--primary-color); }
+      .bg-secondary { background-color: var(--secondary-color); }
+      .text-secondary { color: var(--secondary-color); }
+      .focus\:ring-primary:focus {
+          outline: none;
+          ring: 2px solid var(--primary-color);
+          --tw-ring-color: var(--primary-color);
+      }
+      .hover\:bg-primary-90:hover {
+          background-color: rgba(var(--primary-color-rgb), 0.9);
+      }
+      /* Abacus Market styles */
+      .border-sydney { border-color: #3b82f6; }
+      .text-sydney { color: #3b82f6; }
+      .bg-sydney { background-color: #3b82f6; }
+      .border-border { border-color: #d1d5db; }
+      .bg-border { background-color: #d1d5db; }
+      .hover\:bg-hover2:hover { background-color: #f3f4f6; }
+      .bgreen { color: #16a34a; }
+      .bred { color: #dc2626; }
+      .hover\:!border-abacus2:hover { border-color: #1d4ed8; }
+      .bg-sydney2 { background-color: #1d4ed8; }
+      /* Missing styles */
+      .border-sydney { border-color: #1d4ed8; }
+      .bg-card { background-color: #1f2a44; }
+      .bg-back { background-color: #0f242f; }
+      .bg-backs { background-color: #0b1b24; }
     </style>
   </head>
-  <body class="flex flex-col min-h-screen bg-gray-800">
-    <!-- Include Header -->
-    {% include 'components/header.html' %}
-
-    <!-- Main Content Block -->
-    <main class="flex-grow">{% block content %}{% endblock %}</main>
-
-    <!-- Include Footer -->
-    {% include 'components/footer.html' %}
+  <body class="flex flex-col min-h-screen">
+    <div
+      class="min-h-full w-[98%] 2xl:max-w-screen-2xl mx-auto"
+      style="position: relative; z-index: 10"
+    >
+      <!-- Header -->
+      {% include 'components/header.html' %}
+      <!-- Main Content -->
+      <div
+        class="contentcont z-0 bg-primary border-solid border-[1px] border-border rounded-md w-full"
+      >
+        <div
+          class="content mx-auto min-h-[calc(100vh-230px)] px-[16px] py-[15px] flex flex-wrap gap-2"
+        >
+          <!-- Sidebar -->
+          <div
+            class="2xl:w-[270px] flex flex-col items-center justify-start mx-2"
+          >
+          {% if request.endpoint == 'public.product_detail' and vendor and product %}
+            {% include 'components/vendor_profile.html' %}
+          {% endif %}
+            <div class="w-full flex flex-col gap-2">
+              
+              <!-- Profile Actions -->
+              <div
+                class="bg-primary border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
+              >
+                <h1
+                  class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
+                >
+                  <i class="gg-user mr-3"></i> Profile Actions
+                </h1>
+                <div
+                  class="px-0.5 py-1 grid grid-cols-2 md:grid-cols-1 xl:flex xl:flex-row 2xl:flex-col flex-1 flex-wrap justify-center gap-2 text-[13px] 2xl:gap-[2px]"
+                >
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.dashboard') }}"
+                      >Homepage</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.profile') }}"
+                      >My Information</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.messages') }}"
+                      >Private Messages</a
+                    >
+                    <span class="group-hover:text-white mr-3">(0)</span>
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.orders') }}"
+                      >Orders</a
+                    >
+                    <span class="group-hover:text-white mr-3">(0)</span>
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.favorites') }}"
+                      >Favorites</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 _album py-[3px] group-hover:text-white rounded-md"
+                      href=""
+                      >Shared Access</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.balance') }}"
+                      >Balance</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.support') }}"
+                      >Feedback</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href=""
+                      >Affiliate Stats</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.support') }}"
+                      >Help</a
+                    >
+                  </div>
+                </div>
+              </div>
+              {% if session['role'] == 'vendor' %}
+              
+             
+              <!-- Exchange Rates -->
+              {% import "components/exchange.html" as exchange %} {{
+              exchange.exchange_rates(rates) }}
+              {% endif %}
+              {% include 'components/categories_sidebar.html' %}
+              <!--LATEST NEWS-->
+              {% include 'components/news_sidebar.html' %}
+              
+            <!-- END LATEST NEWS -->
+            </div>
+          </div>
+          <!-- Main Content -->
+          <div
+            class="2xl:w-[calc(100%-300px)] flex flex-col mx-auto justify-start gap-2 text-xs text-sydney bg-card p-2 border-solid border border-border hover:border-sydney rounded-md"
+          >
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      {% include 'components/footer.html' %}
+    </div>
   </body>
 </html>

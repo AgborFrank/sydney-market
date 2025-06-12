@@ -1,0 +1,36 @@
+{% macro buyers_stats(stats) %}
+<div
+  id="pr1-cont"
+  class="flex flex-col w-full border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 h-[fit-content] text-xs text-abacus gap-1"
+>
+  <label for="pr1" class="cursor-pointer 2xl:cursor-default">
+    <h1
+      class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center !text-abacus !bg-white 2xl:!bg-sydney 2xl:!text-white !rounded-md !border-none py-2"
+    >
+      <i class="gg-signal mr-3 -mb-1"></i> Buyers Statistics
+    </h1>
+  </label>
+  <div id="pr1-items" class="hidden 2xl:flex flex-col">
+    <div class="text-sm font-bold">Bought Items</div>
+    <div class="flex items-center justify-between">
+      <div>Items Bought</div>
+      <div>{{ stats.items_bought }}</div>
+    </div>
+    <span class="w-full h-[1px] bg-border"></span>
+    <div class="text-sm font-bold">Payments</div>
+    <div class="flex items-center justify-between">
+      <div>Paid</div>
+      <span class="bgreen">USD {{ stats.paid_usd | format_currency }}</span>
+    </div>
+    <div class="flex items-center justify-between">
+      <div>In Escrow</div>
+      <span class="bred">USD {{ stats.in_escrow_usd | format_currency }}</span>
+    </div>
+    <span class="w-full h-[1px] bg-border"></span>
+    <div class="flex items-center justify-between font-bold">
+      <div>Total Purchases</div>
+      <div>USD {{ stats.total_purchases_usd | format_currency }}</div>
+    </div>
+  </div>
+</div>
+{% endmacro %}

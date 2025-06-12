@@ -1,0 +1,14 @@
+<div class="bg-gray-800 rounded-lg shadow-lg p-4 hover:bg-gray-700 transition">
+    <a href="{{ url_for('public.product_detail', product_id=product.id) }}">
+      <img src="{{ product.image_url or '/static/images/placeholder.png' }}"
+           alt="{{ product.title }}"
+           class="w-full h-48 object-cover rounded-md mb-4">
+      <h3 class="text-lg font-semibold text-white truncate">{{ product.title }}</h3>
+    </a>
+    <p class="text-gray-400 text-sm mb-2">{{ product.category_name }}</p>
+    <p class="text-gray-100 font-medium">{{ product.price_usd }} USD</p>
+    <p class="text-gray-400 text-sm">Vendor: {{ product.vendor_username }}</p>
+    <p class="text-gray-400 text-sm">Feedback: {{ product.feedback_percentage|round(1) }}% Positive</p>
+    <p class="text-gray-400 text-sm">Sales: {{ product.sales_count }}</p>
+    <p class="text-gray-400 text-sm">Vendor Level: {{ product.vendor_level }}</p>
+  </div>

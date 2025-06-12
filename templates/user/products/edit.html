@@ -7,7 +7,7 @@
 
 <div class="bg-white p-6 rounded-lg shadow-md">
     <form method="POST" action="{{ url_for('vendor.products_edit', product_id=product['id']) }}" enctype="multipart/form-data" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
             <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title</label>
             <input 

@@ -1,27 +1,65 @@
-{% extends 'user/user_base.html' %}
-{% block title %}{{ title }}{% endblock %}
-{% block user_content %}
-<div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Vendor Orders</h1>
-  {% if orders %}
-    <div class="space-y-4">
-      {% for order in orders %}
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex justify-between items-center">
-          <div>
-            <p><strong>Order ID:</strong> {{ order.id }}</p>
-            <p><strong>Buyer:</strong> {{ order.buyer_username }}</p>
-            <p><strong>Product:</strong> {{ order.title }}</p>
-            <p><strong>Amount:</strong> ${{ order.amount_usd }} / {{ order.amount_btc }} BTC</p>
-            <p><strong>Status:</strong> {{ order.status }}</p>
-            <p><strong>Escrow:</strong> {{ order.escrow_status }}</p>
-            <p><strong>Date:</strong> {{ order.created_at }}</p>
-          </div>
-          <a href="{{ url_for('vendor.vendor_order_detail', order_id=order.id) }}" class="text-yellow-400 hover:underline">View Details</a>
-        </div>
+{% extends "user/user_base.html" %} {% import "components/macros.html" as macros
+%} {% import "components/exchange.html" as exchange %} {% block user_content %}
+<div class="min-h-screen bg-gray-900 p-6">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold text-white mb-6">My Orders</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div
+      class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-600{% elif category == 'success' %}bg-green-600{% else %}bg-blue-600{% endif %} text-white"
+    >
+      {{ message }}
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <!-- Filter Links -->
+    <div class="mb-6 flex flex-wrap gap-2">
+      <a
+        href="{{ url_for('user.orders') }}"
+        class="text-white text-[13px] font-bold px-4 py-2 rounded-md {% if not current_status %}bg-sydney2{% else %}bg-gray-700 hover:bg-sydney2{% endif %}"
+      >
+        All Orders
+      </a>
+      {% for status in ['pending', 'accepted', 'shipped', 'finalized',
+      'disputed', 'canceled', 'unpaid'] %}
+      <a
+        href="{{ url_for('user.orders', status=status) }}"
+        class="text-white text-[13px] font-bold px-4 py-2 rounded-md {% if current_status == status %}bg-sydney2{% else %}bg-gray-700 hover:bg-sydney2{% endif %}"
+      >
+        {{ status|capitalize }} Orders
+      </a>
       {% endfor %}
     </div>
-  {% else %}
-    <p class="text-gray-700 dark:text-gray-300">No orders found.</p>
-  {% endif %}
+
+    <!-- Orders List -->
+    {% if orders %}
+    <div class="bg-gray-800 p-4 rounded-md text-white">
+      <div
+        class="grid grid-cols-5 gap-4 font-bold pb-2 border-b border-gray-700"
+      >
+        <div>Product</div>
+        <div>Vendor</div>
+        <div>Status</div>
+        <div>Amount (USD)</div>
+        <div>Date</div>
+      </div>
+      {% for order in orders %}
+      <div class="grid grid-cols-5 gap-4 py-2 border-b border-gray-700">
+        <div>{{ order.title }}</div>
+        <div>{{ order.vendor_username }}</div>
+        <div>{{ order.status|capitalize }}</div>
+        <div>{{ order.amount_usd | format_currency }}</div>
+        <div>{{ order.created_at }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-white">
+      No orders found{% if current_status %} for {{ current_status|capitalize }}
+      status{% endif %}.
+    </p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

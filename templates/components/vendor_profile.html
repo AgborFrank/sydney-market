@@ -1,0 +1,94 @@
+<div class="w-full flex flex-col gap-2 mt-2 mb-0 2xl:mt-0 2xl:mb-2 order-last 2xl:order-first">
+    <!-- about vendor -->
+    <div class="bg-card border-solid border border-border rounded-md p-2 hover:!border-sydney2 group mx-auto my-0 !w-full h-[fit-content]">
+      <h1 class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"><i class="gg-user user mr-3"></i> About Vendor</h1>
+  
+      <div class="px-0.5 py-1 flex flex-col items-center gap-2 text-[13px]">
+        <a href="" target="blank" class="w-[86px] h-[86px] flex-shrink-0 rounded bg-sydney bg-opacity-10 p-0.5 overflow-hidden">
+          <div class="flex-shrink-0 rounded picture picture-user"></div>
+        </a>
+  
+        <div class="flex flex-col items-center gap-1 w-full">
+          <div class="flex items-center gap-0.5">
+            <a class="font-bold rounded-md flex items-center gap-1 break-all text-white" href="{{ url_for('public.vendor_profile', vendor_id=vendor.id) }}">{{ vendor.username }} ({{ vendor.sales_count }})</a>
+            <a href="{{ url_for('public.favorite_vendor', vendor_id=vendor.id) }}">
+              <button
+                title="Save Vendor"
+                class="h-6 w-8 scale-75 -m-1 flex-shrink-0 border-solid border-gray-400 hover:border-transparent flex items-center justify-center {{ 'bg-red-600 text-white' if favorite_status else 'hover:bg-red-600 text-gray-400 hover:text-white' }} rounded"
+              >
+                <i class="gg-heart"></i>
+              </button>
+            </a>
+  
+            <a
+              href=""
+              class="h-6 w-8 flex-shrink-0 border-solid border-transparent flex items-center justify-center text-white hover:text-green-600 bg-green-600 hover:bg-white hover:border-green-600 border-2 rounded"
+            >
+              <i class="gg-mail"></i>
+            </a>
+          </div>
+  
+          <div class="text-xs text-sydney flex flex-wrap gap-1">
+            <b>Last seen online:</b>
+            <div>{{ vendor.last_login.strftime('%b %d, %Y') }}</div>
+          </div>
+        </div>
+  
+        <div class="flex items-center justify-center gap-2 flex-wrap relative">
+          <span class="text-center text-xs font-bold bg-lvl{{ vendor.level }} text-white rounded px-1 py-[1px]">Vendor Level {{ vendor.level }}</span>
+  
+          <span class="text-center text-xs font-bold bg-lvl{{ vendor.trust_level }} text-white rounded px-1 py-[1px]">Trust Level {{ vendor.trust_level }}</span>
+        </div>
+  
+        <div class="text-xs flex flex-wrap items-center justify-center gap-1">
+          <div class="font-bold rounded px-2 text-green-400" style="color: green;">{{ '%.2f'|format(vendor.feedback_positive_percentage) }}% positive feedback</div>
+  
+          {% if vendor.external_market_count > 0 %}
+          <a
+            href="{{ url_for('public.vendor_profile', vendor_id=vendor.id, goto='stats') }}#popupfeedback"
+            title="This vendor {{ vendor.username }} has verified feedback from {{ vendor.external_market_count }} other marketplaces making a total of {{ vendor.external_sales_count }} sales with an average of {{ '%.2f'|format(vendor.external_feedback_percentage) }}% positive feedback, below you have more details about this vendor's feedback history."
+            class="flex items-center gap-2"
+          >
+            <i class="text-sydney2 gg-arrow-top-right-r"></i>
+            <div class="font-bold text-sydney">External Feedback ( {{ '%.2f'|format(vendor.external_feedback_percentage) }}% - {{ vendor.external_sales_count }} )</div>
+          </a>
+          {% endif %}
+        </div>
+  
+        {% if vendor.pgp_public_key %}
+        <label for="pop3" class="px-2 py-[3px] font-bold text-center rounded-md w-full text-xs text-sydney bg-transparent hover:bg-sydney hover:text-white border-solid border-sydney2 border">Vendor PGP Key</label>
+        {% endif %}
+      </div>
+    </div>
+  
+    {% if vendor.pgp_public_key %}
+    <div class="relative">
+      <input type="checkbox" id="pop3" class="hidden absolute peer" />
+  
+      <label for="pop3" class="anim anim-FadeIn h-full w-full fixed hidden peer-checked:block top-0 left-0 bg-sydney bg-opacity-50 z-40"> </label>
+  
+      <div class="hidden text-center fixed w-11/12 xl:w-auto peer-checked:block space-y-2 top-[75px] left-1/2 -translate-x-1/2 z-50 bg-white p-4 rounded-md">
+        <h2 class="text-sydney text-center">{{ vendor.username }}'s PGP Key</h2>
+  
+        <input type="checkbox" id="market" class="hidden absolute peer" />
+  
+        <pre
+          class="select-all mx-auto text-black border-solid 2xl:overflow-x-auto overflow-y-scroll border-border2 hover:border-sydney2 border rounded-md px-1 2xl:px-4 py-2 leading-tight text-[9px] text-justify 2xl:text-xs"
+          style="height: calc(100vh - 350px); max-height: 700px;"
+        >
+  {{ vendor.pgp_public_key }}
+        </pre>
+  
+        <div class="mx-auto border-solid border-0 border-b border-sydney2 text-sm font-bold text-sydney w-max">Fingerprint</div>
+  
+        <pre class="mx-auto text-left w-full border-solid border-border2 hover:border-sydney2 text-black border rounded-md p-2 break-words whitespace-pre-line leading-tight text-[9px] 2xl:text-xs select-all">
+  {{ vendor.pgp_public_key }}
+        </pre>
+  
+        <div class="flex items-center justify-center gap-4 mt-2">
+          <label for="pop3" class="px-2 py-0.5 text-xs rounded bg-sydney hover:bg-sydney2 text-white font-bold">Close</label>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>

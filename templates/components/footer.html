@@ -6,7 +6,7 @@
   </div>
 
   <!-- Main Footer Content -->
-  <div class="container mx-auto px-4 py-10 footer">
+  <div class="container mx-auto px-4 py-10 ">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
       <!-- Get to Know Us -->
       <div>
@@ -16,7 +16,9 @@
           <li><a href="#" class="hover:text-white">Tor.link</a></li>
           <li><a href="#" class="hover:text-white">Darknet Trust</a></li>
           <li><a href="#" class="hover:text-white">OnionLand Search</a></li>
-          <li><a href="#" class="hover:text-white">OnionLand Search Clearnet</a></li>
+          <li>
+            <a href="#" class="hover:text-white">OnionLand Search Clearnet</a>
+          </li>
         </ul>
       </div>
 
@@ -30,7 +32,11 @@
             >
           </li>
           <li><a href="#" class="hover:text-white">Sell Your Services</a></li>
-          <li><a href="{{ url_for('public.faqs') }}" class="hover:text-white">Help & Support</a></li>
+          <li>
+            <a href="{{ url_for('public.faqs') }}" class="hover:text-white"
+              >Help & Support</a
+            >
+          </li>
           <li>
             <a href="{{ url_for('public.advertise') }}" class="hover:text-white"
               >Product Promotion</a
@@ -44,12 +50,16 @@
         <h3 class="text-white font-bold mb-4">Payment Products</h3>
         <ul class="space-y-2">
           <li>
-            <a href="{{ url_for('public.old_report_vendor') }}" class="hover:text-white"
+            <a
+              href="{{ url_for('public.old_report_vendor') }}"
+              class="hover:text-white"
               >Report Vendor</a
             >
           </li>
           <li>
-            <a href="{{ url_for('public.how_to_pgp') }}" class="hover:text-primary"
+            <a
+              href="{{ url_for('public.how_to_pgp') }}"
+              class="hover:text-primary"
               >PGP Guide</a
             >
           </li>
@@ -68,12 +78,16 @@
             >
           </li>
           <li>
-            <a href="{{ url_for('public.how_to_sell') }}" class="hover:text-white"
+            <a
+              href="{{ url_for('public.how_to_sell') }}"
+              class="hover:text-white"
               >How to sell</a
             >
           </li>
           <li>
-            <a href="{{ url_for('public.shipping_policy') }}" class="hover:text-white"
+            <a
+              href="{{ url_for('public.shipping_policy') }}"
+              class="hover:text-white"
               >Shipping Policy</a
             >
           </li>
@@ -98,15 +112,16 @@
         <a href="/" class="text-xl font-bold">
           <span class="text-yellow-400">Dark</span>Vault
         </a>
-       
       </div>
       <div class="text-sm text-center md:text-right">
         <a href="#" class="hover:text-white mx-2">Conditions of Use</a>
-        <a href="{{ url_for('public.privacy_policy') }}" class="hover:text-white mx-2"
+        <a
+          href="{{ url_for('public.privacy_policy') }}"
+          class="hover:text-white mx-2"
           >Privacy Notice</a
         >
         <a href="#" class="hover:text-white mx-2">Interest-Based Ads</a>
-        <p class="mt-2">© 2025, DarkVault.com, Inc. or its affiliates</p>
+        <p class="mt-2">© 2025, Sydney.com, Inc. or its affiliates</p>
       </div>
     </div>
   </div>

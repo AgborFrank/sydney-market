@@ -1,123 +1,142 @@
 {% extends 'user/user_base.html' %}
-{% block title %}Vendor Wallet - {{ settings['site_name'] }}{% endblock %}
+{% block title %}Wallet - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold text-gray-900 ">Account Wallet</h1>
-    <p class="mb-6 opacity-70">Withdraw your funds from sales anytime, directly into your cryptocurrency wallet.</p>
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Wallet</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+    Manage your Bitcoin and Monero balances, deposit funds, or request withdrawals.
+  </h3>
 
-    <!-- Wallet Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 max-w-screen-md">
-        <div class="bg-white p-6 rounded-lg shadow-md border">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Sales</h2>
-            <p class="text-2xl text-gray-900">${{ "%.2f"|format(total_sales) }}</p>
-        </div>
-        <div class="bg-white p-6 rounded-lg shadow-md border">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Wallet Balance</h2>
-            <p class="text-2xl text-gray-900">${{ "%.2f"|format(balance_usd) }}</p>
-        </div>
-    </div>
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 max-w-3xl mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-    <!-- Withdrawal Form -->
-    <div class="bg-white p-6 rounded-lg shadow-md border mb-6 max-w-screen-md">
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">Withdraw Funds</h2>
-        <form method="POST" action="{{ url_for('wallet.withdraw') }}" id="withdraw-form">
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Amount (USD)</label>
-                <input type="number" name="amount_usd" step="0.01" min="0.01" max="{{ balance_usd }}" 
-                       class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
-                       required>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Cryptocurrency</label>
-                <select name="crypto_currency" id="crypto-currency" 
-                        class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
-                        required>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                    <option value="XMR">Monero (XMR)</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 font-semibold mb-2">Wallet Address</label>
-                <input type="text" name="wallet_address" 
-                       class="w-full py-2 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none" 
-                       required>
-            </div>
-            <div class="mb-4">
-                <p class="text-gray-600">Estimated Conversion:</p>
-                <p id="crypto-conversion" class="text-gray-900 font-semibold">Select amount and currency to see conversion</p>
-            </div>
-            <button type="submit" 
-                    class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">
-                Submit Withdrawal
-            </button>
-        </form>
+  <!-- Balances -->
+  <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
+    <h2 class="text-xl font-bold text-white">Balances</h2>
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p class="font-bold text-white">Bitcoin (BTC)</p>
+        <p class="text-white">{{ user.btc_balance|round(8) }} BTC</p>
+      </div>
+      <div>
+        <p class="font-bold text-white">Monero (XMR)</p>
+        <p class="text-white">{{ user.xmr_balance|round(8) }} XMR</p>
+      </div>
     </div>
+  </div>
 
-    <!-- Recent Withdrawals -->
-    <div class="bg-white p-6 rounded-lg shadow-md border max-w-screen-md">
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">Recent Withdrawals</h2>
-        {% if withdrawals %}
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="border-b">
-                        <th class="py-2 px-4">Date</th>
-                        <th class="py-2 px-4">Amount (USD)</th>
-                        <th class="py-2 px-4">Crypto</th>
-                        <th class="py-2 px-4">Crypto Amount</th>
-                        <th class="py-2 px-4">Wallet Address</th>
-                        <th class="py-2 px-4">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for w in withdrawals %}
-                    <tr class="border-b">
-                        <td class="py-2 px-4">{{ w['requested_at'] }}</td>
-                        <td class="py-2 px-4">${{ "%.2f"|format(w['amount_usd']) }}</td>
-                        <td class="py-2 px-4">{{ w['crypto_currency'] }}</td>
-                        <td class="py-2 px-4">{{ "%.6f"|format(w['crypto_amount']) }}</td>
-                        <td class="py-2 px-4">{{ w['wallet_address']|truncate(20, True, '...') }}</td>
-                        <td class="py-2 px-4">{{ w['status']|capitalize }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="text-gray-600">No recent withdrawals.</p>
-        {% endif %}
+  <!-- Deposits -->
+  <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
+    <h2 class="text-xl font-bold text-white">Deposit Funds</h2>
+    <div class="mt-4 space-y-4">
+      <div>
+        <p class="font-bold text-white">Bitcoin Deposit Address</p>
+        <p class="text-white break-all">{{ btc_deposit_address }}</p>
+        <p class="text-white text-sm">Send BTC to this address. Funds appear after 2 confirmations. Do not send directly from exchanges.</p>
+      </div>
+      <div>
+        <p class="font-bold text-white">Monero Deposit Address</p>
+        <p class="text-white break-all">{{ xmr_deposit_address }}</p>
+        <p class="text-white text-sm">Send XMR to this address. Funds appear after confirmations. Use a third-party wallet for privacy.</p>
+      </div>
     </div>
+  </div>
+
+  <!-- Withdrawal Form -->
+  <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
+    <h2 class="text-xl font-bold text-white">Withdraw Funds</h2>
+    <form method="post" class="mt-4 space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="withdraw">
+
+      <div class="flex flex-col gap-2">
+        <label class="font-bold text-white">Currency</label>
+        <select name="currency" class="std">
+          <option value="BTC">Bitcoin (BTC)</option>
+          <option value="XMR">Monero (XMR)</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label class="font-bold text-white">Amount</label>
+        <input type="number" name="amount" class="std" step="0.00000001" min="0.00000001" required>
+        <p class="text-white text-sm">Withdrawal fee: ${{ withdrawal_fee }} (deducted in {{ currency }}).</p>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label class="font-bold text-white">Destination Address</label>
+        <input type="text" name="address" class="std" required maxlength="95">
+      </div>
+
+      {% if user.two_factor_secret %}
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-white">2FA Code</label>
+          <input type="text" name="two_factor_code" class="std" required maxlength="6">
+        </div>
+      {% endif %}
+
+      {% if user.pgp_public_key %}
+        <div class="flex flex-col gap-2">
+          <label class="font-bold text-white">PGP Signature</label>
+          <textarea name="pgp_signature" class="std" rows="4" required placeholder="Sign 'withdraw {currency} {amount}' with your PGP key"></textarea>
+        </div>
+      {% endif %}
+
+      <div class="flex justify-center">
+        <input type="submit" value="Request Withdrawal" class="bstd">
+      </div>
+    </form>
+  </div>
+
+  <!-- Transaction History -->
+  <div class="mt-8 max-w-5xl mx-auto">
+    <h2 class="text-xl font-bold text-white">Transaction History</h2>
+    {% if transactions %}
+      <table class="w-full text-white border-collapse">
+        <thead>
+          <tr class="bg-sydney bg-opacity-20">
+            <th class="p-2 text-left font-bold">Date</th>
+            <th class="p-2 text-left font-bold">Type</th>
+            <th class="p-2 text-left font-bold">Currency</th>
+            <th class="p-2 text-left font-bold">Amount</th>
+            <th class="p-2 text-left font-bold">Address</th>
+            <th class="p-2 text-left font-bold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tx in transactions %}
+            <tr class="border-b border-sydney border-opacity-50">
+              <td class="p-2">{{ tx.created_at }}</td>
+              <td class="p-2">{{ tx.type|capitalize }}</td>
+              <td class="p-2">{{ tx.currency }}</td>
+              <td class="p-2">{{ tx.amount|round(8) }}</td>
+              <td class="p-2 break-all">{{ tx.address or 'N/A' }}</td>
+              <td class="p-2">
+                <span class="px-2 py-1 rounded text-sm {{
+                  'bg-yellow-600' if tx.status == 'pending' else
+                  'bg-green-600' if tx.status == 'completed' else
+                  'bg-red-600'
+                }}">
+                  {{ tx.status|capitalize }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-white">No transactions found.</p>
+    {% endif %}
+  </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const form = document.getElementById("withdraw-form");
-        const amountInput = document.querySelector("input[name='amount_usd']");
-        const cryptoSelect = document.getElementById("crypto-currency");
-        const conversionDisplay = document.getElementById("crypto-conversion");
-
-        // Crypto prices from backend
-        const btcPrice = {{ btc_price|tojson }};
-        const xmrPrice = {{ xmr_price|tojson }};
-
-        function updateConversion() {
-            const amount = parseFloat(amountInput.value) || 0;
-            const currency = cryptoSelect.value;
-            let cryptoAmount = 0;
-            if (currency === "BTC" && btcPrice) {
-                cryptoAmount = amount / btcPrice;
-                conversionDisplay.textContent = `${cryptoAmount.toFixed(6)} BTC`;
-            } else if (currency === "XMR" && xmrPrice) {
-                cryptoAmount = amount / xmrPrice;
-                conversionDisplay.textContent = `${cryptoAmount.toFixed(6)} XMR`;
-            } else {
-                conversionDisplay.textContent = "Price unavailable";
-            }
-        }
-
-        amountInput.addEventListener("input", updateConversion);
-        cryptoSelect.addEventListener("change", updateConversion);
-        updateConversion(); // Initial call
-    });
-</script>
 {% endblock %}

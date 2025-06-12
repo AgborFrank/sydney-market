@@ -1,6 +1,6 @@
 <!-- templates/report_vendor.html -->
-{% extends 'base.html' %} {% block title %}Report a Vendor - DarkVault{%
-endblock %} {% block content %}
+{% extends 'base.html' %} {% block title %}Report a Vendor - Sydney{% endblock
+%} {% block content %}
 <div class="container mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold text-gray-900 mb-6">Report a Vendor</h1>
   <div class="bg-white p-6 rounded-lg shadow-md">
@@ -16,7 +16,7 @@ endblock %} {% block content %}
       action="{{ url_for('public.old_report_vendor') }}"
       class="space-y-6"
     >
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
       <div>
         <label
           for="vendor_username"

@@ -1,0 +1,171 @@
+{% macro user_profile_component( orders_url=url_for('user.orders'),
+favorites_url=url_for('user.favorites'), settings_url=url_for('user.edit_profile'),
+logout_url=url_for('user.logout'), notifications_url=url_for('user.messages'),
+btc_url=url_for('user.wallet'), xmr_url=url_for('user.wallet'),
+profile_url=url_for('user.profile'), profile_data=profile_data ) %} {% if 'user_id' in
+session and profile_data %}
+<div
+  class="border-solid border rounded-md p-2 z-0 hover:!border-sydney w-full flex flex-wrap mb-2"
+>
+  <div class="w-[85px] flex" style="width: 85px !important">
+    <a class="m-auto" href="{{ profile_url }}" target="_blank">
+      <div class="picture picture-user w-[80px] !h-[80px] rounded-md">
+        <img
+          {%if profile_data.avatar%}
+          src="{{ profile_data.avatar }}"
+          {%else%}
+          src="{{ url_for('static', filename='images/avatar.jpg') }}"
+          {%endif%}
+
+          class="w-[80px] !h-[80px] rounded-md" 
+          alt=""
+          />
+      </div>
+    </a>
+  </div>
+  <div class="w-[calc(100%-85px)] p-1 flex flex-col items-center">
+    <div
+      class="text-xs text-left w-full text-sydney border-solid border-0 border-b-[1px] border-sydney py-1"
+    >
+      <a
+        class="bstd w-full text-white text-sm font-bold text-sydney rounded py-0.5"
+        href="{{ profile_url }}"
+      >
+        {{ profile_data.pusername }} (0)
+        <i
+          class="px-0.5 rounded"
+          style="background-color: #fff; font-size: 12px; color: green"
+        >
+          {{ '%.1f%%' % profile_data.feedback_percentage if
+          profile_data.feedback_percentage > 0 else 'N/A' }}
+        </i>
+      </a>
+      <div class="font-bold text-white">
+        Trust Level:
+        <span
+          class="ml-2 rounded bg-lvl{{ profile_data.trust_level }} px-2 py-[1px] text-white"
+          >{{ profile_data.trust_level }}</span
+        >
+      </div>
+    </div>
+    <a
+      href="{{ notifications_url }}"
+      class="group bg-red-600 hover:!bg-sydney hover:!text-white font-bold rounded py-2 w-full text-center my-1"
+    >
+      <div
+        class="flex items-center text-white justify-center gap-1 w-full group-hover:text-white"
+      >
+        <div class="scale-[90%]">
+          <i class="gg-bell animate-wiggle"></i>
+        </div>
+        Notifications ({{ profile_data.notification_count }})
+      </div>
+    </a>
+    <div class="flex items-center w-full justify-evenly text-xs">
+      <!-- btc -->
+      <div class="w-1/2 flex flex-col items-center py-[1px]">
+        <div class="flex gap-1 items-center text-white">
+          <div class="btc bg-center text-white bg-no-repeat h-6 w-[17px]">
+            <img  src="{{ url_for('static', filename='images/btc.webp') }}" alt="" />
+          </div>
+          <div
+            class="btc-icon mb-0.5 hidden rounded-full"
+            style="
+              width: 24px;
+              height: 24px;
+              margin-left: 3px;
+              background-color: #fff !important;
+            "
+            alt="BTC"
+          >
+         
+        </div>
+          Bitcoin
+        </div>
+        <a
+          href="{{ btc_url }}"
+          class="bg-sydney-lightblue hover:bg-sydney text-white rounded px-0.5 font-bold text-[11px]"
+        >
+          {{ '%.8f' % profile_data.btc_balance }}
+        </a>
+      </div>
+      <!-- xmr -->
+      <div
+        class="w-1/2 flex flex-col items-center border-solid border-0 border-l border-sydney"
+      >
+        <div class="flex gap-1 items-center text-white">
+          <div class="xmr bg-center bg-no-repeat h-6 w-6 p-1">
+            <img  src="{{ url_for('static', filename='images/xmr.png') }}"  style="
+            width: 20px !important;
+            height: 20px !important;
+            margin-left: 3px;
+            
+          " alt="" />
+          </div>
+          <img
+            class="xmr-icon mb-0.5 hidden rounded-full bg-white"
+            style="
+              width: 20px;
+              height: 20px;
+              margin-left: 3px;
+              
+            "
+             src="{{ url_for('static', filename='images/xmr.png') }}"
+            alt="XMR"
+          />
+          Monero
+        </div>
+        <a
+          href="{{ xmr_url }}"
+          class="bg-sydney hover:bg-sydney text-white rounded px-0.5 font-bold text-[11px]"
+        >
+          {{ '%.8f' % profile_data.xmr_balance }}
+        </a>
+      </div>
+    </div>
+  </div>
+  <div
+    class="grid grid-cols-2 items-center justify-center gap-0.5 w-full border-solid border-0 border-t border-sydney pt-1.5"
+  >
+    <a
+      href="{{ orders_url }}"
+      class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+    >
+      <div class="scale-[90%]"><i class="gg-tag"></i></div>
+      My Orders
+    </a>
+    <a
+      href="{{ favorites_url }}"
+      class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+    >
+      <div class="scale-[90%]"><i class="gg-heart"></i></div>
+      Favorites
+    </a>
+    <a
+      href="{{ settings_url }}"
+      class="h-8 text text-white abacus hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+    >
+      <div class="scale-[90%]"><i class="gg-profile"></i></div>
+      Settings
+    </a>
+    <form action="{{ logout_url }}" method="POST" class="h-8 w-full">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button
+        type="submit"
+        class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+      >
+        <div class="scale-[90%]"><i class="gg-log-out"></i></div>
+        Log Out
+      </button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div
+  class="border-solid border border-[1px] rounded-md p-2 w-full flex justify-center"
+>
+  <a href="{{ url_for('user.login') }}" class="text-white hover:text-yellow-400"
+    >Please log in to view profile</a
+  >
+</div>
+{% endif %} {% endmacro %}

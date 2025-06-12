@@ -1,0 +1,83 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block admin_content %}
+<div class=" p-6 rounded-lg shadow-lg">
+  <h1 class="text-2xl font-bold  mb-4">Manage FAQs</h1>
+  
+  <!-- Add/Edit FAQ Form -->
+  {% if action %}
+    <div class="bg-white border border-abacus2 rounded-md p-4 mb-6">
+      <h2 class="text-lg font-semibold text-black ">{{ 'Add New FAQ' if action == 'new' else 'Edit FAQ' }}</h2>
+      <form method="POST" action="{{ url_for('admin.new_faq') if action == 'new' else url_for('admin.edit_faq', id=faq.id) }}" class="flex flex-col gap-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div>
+          <label for="question" class="block text-sm font-medium text-gray-500">Question</label>
+          <input type="text" name="question" id="question" value="{{ faq.question if faq else '' }}" required
+                 class="w-full border border-border rounded-md p-2 text-black">
+        </div>
+        <div>
+          <label for="answer" class="block text-sm font-medium text-gray-500">Answer</label>
+          <textarea name="answer" id="answer" required
+                    class="w-full border border-border rounded-md p-2 text-black">{{ faq.answer if faq else '' }}</textarea>
+        </div>
+        <div>
+          <label for="category_id" class="block text-sm font-medium text-gray-500">Category</label>
+          <select name="category_id" id="category_id" required class="w-full border border-border rounded-md p-2 text-black">
+            {% for category in categories %}
+              <option value="{{ category.id }}" {% if faq and faq.category_id == category.id %}selected{% endif %}>
+                {{ category.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="bg-black text-white px-4 py-2 rounded-md hover:bg-abacus">
+          {{ 'Create FAQ' if action == 'new' else 'Update FAQ' }}
+        </button>
+      </form>
+    </div>
+  {% endif %}
+  
+  <!-- FAQ List -->
+  <div class="bg-white border border-abacus2 rounded-md p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold text-abacus">FAQs by Category</h2>
+      <a href="{{ url_for('admin.new_faq') }}" class="bg-black text-white px-4 py-2 rounded-md hover:bg-abacus">
+        Add FAQ
+      </a>
+    </div>
+    
+    {% if grouped_faqs %}
+      {% for category, faqs in grouped_faqs.items() %}
+        {% if faqs %}
+          <div class="mb-6">
+            <h3 class="text-md font-semibold text-abacus mb-2">{{ category }}</h3>
+            <ul class="space-y-2">
+              {% for faq in faqs %}
+                <li class="border-b border-border pb-2">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <p class="font-medium text-black">{{ faq.question }}</p>
+                      <p class="text-sm text-gray-500">{{ faq.answer[:100] }}{% if faq.answer|length > 100 %}...{% endif %}</p>
+                    </div>
+                    <div class="flex gap-2">
+                      <a href="{{ url_for('admin.edit_faq', id=faq.id) }}"
+                         class="text-abacus hover:underline">Edit</a>
+                      <form action="{{ url_for('admin.delete_faq', id=faq.id) }}" method="POST"
+                            onsubmit="return confirm('Are you sure you want to delete this FAQ?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <p class="text-gray-500 italic">No FAQs available.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

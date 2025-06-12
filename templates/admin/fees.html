@@ -1,0 +1,86 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Admin - Fee Management - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Transaction Fees</h2>
+
+<!-- Filter -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Fees</h3>
+    <form method="GET" action="{{ url_for('admin.admin_fees') }}" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <label for="fee_type" class="block text-sm font-medium text-gray-700">Fee Type</label>
+            <p class="text-sm text-gray-500 mb-2">Filter fees by type (e.g., order).</p>
+            <input type="text" name="fee_type" id="fee_type" value="{{ request.args.get('fee_type', '') }}" class="mt-1 py-2 px-6 bg-gray-100 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" placeholder="Enter fee type (e.g., order)">
+        </div>
+        <div class="flex items-end">
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Fees Table -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fee Configurations</h3>
+    <p class="text-sm text-gray-500 mb-4">Below are the current fee settings for vendor transactions.</p>
+    {% if fees %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b">
+                    <th class="py-2 px-4 text-gray-700">Fee ID</th>
+                    <th class="py-2 px-4 text-gray-700">Type</th>
+                    <th class="py-2 px-4 text-gray-700">Percentage (%)</th>
+                    <th class="py-2 px-4 text-gray-700">Description</th>
+                    <th class="py-2 px-4 text-gray-700">Updated At</th>
+                    <th class="py-2 px-4 text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fee in fees %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-4">{{ fee.id }}</td>
+                    <td class="py-2 px-4">{{ fee.fee_type }}</td>
+                    <td class="py-2 px-4">{{ "%.2f"|format(fee.percentage) }}</td>
+                    <td class="py-2 px-4">{{ fee.description or 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ fee.updated_at }}</td>
+                    <td class="py-2 px-4">
+                        <form method="POST" action="{{ url_for('admin.admin_update_fee', fee_id=fee.id) }}" class="flex gap-2">
+                            <input type="number" name="percentage" step="0.01" min="0" max="100" value="{{ fee.percentage }}" class="w-24 border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" required>
+                            <button type="submit" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No fees found.</p>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="mt-4 flex justify-between items-center">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing {{ (page - 1) * per_page + 1 }} to {{ (page - 1) * per_page + fees|length }} of {{ total_fees }} fees
+            </p>
+        </div>
+        <div class="flex space-x-2">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.admin_fees', page=page-1, fee_type=request.args.get('fee_type', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Previous</a>
+            {% endif %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin.admin_fees', page=page+1, fee_type=request.args.get('fee_type', '')) }}" class="bg-yellow-400 text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-500 transition duration-200">Next</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% for message in get_flashed_messages(with_categories=true) %}
+<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
+{% endfor %}
+{% endblock %}

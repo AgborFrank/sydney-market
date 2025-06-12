@@ -3,40 +3,40 @@
 {% block title %}Profile - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8 border-b-2 border-yellow-400 pb-2">My Profile</h1>
+    <h1 class="text-4xl font-bold text-gray-100 mb-8 border-b-2 border-yellow-400 pb-2">My Profile</h1>
 
     <!-- Profile Overview -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4">Overview</h2>
+    <div class="bg-card border p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-2xl font-semibold text-gray-100 mb-4">Overview</h2>
         <div class="space-y-4">
             <div class="flex items-center justify-between">
-                <span class="text-gray-700 font-semibold">Username:</span>
-                <span class="text-gray-900">{{ user['username'] }}</span>
+                <span class="text-gray-300 font-semibold">Username:</span>
+                <span class="text-gray-100">{{ user['username'] }}</span>
             </div>
             <div class="flex items-center justify-between">
-                <span class="text-gray-700 font-semibold">Public Username:</span>
-                <span class="text-gray-900">{{ user['pusername'] }}</span>
+                <span class="text-gray-300 font-semibold">Public Username:</span>
+                <span class="text-gray-100">{{ user['pusername'] }}</span>
             </div>
             <div class="flex items-center justify-between">
-                <span class="text-gray-700 font-semibold">Role:</span>
-                <span class="text-gray-900 capitalize">{{ user['role'] }}</span>
+                <span class="text-gray-300 font-semibold">Role:</span>
+                <span class="text-gray-100 capitalize">{{ user['role'] }}</span>
             </div>
             <div class="flex items-center justify-between">
-                <span class="text-gray-700 font-semibold">Profile Visibility:</span>
-                <span class="text-gray-900 capitalize">{{ user['profile_visibility'] }}</span>
+                <span class="text-gray-300 font-semibold">Profile Visibility:</span>
+                <span class="text-gray-100 capitalize">{{ user['profile_visibility'] }}</span>
             </div>
             {% if user['created_at'] %}
             <div class="flex items-center justify-between">
-                <span class="text-gray-700 font-semibold">Member Since:</span>
-                <span class="text-gray-900">{{ user['created_at'] }}</span>
+                <span class="text-gray-300 font-semibold">Member Since:</span>
+                <span class="text-gray-100">{{ user['created_at'] }}</span>
             </div>
             {% endif %}
         </div>
     </div>
 
     <!-- PGP Key -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4">PGP Public Key</h2>
+    <div class="bg-card border p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-2xl font-semibold text-gray-100 mb-4">PGP Public Key</h2>
         <div class="space-y-4">
             <pre class="bg-gray-100 p-4 rounded-md text-gray-800 text-sm overflow-x-auto">{{ user['pgp_public_key'] or 'Not set' }}</pre>
             <p class="text-gray-600 text-sm">Your PGP key is used to encrypt messages and verify your identity. <a href="{{ url_for('public.how_to_pgp') }}" class="text-yellow-400 hover:underline">Learn more</a>.</p>
@@ -44,27 +44,27 @@
     </div>
 
     <!-- Activity Stats -->
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4">Activity Stats</h2>
+    <div class="bg-card border p-6 rounded-lg shadow-md mb-8">
+        <h2 class="text-2xl font-semibold text-gray-100 mb-4">Activity Stats</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="text-center">
-                <span class="block text-gray-700 font-semibold">Orders Placed</span>
-                <span class="text-2xl text-gray-900">{{ user['order_count'] }}</span>
+                <span class="block text-gray-300 font-semibold">Orders Placed</span>
+                <span class="text-2xl text-gray-100">{{ user['order_count'] }}</span>
             </div>
             <div class="text-center">
-                <span class="block text-gray-700 font-semibold">Disputes Filed</span>
-                <span class="text-2xl text-gray-900">{{ user['dispute_count'] }}</span>
+                <span class="block text-gray-300 font-semibold">Disputes Filed</span>
+                <span class="text-2xl text-gray-100">{{ user['dispute_count'] }}</span>
             </div>
             <div class="text-center">
-                <span class="block text-gray-700 font-semibold">Favorites Saved</span>
-                <span class="text-2xl text-gray-900">{{ user['favorite_count'] }}</span>
+                <span class="block text-gray-300 font-semibold">Favorites Saved</span>
+                <span class="text-2xl text-gray-100">{{ user['favorite_count'] }}</span>
             </div>
         </div>
     </div>
 
     <!-- Actions -->
     <div class="flex justify-end">
-        <a href="{{ url_for('user.settings') }}" class="bg-yellow-400 text-gray-900 font-semibold py-3 px-6 rounded-md hover:bg-yellow-500 transition duration-200">Edit Settings</a>
+        <a href="{{ url_for('user.settings') }}" class="bg-yellow-400 text-gray-100 font-semibold py-3 px-6 rounded-md hover:bg-yellow-500 transition duration-200">Edit Settings</a>
     </div>
 </div>
 {% endblock %}

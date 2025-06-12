@@ -1,215 +1,57 @@
 {% extends 'base.html' %}
 {% block title %}Home - {{ settings['site_name'] }}{% endblock %}
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <!-- Image Slideshow with Sidebar Parent Categories -->
-    <section class="mb-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-        <!-- Sidebar: Parent Categories -->
-        <div class="md:col-span-1">
-            <div class="bg-white p-4 rounded-lg shadow-md sticky top-4">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Categories</h2>
-                <ul class="space-y-2">
-                    {% for category in top_level_categories %}
-                    <li>
-                        <a href="{{ url_for('public.category_products', category_id=category['id']) }}" 
-                           class="text-gray-700 hover:text-primary block">
-                            {{ category['name'] }} 
-                            <span class="text-gray-500 text-sm">({{ category['product_count'] }})</span>
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-
-        <!-- CSS-based Slideshow -->
-        <div class="md:col-span-3">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden relative h-64 md:h-96">
-                {% if featured_categories and featured_categories|length > 0 %}
-                <div class="slideshow-container">
-                    {% for category in featured_categories %}
-                    <a href="{{ url_for('public.category_products', category_id=category['id']) }}" 
-                       class="slide">
-                        <img src="{{ url_for('static', filename=category['image_path']) }}" 
-                             alt="{{ category['name'] }} Featured" 
-                             class="w-full h-64 md:h-96 object-cover">
-                        <div class="p-4 bg-gradient-to-t from-gray-900 to-transparent absolute bottom-0 w-full">
-                            <h3 class="text-xl font-semibold text-white">{{ category['name'] }}</h3>
-                            <p class="text-gray-200 text-sm">{{ category['description']|truncate(100) or 'Explore this category now!' }}</p>
-                        </div>
-                    </a>
-                    {% endfor %}
-                    <!-- Duplicate slides for seamless looping -->
-                    {% for category in featured_categories %}
-                    <a href="{{ url_for('public.category_products', category_id=category['id']) }}" 
-                       class="slide">
-                        <img src="{{ url_for('static', filename=category['image_path']) }}" 
-                             alt="{{ category['name'] }} Featured" 
-                             class="w-full h-64 md:h-96 object-cover">
-                        <div class="p-4 bg-gradient-to-t from-gray-900 to-transparent absolute bottom-0 w-full">
-                            <h3 class="text-xl font-semibold text-white">{{ category['name'] }}</h3>
-                            <p class="text-gray-200 text-sm">{{ category['description']|truncate(100) or 'Explore this category now!' }}</p>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="w-full h-64 md:h-96 bg-gray-200 flex items-center justify-center">
-                    <span class="text-gray-500">No Featured Categories Available</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Categories Section -->
-    <section class="mb-12">
-        <h2 class="text-2xl font-semibold text-gray-100 mb-6">Explore Categories</h2>
-        {% if categories %}
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-6">
-            {% for category in categories %}
-            <a href="{{ url_for('public.category_products', category_id=category['id']) }}" 
-               class="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition duration-300">
-                <div class="relative">
-                    {% if category['image_path'] %}
-                    <img src="{{ url_for('static', filename=category['image_path']) }}" 
-                         alt="{{ category['name'] }}" 
-                         class="w-full h-24 object-cover">
-                    {% else %}
-                    <div class="w-full h-24 bg-gray-200 flex items-center justify-center">
-                        <span class="text-gray-500">No Image</span>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="p-4">
-                    <h3 class="text-md font-semibold text-gray-900">{{ category['name'] }}</h3>
-                    <p class="text-gray-600 text-sm">{{ category['description']|truncate(30) or 'No description available' }}</p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-gray-600">No categories available.</p>
-        {% endif %}
-    </section>
-
-    <!-- Featured Products Section -->
-    <section class="mb-12">
-        <h2 class="text-2xl font-semibold text-gray-900 mb-6">Featured Listings</h2>
-        {% if featured_products %}
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {% for product in featured_products %}
-            <div class="bg-white p-4 rounded-lg shadow-md">
-                <a href="{{ url_for('public.product_detail', product_id=product['id']) }}">
-                    {% if product['featured_image'] %}
-                    <img src="{{ url_for('static', filename=product['featured_image']) }}" 
-                         alt="{{ product['title'] }}" 
-                         class="w-full h-50 object-cover rounded-md mb-2">
-                    {% endif %}
-                    <h2 class="text-md font-semibold text-gray-700">{{ product['title']|truncate(50) }}</h2>
-                    <p class="text-gray-600 font-bold text-primary">{{ product['price_usd'] }} USD</p>
-                    <p class="text-gray-500 text-sm">{{ product['description']|truncate(50) }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Seller:</strong> {{ product['vendor_username'] or 'Admin' }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Ships from:</strong> {{ product['shipping_location'] or 'Not specified' }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Ships to:</strong> {{ product['shipping_destinations'] or 'Not specified' }}</p>
-                    {% set rating_info = get_product_rating(product['id']) %}
-                    <div class="flex items-center mb-4">
-                        <span class="text-yellow-400">★</span>
-                        <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
-                    </div>
-                    <span class="block w-full bg-primary text-gray-900 font-semibold py-1 px-4 rounded-md hover:bg-primary-90 text-center transition duration-200">View details</span>
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-gray-600">No featured products available.</p>
-        {% endif %}
-    </section>
-
-    <!-- All Products Section -->
-    <section class="mb-12">
-        <h2 class="text-2xl font-semibold text-gray-100 mb-6">All Products</h2>
-        {% if products %}
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {% for product in products %}
-            <div class="bg-white p-4 rounded-lg shadow-md">
-                <a href="{{ url_for('public.product_detail', product_id=product['id']) }}">
-                    {% if product['featured_image'] %}
-                    <div class="w-full h-60">
-                        <img src="{{ url_for('static', filename=product['featured_image']) }}" 
-                         alt="{{ product['title'] }}" 
-                         class="w-full h-full object-contain rounded-md mb-2">
-                    </div>
-                    {% endif %}
-                    <h2 class="text-md font-semibold text-gray-700">{{ product['title']|truncate(50) }}</h2>
-                    <p class="text-gray-600 font-bold text-primary">{{ product['price_usd'] }} USD</p>
-                    <p class="text-gray-500 text-sm">{{ product['description']|truncate(50) }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Seller:</strong> {{ product['business_name'] or product['vendor_username'] }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Ships from:</strong> {{ product['shipping_location'] or 'Not specified' }}</p>
-                    <p class="text-gray-600 text-sm"><strong>Ships to:</strong> {{ product['shipping_destinations'] or 'Not specified' }}</p>
-                    {% set rating_info = get_product_rating(product['id']) %}
-                    <div class="flex items-center mb-4">
-                        <span class="text-yellow-400">★</span>
-                        <span class="text-gray-700 ml-1">{{ rating_info['avg_rating'] }} ({{ rating_info['review_count'] }} reviews)</span>
-                    </div>
-                    <span class="block w-full bg-primary text-gray-900 font-semibold py-1 px-4 rounded-md hover:bg-primary-90 text-center transition duration-200">View details</span>
-                </a>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-gray-600">No products available.</p>
-        {% endif %}
-    </section>
-
-    <!-- Why Shop With Us Section -->
-    <section class="mb-12">
-        <div class="mb-8">
-            <h2 class="text-3xl font-semibold text-white max-w-md">
-                Experience Secure and Anonymous Trading
-            </h2>
-            <p class="text-gray-100">
-                We prioritize a safe and transparent marketplace where buyers and sellers connect seamlessly and confidently.
-            </p>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Feature 1: Escrow -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.1.9-2 2-2s2 .9 2 2-2 4-2 4m-4-4c0-1.1.9-2 2-2s2 .9 2 2m-6 4h12m-9-8h6m-6 12h6m-9-8v8m12-8v8" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Secure Escrow</h3>
-                <p class="text-gray-600 text-sm">Your funds are held safely in our multisig escrow until you receive your order, ensuring trust and security.</p>
-            </div>
-            <!-- Feature 2: Anonymity -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Complete Anonymity</h3>
-                <p class="text-gray-600 text-sm">Shop with privacy using cryptocurrency and our secure platform—no personal info required.</p>
-            </div>
-            <!-- Feature 3: Wide Selection -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18M3 9h18M3 15h18M3 21h18" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Wide Selection</h3>
-                <p class="text-gray-600 text-sm">Browse thousands of products from vendors worldwide, all in one convenient marketplace.</p>
-            </div>
-            <!-- Feature 4: Fast Delivery -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10h7l-9 11v-7H4l9-11v7z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Fast Delivery</h3>
-                <p class="text-gray-600 text-sm">Get your orders quickly with our efficient vendor network and streamlined shipping.</p>
-            </div>
-        </div>
-    </section>
+<div class="w-full">
+    {% include 'components/featured_products.html' %}
+    {% include 'components/random_products.html' %}
+    
+   
 </div>
-
+ <!-- Why Shop With Us Section -->
+ <div class="mb-12 w-full px-6 pt-10">
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-white max-w-md">
+            Experience Secure and Anonymous Trading
+        </h2>
+        <p class="text-gray-100">
+            We prioritize a safe and transparent marketplace where buyers and sellers connect seamlessly and confidently.
+        </p>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Feature 1: Escrow -->
+        <div class="bg-card p-6 rounded-lg shadow-md text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.1.9-2 2-2s2 .9 2 2-2 4-2 4m-4-4c0-1.1.9-2 2-2s2 .9 2 2m-6 4h12m-9-8h6m-6 12h6m-9-8v8m12-8v8" />
+            </svg>
+            <h3 class="text-md font-semibold text-gray-200 mb-2">Secure Escrow</h3>
+            <p class="text-gray-400 text-xs">Your funds are held safely in our multisig escrow until you receive your order, ensuring trust and security.</p>
+        </div>
+        <!-- Feature 2: Anonymity -->
+        <div class="bg-card p-6 rounded-lg shadow-md text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h3 class="text-md font-semibold text-gray-200 mb-2">Complete Anonymity</h3>
+            <p class="text-gray-400 text-xs">Shop with privacy using cryptocurrency and our secure platform—no personal info required.</p>
+        </div>
+        <!-- Feature 3: Wide Selection -->
+        <div class="bg-card p-6 rounded-lg shadow-md text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18M3 9h18M3 15h18M3 21h18" />
+            </svg>
+            <h3 class="text-md font-semibold text-gray-200 mb-2">Wide Selection</h3>
+            <p class="text-gray-400 text-xs">Browse thousands of products from vendors worldwide, all in one convenient marketplace.</p>
+        </div>
+        <!-- Feature 4: Fast Delivery -->
+        <div class="bg-card p-6 rounded-lg shadow-md text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10h7l-9 11v-7H4l9-11v7z" />
+            </svg>
+            <h3 class="text-md font-normal text-gray-200 mb-2">Fast Delivery</h3>
+            <p class="text-gray-400 text-xs">Get your orders quickly with our efficient vendor network and streamlined shipping.</p>
+        </div>
+    </div>
+</div>
 <!-- CSS for Slideshow (only if there are featured categories) -->
 {% if featured_categories and featured_categories|length > 0 %}
 <style>
