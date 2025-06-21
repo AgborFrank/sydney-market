@@ -3,7 +3,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from routes import init_routes
 from utils.crypto import get_exchange_rates
-from utils.database import init_db, get_db_connection, get_settings, get_product_rating, get_profile_data, get_product_count,close_db, get_rates, update_rates
+from utils.database import init_db, get_db_connection, get_settings, get_product_rating, get_profile_data, get_product_count,close_db, get_rates, update_rates, get_user_profile_data
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 #from utils.security import generate_csrf_token
@@ -188,7 +188,19 @@ def inject_settings():
 def inject_globals():
     categories = get_categories_with_counts()
     user_id = session.get('user_id')
-    profile_data = get_profile_data(user_id)
+    profile_data, error = get_user_profile_data(user_id) if user_id else (None, None)
+    if error:
+        flash(error, 'error')
+    
+    if not profile_data:
+        # Provide a default structure for guests or if the user is not found
+        profile_data = {
+            'pusername': 'Guest',
+            'avatar': None,
+            'btc_balance': 0.0,
+            'xmr_balance': 0.0,
+            'role': 'guest'
+        }
     rates = get_rates()
     logger.info(f"Injected categories: {categories}")
     return {

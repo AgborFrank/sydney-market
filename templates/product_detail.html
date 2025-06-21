@@ -1,10 +1,13 @@
-{% extends 'base.html' %}
-{% block title %}{{ product.title }} - {{ settings['site_name'] }}{% endblock %}
-{% block content %}
-<div class=" text-white min-h-screen p-4">
-  <div class="p-2 flex flex-col md:flex-row md:flex-wrap 2xl:flex-wrap 45xl:flex-nowrap w-full rounded-md 2xl:gap-3 border-solid border border-border hover:border-sydney2 group">
+{% extends 'base.html' %} {% block title %}{{ product.title }} - {{
+settings['site_name'] }}{% endblock %} {% block content %}
+<div class="text-white min-h-screen p-4">
+  <div
+    class="p-2 flex flex-col md:flex-row md:flex-wrap 2xl:flex-wrap 45xl:flex-nowrap w-full rounded-md 2xl:gap-3 border-solid border border-border hover:border-sydney2 group"
+  >
     <!-- Photos -->
-    <div class="w-[250px] mx-auto 2xl:mx-0 flex flex-col justify-start self-start md:flex-none">
+    <div
+      class="w-[250px] mx-auto 2xl:mx-0 flex flex-col justify-start self-start md:flex-none"
+    >
       <!-- Images Slide -->
       <style>
         #in1:checked ~ * #img1,
@@ -44,75 +47,140 @@
         }
       </style>
 
-      {% for i in range(1, 7) %}
-        <input type="radio" id="in{{ i }}" name="slide" class="hidden absolute" {% if i == 1 %}checked="checked"{% endif %} />
-      {% endfor %}
+      {% for i in range(1, 7) %} <input type="radio" id="in{{ i }}" name="slide"
+      class="hidden absolute" {% if i == 1 %}checked="checked"{% endif %} /> {%
+      endfor %}
 
-      <div class="flex mx-auto gap-2 w-[216px] overflow-x-hidden bg-sydney bg-opacity-10 p-2 rounded-md" style="scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+      <div
+        class="flex mx-auto gap-2 w-[216px] overflow-x-hidden bg-sydney bg-opacity-10 p-2 rounded-md"
+        style="
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+        "
+      >
         {% for img in product.images[:6] %}
-          <a id="img{{ loop.index }}" href="{{ img }}" target="_blank">
-            <img class="w-[200px] rounded-md" src="/static/uploads/products/{{ img|basename}}" alt="{{ product.title }} Image {{ loop.index }}" />
-          </a>
-        {% endfor %}
-        {% if not product.images %}
-          <a id="img1" href="/static/uploads/products/product-placeholder.png" target="_blank">
-            <img class="w-[200px] rounded-md" src="/static/uploads/products/product-placeholder.png" alt="Placeholder Image" />
-          </a>
+        <a id="img{{ loop.index }}" href="{{ img }}" target="_blank">
+          <img
+            class="w-[200px] rounded-md"
+            src="/static/uploads/products/{{ img|basename}}"
+            alt="{{ product.title }} Image {{ loop.index }}"
+          />
+        </a>
+        {% endfor %} {% if not product.images %}
+        <a
+          id="img1"
+          href="/static/uploads/products/product-placeholder.png"
+          target="_blank"
+        >
+          <img
+            class="w-[200px] rounded-md"
+            src="/static/uploads/products/product-placeholder.png"
+            alt="Placeholder Image"
+          />
+        </a>
         {% endif %}
       </div>
 
       <!-- Thumb Menu -->
       <div class="flex justify-center mt-1 gap-0.5">
         {% for img in product.images[:6] %}
-          <label id="lb-{{ loop.index }}" for="in{{ loop.index }}" class="w-10 h-10 rounded-md">
-            <img class="w-[40px] bg-sydney p-0.5 rounded-md" src="/static/uploads/products/{{ img|basename}}" alt="Thumbnail {{ loop.index }}" />
-          </label>
-        {% endfor %}
-        {% if not product.images %}
-          <label id="lb-1" for="in1" class="w-10 h-10 rounded-md">
-            <img class="w-[40px] bg-sydney p-0.5 rounded-md" src="/static/uploads/products/product-placeholder.png" alt="Thumbnail Placeholder" />
-          </label>
+        <label
+          id="lb-{{ loop.index }}"
+          for="in{{ loop.index }}"
+          class="w-10 h-10 rounded-md"
+        >
+          <img
+            class="w-[40px] bg-sydney p-0.5 rounded-md"
+            src="/static/uploads/products/{{ img|basename}}"
+            alt="Thumbnail {{ loop.index }}"
+          />
+        </label>
+        {% endfor %} {% if not product.images %}
+        <label id="lb-1" for="in1" class="w-10 h-10 rounded-md">
+          <img
+            class="w-[40px] bg-sydney p-0.5 rounded-md"
+            src="/static/uploads/products/product-placeholder.png"
+            alt="Thumbnail Placeholder"
+          />
+        </label>
         {% endif %}
       </div>
     </div>
 
     <!-- Product Info -->
     <div class="self-start w-full md:flex-1 45xl:w-[500px] 45xl:flex-none">
-      <form class="w-full rounded-md px-2 py-1 flex flex-col gap-y-2" action="/createorder?tk={{ product.id }}" method="get">
+      <form
+        class="w-full rounded-md px-2 py-1 flex flex-col gap-y-2"
+        action="/createorder?tk={{ product.id }}"
+        method="get"
+      >
         <!-- Product Name -->
-        <div class="w-full flex gap-0.5 items-center border-solid border-0 border-border border-b group-hover:border-sydney2 text-sm font-bold justify-center 2xl:justify-start py-1 leading-tight">
+        <div
+          class="w-full flex gap-0.5 items-center border-solid border-0 border-border border-b group-hover:border-sydney2 text-sm font-bold justify-center 2xl:justify-start py-1 leading-tight"
+        >
           {{ product.title }}
-          <a href="/product/{{ product.id }}?action=favorite" title="Save listing" class="h-6 w-8 flex-shrink-0 border-solid border-gray-400 hover:border-transparent flex items-center justify-center hover:bg-red-600 border-2 text-gray-400 hover:text-white rounded">
+          <a
+            href="/product/{{ product.id }}?action=favorite"
+            title="Save listing"
+            class="h-6 w-8 flex-shrink-0 border-solid border-gray-400 hover:border-transparent flex items-center justify-center hover:bg-red-600 border-2 text-gray-400 hover:text-white rounded"
+          >
             <i class="gg-heart"></i>
           </a>
         </div>
 
         <!-- Feedback Rating -->
-        <div class="w-full flex items-center justify-center 2xl:justify-start gap-2 font-bold">
-          <div class="bg-sydney rounded-md px-1 py-0.5 text-white">Item price:</div>
+        <div
+          class="w-full flex items-center justify-center 2xl:justify-start gap-2 font-bold"
+        >
+          <div class="bg-sydney rounded-md px-1 py-0.5 text-white">
+            Item price:
+          </div>
           <div class="flex items-center text-white">
             <div>USD {{ '%.2f'|format(product.price_usd) }}</div>
              (Shipping not included)
           </div>
         </div>
 
-        <div class="w-full flex flex-wrap items-center justify-center 2xl:justify-start gap-1">
-          <div class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold">Item's rating:</div>
+        <div
+          class="w-full flex flex-wrap items-center justify-center 2xl:justify-start gap-1"
+        >
+          <div
+            class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold"
+          >
+            Item's rating:
+          </div>
           <span class="rounded text-sydney px-1 flex items-center">
-            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc(calc({{ product.rating|round(2) }} * 2) * 10px - 100px);">
+            <div
+              class="bg-no-repeat w-[100px]"
+              style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc(calc({{ product.rating|round(2) }} * 2) * 10px - 100px);"
+            >
               <div class="starsover"> </div>
             </div>
-            <div class="text-center text-white"> | <b class="underline">{{ product.reviews_count }}</b> Reviews.</div>
+            <div class="text-center text-white">
+               | <b class="underline">{{ product.reviews_count }}</b> Reviews.
+            </div>
           </span>
 
           <div class="flex items-center gap-1">
-            <div class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold">Sold:</div>
-            <div class="px-1 text-center flex text-white"><b class="underline">{{ product.sales_count }}</b> | <b>Since:</b> {{ product.created_at.strftime('%b %d, %Y') }}</div>
+            <div
+              class="rounded bg-sydney text-white px-1 py-0.5 flex items-center font-bold"
+            >
+              Sold:
+            </div>
+            <div class="px-1 text-center flex text-white">
+              <b class="underline">{{ product.sales_count }}</b
+              > | <b>Since:</b> {{ product.created_at.strftime('%b %d, %Y') }}
+            </div>
           </div>
         </div>
 
         <div class="space-y-1.5">
-          <div class="rounded bg-sydney text-white px-1 py-0.5 font-bold w-max mx-auto 2xl:mx-0">Shipping method:</div>
+          <div
+            class="rounded bg-sydney text-white px-1 py-0.5 font-bold w-max mx-auto 2xl:mx-0"
+          >
+            Shipping method:
+          </div>
 
           <style>
             input#prlist1:checked ~ * #price-calc-fiat::after {
@@ -135,16 +203,29 @@
               animation: slctd 1s 0.2s ease-in-out forwards;
             }
             @keyframes slctd {
-              0% { transform: scale(1); }
-              50% { transform: scale(1.02); }
-              100% { transform: scale(1); }
+              0% {
+                transform: scale(1);
+              }
+              50% {
+                transform: scale(1.02);
+              }
+              100% {
+                transform: scale(1);
+              }
             }
             input#prlist1:checked ~ * label[for="prlist1"] br {
               display: none;
             }
           </style>
 
-          <input type="radio" id="prlist1" name="postageid" value="post1" class="hidden absolute" checked="checked" />
+          <input
+            type="radio"
+            id="prlist1"
+            name="postageid"
+            value="post1"
+            class="hidden absolute"
+            checked="checked"
+          />
 
           <div class="flex flex-col h-7 relative">
             <style>
@@ -154,68 +235,191 @@
             </style>
 
             <input type="checkbox" id="expand" class="hidden absolute peer" />
-            <label for="expand" class="anim anim-FadeIn h-full w-full fixed hidden peer-checked:block top-0 left-0 bg-transparent z-40"> </label>
+            <label
+              for="expand"
+              class="anim anim-FadeIn h-full w-full fixed hidden peer-checked:block top-0 left-0 bg-transparent z-40"
+              > </label
+            >
 
-            <div class="flex flex-col static peer-checked:absolute bg-card peer-checked:h-auto overflow-y-hidden h-7 peer-checked:p-2 justify-between peer-checked:z-50 peer-checked:bg-card rounded peer-checked:shadow-tt border-solid border-0 border-sydney peer-checked:border" style="scroll-behavior: auto; scroll-behavior: smooth;">
-              <h2 class="hidden text-sydney text-center">SELECT YOUR PREFERRED SHIPPING OPTION</h2>
+            <div
+              class="flex flex-col static peer-checked:absolute bg-card peer-checked:h-auto overflow-y-hidden h-7 peer-checked:p-2 justify-between peer-checked:z-50 peer-checked:bg-card rounded peer-checked:shadow-tt border-solid border-0 border-sydney peer-checked:border"
+              style="scroll-behavior: auto; scroll-behavior: smooth"
+            >
+              <h2 class="hidden text-sydney text-center">
+                SELECT YOUR PREFERRED SHIPPING OPTION
+              </h2>
               <div class="flex flex-wrap justify-center gap-2">
-                <label class="rounded-md bg-sydney bg-opacity-5 hover:scale-x-[1.02] hover:bg-opacity-0 px-2 py-1 border-solid border-sydney2 border text-sydney w-11/12" for="prlist1">
+                <label
+                  class="rounded-md bg-sydney bg-opacity-5 hover:scale-x-[1.02] hover:bg-opacity-0 px-2 py-1 border-solid border-sydney2 border text-sydney w-11/12"
+                  for="prlist1"
+                >
                   {{ product.shipping_methods }} - <b>0.00 / order</b>
                 </label>
               </div>
 
               <!-- Inside Prices -->
-              <div class="text-center flex flex-wrap justify-center gap-x-6 gap-y-1 mt-2">
-                <div class="bg-sydney text-white rounded px-3 py-0.5 w-full font-bold">Item Price + Shipping</div>
-                <div class="bg-sydney text-white flex items-center justify-center gap-1 pl-2 rounded-full pr-2 py-0.5" style="border-radius: 20px 20px 20px 20px;">
-                  <div class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center">
+              <div
+                class="text-center flex flex-wrap justify-center gap-x-6 gap-y-1 mt-2"
+              >
+                <div
+                  class="bg-sydney text-white rounded px-3 py-0.5 w-full font-bold"
+                >
+                  Item Price + Shipping
+                </div>
+                <div
+                  class="bg-sydney text-white flex items-center justify-center gap-1 pl-2 rounded-full pr-2 py-0.5"
+                  style="border-radius: 20px 20px 20px 20px"
+                >
+                  <div
+                    class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center"
+                  >
                     <div class="flag-usd"></div>
                   </div>
-                  <div id="price-calc-fiat" class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs">USD {{ '%.2f'|format(product.price_usd) }}</div>
+                  <div
+                    id="price-calc-fiat"
+                    class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs"
+                  >
+                    USD {{ '%.2f'|format(product.price_usd) }}
+                  </div>
                 </div>
-                <div id="price-calc-btc" class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#F58D10] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
-                  <div class="btc-icon bg-cover rounded-full bg-white" style="width: 24px; height: 24px; background-color: #fff !important; margin-left: 3px;" alt="BTC">
-                    <img  src="{{ url_for('static', filename='images/btc.webp') }}" class="w-4 h-4 object-contain" alt="" />
+                <div
+                  id="price-calc-btc"
+                  class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#F58D10] flex items-center justify-center gap-1"
+                  style="border-radius: 20px 20px 20px 20px"
+                >
+                  <div
+                    class="btc-icon bg-cover rounded-full bg-white"
+                    style="
+                      width: 24px;
+                      height: 24px;
+                      background-color: #fff !important;
+                      margin-left: 3px;
+                    "
+                    alt="BTC"
+                  >
+                    <img
+                      src="{{ url_for('static', filename='images/btc.webp') }}"
+                      class="w-4 h-4 object-contain"
+                      alt=""
+                    />
                   </div>
                   BITCOIN
                 </div>
-                <div id="price-calc-xmr" class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#505050] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
-                  <div class="xmr-icon rounded-full bg-white" style="width: 24px; height: 24px; background-color: #fff !important; margin-right: 3px;" alt="XMR">
-                    <img  src="{{ url_for('static', filename='images/xmr.png') }}" class="w-4 h-4 object-contain" alt="" />
+                <div
+                  id="price-calc-xmr"
+                  class="font-bold pl-2 rounded-full pr-2 py-0.5 text-xs text-white bg-[#505050] flex items-center justify-center gap-1"
+                  style="border-radius: 20px 20px 20px 20px"
+                >
+                  <div
+                    class="xmr-icon rounded-full bg-white"
+                    style="
+                      width: 24px;
+                      height: 24px;
+                      background-color: #fff !important;
+                      margin-right: 3px;
+                    "
+                    alt="XMR"
+                  >
+                    <img
+                      src="{{ url_for('static', filename='images/xmr.png') }}"
+                      class="w-4 h-4 object-contain"
+                      alt=""
+                    />
                   </div>
                   MONERO
                 </div>
               </div>
-              <label for="expand" class="bg-sydney text-white mx-auto text-sm font-bold w-max rounded px-2 py-0.5 mt-2">CLOSE</label>
+              <label
+                for="expand"
+                class="bg-sydney text-white mx-auto text-sm font-bold w-max rounded px-2 py-0.5 mt-2"
+                >CLOSE</label
+              >
             </div>
 
-            <div class="relative peer-checked:hidden -top-7" style="width: -moz-available;">
-              <label class="absolute" for="expand" style="width: -moz-available;">
+            <div
+              class="relative peer-checked:hidden -top-7"
+              style="width: -moz-available"
+            >
+              <label
+                class="absolute"
+                for="expand"
+                style="width: -moz-available"
+              >
                 <i class="gg-chevron-down float-right text-white"></i>
               </label>
             </div>
           </div>
 
           <!-- Listing Prices -->
-          <div class="text-start flex flex-wrap justify-start gap-x-2 4xl:gap-x-6 gap-y-1">
+          <div
+            class="text-start flex flex-wrap justify-start gap-x-2 4xl:gap-x-6 gap-y-1"
+          >
             <div class="w-full">
-              <div class="bg-sydney text-white rounded px-1 py-0.5 w-max  font-bold">Item Price + Shipping:</div>
+              <div
+                class="bg-sydney text-white rounded px-1 py-0.5 w-max font-bold"
+              >
+                Item Price + Shipping:
+              </div>
             </div>
-            <div class="bg-sydney text-white flex items-center rounded-full px-2 justify-center gap-1 pl-0.5 pr-2 py-0.5" style="border-radius: 20px 20px 20px 20px;">
-              <div class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center">
+            <div
+              class="bg-sydney text-white flex items-center rounded-full px-2 justify-center gap-1 pl-0.5 pr-2 py-0.5"
+              style="border-radius: 20px 20px 20px 20px"
+            >
+              <div
+                class="w-[24px] h-[24px] overflow-hidden rounded-full flex justify-center"
+              >
                 <div class="flag-usd"></div>
               </div>
-              <div id="price-calc-fiat" class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs">USD {{ '%.2f'|format(product.price_usd) }}</div>
+              <div
+                id="price-calc-fiat"
+                class="font-bold pl-3 -ml-3 pr-1 py-0.5 text-xs"
+              >
+                USD {{ '%.2f'|format(product.price_usd) }}
+              </div>
             </div>
-            <div id="price-calc-btc" class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#F58D10] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
-              <div class="btc-icon bg-cover rounded-full bg-white" style="width: 24px; height: 24px; margin-left: 3px; background-color: #fff !important;" alt="BTC">
-                <img  src="{{ url_for('static', filename='images/btc.webp') }}" class="w-4 h-4 object-contain" alt="" />
+            <div
+              id="price-calc-btc"
+              class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#F58D10] flex items-center justify-center gap-1"
+              style="border-radius: 20px 20px 20px 20px"
+            >
+              <div
+                class="btc-icon bg-cover rounded-full bg-white"
+                style="
+                  width: 24px;
+                  height: 24px;
+                  margin-left: 3px;
+                  background-color: #fff !important;
+                "
+                alt="BTC"
+              >
+                <img
+                  src="{{ url_for('static', filename='images/btc.webp') }}"
+                  class="w-4 h-4 object-contain"
+                  alt=""
+                />
               </div>
               BITCOIN
             </div>
-            <div id="price-calc-xmr" class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#505050] flex items-center justify-center gap-1" style="border-radius: 20px 20px 20px 20px;">
-              <div class="xmr-icon rounded-full bg-white" style="width: 24px; height: 24px; margin-right: 3px; background-color: #fff !important;" alt="XMR">
-                <img  src="{{ url_for('static', filename='images/xmr.png') }}" class="w-4 h-4 object-contain" alt="" />
+            <div
+              id="price-calc-xmr"
+              class="font-bold pl-2 pr-2 py-0.5 text-xs text-white rounded-full px-2 bg-[#505050] flex items-center justify-center gap-1"
+              style="border-radius: 20px 20px 20px 20px"
+            >
+              <div
+                class="xmr-icon rounded-full bg-white"
+                style="
+                  width: 24px;
+                  height: 24px;
+                  margin-right: 3px;
+                  background-color: #fff !important;
+                "
+                alt="XMR"
+              >
+                <img
+                  src="{{ url_for('static', filename='images/xmr.png') }}"
+                  class="w-4 h-4 object-contain"
+                  alt=""
+                />
               </div>
               MONERO
             </div>
@@ -224,20 +428,42 @@
 
         <div class="w-full flex flex-col 2xl:flex-row gap-2">
           <div class="w-full flex flex-col items-center gap-2">
-            <div class="flex flex-wrap items-center justify-start w-full gap-0.5">
+            <div
+              class="flex flex-wrap items-center justify-start w-full gap-0.5"
+            >
               <input type="hidden" name="tk" value="{{ product.id }}" />
               <div class="font-bold">QTY:</div>
-              <input type="text" class="bg-white w-10 rounded-md px-2 py-1 border-solid border-sydney2 border text-sydney" name="qty" value="1" />
-              <select name="crypto" class="rounded-md bg-white px-2 py-1 border-solid border-sydney2 border text-sydney">
+              <input
+                type="text"
+                class="bg-white w-10 rounded-md px-2 py-1 border-solid border-sydney2 border text-sydney"
+                name="qty"
+                value="1"
+              />
+              <select
+                name="crypto"
+                class="rounded-md bg-white px-2 py-1 border-solid border-sydney2 border text-sydney"
+              >
                 <option value="btc" selected="selected">BTC</option>
                 <option value="xmr">XMR</option>
               </select>
-              <button type="submit" class="h-6 flex items-center justify-center gap-2 hover:!gap-1 px-4 py-1 rounded bg-green-800 hover:bg-green-700 text-white border-transparent font-bold">
-                <div class="btn-cart transform"><i class="gg-shopping-cart"></i></div>
+              <button
+                type="submit"
+                class="h-6 flex items-center justify-center gap-2 hover:!gap-1 px-4 py-1 rounded bg-green-800 hover:bg-green-700 text-white border-transparent font-bold"
+              >
+                <div class="btn-cart transform">
+                  <i class="gg-shopping-cart"></i>
+                </div>
                 BUY
               </button>
-              <span class="text-xs text-gray-400">Your BTC Balance: {{ profile_data.btc_balance|default(0.0, true)|round(4) }}</span> |
-              <span class="text-xs text-gray-400">Monero Balance: {{ profile_data.monero_balance|default(0.0, true)|round(4) }}</span>
+              <span class="text-xs text-gray-400"
+                >Your BTC Balance: {{ profile_data.btc_balance|default(0.0,
+                true)|round(4) }}</span
+              >
+              |
+              <span class="text-xs text-gray-400"
+                >Monero Balance: {{ profile_data.monero_balance|default(0.0,
+                true)|round(4) }}</span
+              >
             </div>
           </div>
         </div>
@@ -245,25 +471,37 @@
     </div>
 
     <!-- Features and Description -->
-    <div class="flex flex-col self-start gap-2 items-center w-full 2xl:w-full 45xl:flex-1 5xl:min-w-xl px-2 pb-1 pt-3 border-solid border-0 2xl:border-t 45xl:!border-l group-hover:border-sydney2 border-border">
-      <div class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1">Short Description</div>
-      <div class="m-2 p-2 text-white">
-        {{ product.description }}
+    <div
+      class="flex flex-col self-start gap-2 items-center w-full 2xl:w-full 45xl:flex-1 5xl:min-w-xl px-2 pb-1 pt-3 border-solid border-0 2xl:border-t 45xl:!border-l group-hover:border-sydney2 border-border"
+    >
+      <div
+        class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1"
+      >
+        Short Description
       </div>
+      <div class="m-2 p-2 text-white">{{ product.description }}</div>
       <div class="grid grid-cols-4 items-center mx-auto w-full break-words">
         <div class="col-span-full mb-2">
-          <div class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1">Features</div>
+          <div
+            class="text-center font-bold text-sm bg-sydney text-white rounded-md w-full py-1"
+          >
+            Features
+          </div>
         </div>
         <div class="font-bold">Product Class</div>
         <div class="text-white">Physical package</div>
         <div class="font-bold">Quantity left</div>
-        <div class="text-white">{{ 'Unlimited' if product.stock == 0 else product.stock }}</div>
+        <div class="text-white">
+          {{ 'Unlimited' if product.stock == 0 else product.stock }}
+        </div>
         <div class="font-bold">Ends in</div>
         <div class="text-white">Never</div>
         <div class="font-bold">Origin country</div>
         <div class="text-white">{{ product.origin_country }}</div>
         <div class="font-bold">Ships to</div>
-        <div class="text-white">{{ product.ships_to|default('United States') }}</div>
+        <div class="text-white">
+          {{ product.ships_to|default('United States') }}
+        </div>
         <div class="font-bold">Payment</div>
         <div class="text-white"><i>Escrow</i></div>
       </div>
@@ -272,36 +510,71 @@
 
   <div class="">
     <!-- LISTING MENU -->
-    <div class="px-5 pb-3 4xl:py-0 flex flex-wrap 4xl:flex-nowrap gap-2 justify-center 4xl:justify-start">
-      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab1">DESCRIPTION</label>
-      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab2">FEEDBACK ({{ product.reviews_count }})</label>
-      <label class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none" for="tab3">REFUND POLICY</label>
+    <div
+      class="px-5 pb-3 4xl:py-0 flex flex-wrap 4xl:flex-nowrap gap-2 justify-center 4xl:justify-start"
+    >
+      <label
+        class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none"
+        for="tab1"
+        >DESCRIPTION</label
+      >
+      <label
+        class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none"
+        for="tab2"
+        >FEEDBACK ({{ product.reviews_count }})</label
+      >
+      <label
+        class="px-5 py-3 flex items-center border-solid 4xl:border-b-0 bg-white border border-border rounded-md 4xl:rounded-b-none"
+        for="tab3"
+        >REFUND POLICY</label
+      >
     </div>
 
-    <div class="bg-white border-solid border-[1px] border-sydney2 rounded-md px-[5px] py-3">
+    <div
+      class="bg-white border-solid border-[1px] border-sydney2 rounded-md px-[5px] py-3"
+    >
       <!-- Tab1 DESCRIPTION -->
       <div id="tab1" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
-        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+        <div
+          class="w-full flex flex-col items-center justify-center gap-2 py-2"
+        >
           <h2 class="text-sydney">Product Description</h2>
           <div class="text-xs w-full text-left text-white">
             {{ product.description|replace('\n', '<br />') }}
           </div>
         </div>
         <div class="flex justify-center 2xl:justify-start gap-3 w-full">
-          {% for tag in product.tags|default(['adderall', 'b974', 'DP30', 'meth'], true) %}
-            <a href="/search?s_terms={{ tag }}&s_active=1" class="rounded bg-sydney bg-opacity-10 text-sydney font-bold px-2 py-0.5">{{ tag }}</a>
+          {% for tag in product.tags|default(['adderall', 'b974', 'DP30',
+          'meth'], true) %}
+          <a
+            href="/search?s_terms={{ tag }}&s_active=1"
+            class="rounded bg-sydney bg-opacity-10 text-sydney font-bold px-2 py-0.5"
+            >{{ tag }}</a
+          >
           {% endfor %}
         </div>
       </div>
 
       <!-- Tab2 FEEDBACK -->
       <div id="tab2" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
-        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+        <div
+          class="w-full flex flex-col items-center justify-center gap-2 py-2"
+        >
           <h2 class="text-sydney">Listing's Feedback</h2>
           <div class="px-3 py-1 text-sm font-bold text-center w-full">
-            <div>Total feedback <b class="text-green-700">{{ feedback_stats.positive }}</b> / <b class="text-gray-700">{{ feedback_stats.neutral }}</b> / <b class="text-red-700">{{ feedback_stats.negative }}</b></div>
-            <div>{{ feedback_stats.positive_percentage|round(2) }}% positive feedback</div>
-            <div class="w-full rounded-md py-1 bg-sydney bg-opacity-10 hidden 2xl:grid grid-cols-[40px,60%,20%,auto] gap-2 my-1">
+            <div>
+              Total feedback
+              <b class="text-green-700">{{ feedback_stats.positive }}</b> /
+              <b class="text-gray-700">{{ feedback_stats.neutral }}</b> /
+              <b class="text-red-700">{{ feedback_stats.negative }}</b>
+            </div>
+            <div>
+              {{ feedback_stats.positive_percentage|round(2) }}% positive
+              feedback
+            </div>
+            <div
+              class="w-full rounded-md py-1 bg-sydney bg-opacity-10 hidden 2xl:grid grid-cols-[40px,60%,20%,auto] gap-2 my-1"
+            >
               <div></div>
               <div>Feedback</div>
               <div>Buyer / Price</div>
@@ -309,78 +582,127 @@
             </div>
 
             {% for f in feedback %}
-              <div class="w-full pr-2 py-1 bg-sydney bg-opacity-5 rounded-md odd:bg-opacity-10 grid grid-cols-1 2xl:grid-cols-[40px,60%,20%,auto] items-center text-xs gap-2 my-2 border-solid border-0 border-b border-t hover:border-sydney 2xl:border-transparent relative">
-                <div class="flex items-center gap-1 flex-row 2xl:flex-col mx-auto">
-                  <div class="w-[17px] h-[17px] picture-positive2"></div>
-                  <label class="text-xs">
-                    <input type="checkbox" class="hidden absolute peer" />
-                    <div class="peer-checked:bg-sydney peer checked:text-white w-[fit-content] mx-auto 2xl:mx-1 leading-none text-[10px] text-center peer-checked:rounded 2xl:mt-3 py-1 px-0.5 border-solid border-0 border-sydney2 border-l 2xl:border-l-0 2xl:border-t">
-                      Show more<br />+
-                    </div>
-                    <div class="hidden peer-checked:absolute peer-checked:flex flex-col items-center justify-center gap-1 w-11/12 2xl:w-max left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-sydney bg-opacity-90 text-white p-3 rounded-md">
-                      <div class="font-bold text-center">
-                        FEEDBACK RATING
-                        <div class="absolute right-2 top-2 hover:scale-105"><i class="gg-close"></i></div>
+            <div
+              class="w-full pr-2 py-1 bg-sydney bg-opacity-5 rounded-md odd:bg-opacity-10 grid grid-cols-1 2xl:grid-cols-[40px,60%,20%,auto] items-center text-xs gap-2 my-2 border-solid border-0 border-b border-t hover:border-sydney 2xl:border-transparent relative"
+            >
+              <div
+                class="flex items-center gap-1 flex-row 2xl:flex-col mx-auto"
+              >
+                <div class="w-[17px] h-[17px] picture-positive2"></div>
+                <label class="text-xs">
+                  <input type="checkbox" class="hidden absolute peer" />
+                  <div
+                    class="peer-checked:bg-sydney peer checked:text-white w-[fit-content] mx-auto 2xl:mx-1 leading-none text-[10px] text-center peer-checked:rounded 2xl:mt-3 py-1 px-0.5 border-solid border-0 border-sydney2 border-l 2xl:border-l-0 2xl:border-t"
+                  >
+                    Show more<br />+
+                  </div>
+                  <div
+                    class="hidden peer-checked:absolute peer-checked:flex flex-col items-center justify-center gap-1 w-11/12 2xl:w-max left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-sydney bg-opacity-90 text-white p-3 rounded-md"
+                  >
+                    <div class="font-bold text-center">
+                      FEEDBACK RATING
+                      <div class="absolute right-2 top-2 hover:scale-105">
+                        <i class="gg-close"></i>
                       </div>
-                      <div class="flex flex-wrap w-full items-center justify-center gap-2 p-2 border-solid border-0 border-t border-white">
-                        <!-- Stealth -->
-                        <div>
-                          <div class="font-bold">Stealth</div>
-                          <div class="rounded p-1 bg-back border-sydney2 border-2">
-                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
-                              <div class="starsover"> </div>
-                            </div>
-                          </div>
-                        </div>
-                        <!-- Quality -->
-                        <div>
-                          <div class="font-bold">Quality</div>
-                          <div class="rounded p-1 bg-back border-sydney2 border-2">
-                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
-                              <div class="starsover"> </div>
-                            </div>
-                          </div>
-                        </div>
-                        <!-- Delivery -->
-                        <div>
-                          <div class="font-bold">Delivery</div>
-                          <div class="rounded p-1 bg-back border-sydney2 border-2">
-                            <div class="bg-no-repeat w-[100px]" style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);">
-                              <div class="starsover"> </div>
-                            </div>
+                    </div>
+                    <div
+                      class="flex flex-wrap w-full items-center justify-center gap-2 p-2 border-solid border-0 border-t border-white"
+                    >
+                      <!-- Stealth -->
+                      <div>
+                        <div class="font-bold">Stealth</div>
+                        <div
+                          class="rounded p-1 bg-back border-sydney2 border-2"
+                        >
+                          <div
+                            class="bg-no-repeat w-[100px]"
+                            style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);"
+                          >
+                            <div class="starsover"> </div>
                           </div>
                         </div>
                       </div>
+                      <!-- Quality -->
+                      <div>
+                        <div class="font-bold">Quality</div>
+                        <div
+                          class="rounded p-1 bg-back border-sydney2 border-2"
+                        >
+                          <div
+                            class="bg-no-repeat w-[100px]"
+                            style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);"
+                          >
+                            <div class="starsover"> </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Delivery -->
+                      <div>
+                        <div class="font-bold">Delivery</div>
+                        <div
+                          class="rounded p-1 bg-back border-sydney2 border-2"
+                        >
+                          <div
+                            class="bg-no-repeat w-[100px]"
+                            style="background-image: linear-gradient(#ffd700, #eec327); background-position-x: calc({{ (f.rating * 20 - 100)|int }}px);"
+                          >
+                            <div class="starsover"> </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </label>
-                </div>
-                <div class="space-y-1 text-center 2xl:text-left">
-                  <div class="italic">{{ f.comment|default('No comments.') }}</div>
-                  <div class="text-gray-600">{{ product.title }}</div>
-                </div>
-                <div class="space-y-1">
-                  <div>{{ f.buyer_username|default('Anonymous') }}</div>
-                  <div class="text-gray-600">USD {{ '%.2f'|format(product.price_usd) }}</div>
-                </div>
-                <div>{{ f.created_at.strftime('%b %d, %Y at %H:%M') }}</div>
+                  </div>
+                </label>
               </div>
+              <div class="space-y-1 text-center 2xl:text-left">
+                <div class="italic">
+                  {{ f.comment|default('No comments.') }}
+                </div>
+                <div class="text-gray-600">{{ product.title }}</div>
+              </div>
+              <div class="space-y-1">
+                <div>{{ f.buyer_username|default('Anonymous') }}</div>
+                <div class="text-gray-600">
+                  USD {{ '%.2f'|format(product.price_usd) }}
+                </div>
+              </div>
+              <div>{{ f.created_at.strftime('%b %d, %Y at %H:%M') }}</div>
+            </div>
             {% endfor %}
           </div>
 
           <!-- Pagination -->
-          <div class="flex flex-wrap items-center justify-center gap-2 w-full text-base font-bold border-solid border-[1px] border-border hover:border-sydney2 rounded-md p-3 mt-2">
+          <div
+            class="flex flex-wrap items-center justify-center gap-2 w-full text-base font-bold border-solid border-[1px] border-border hover:border-sydney2 rounded-md p-3 mt-2"
+          >
             {% if page > 1 %}
-              <a href="/product/{{ product.id }}?pg=1" class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-push-chevron-left"></i></a>
-              <a href="/product/{{ product.id }}?pg={{ page - 1 }}" class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-chevron-left"></i></a>
-            {% endif %}
-
-            {% for p in range(1, total_pages + 1) %}
-              <a href="/product/{{ product.id }}?pg={{ p }}" class="h-full flex text-sm items-center px-3 rounded-md {{ 'border border-border bg-sydney2 text-white' if p == page else 'text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white' }}">{{ p }}</a>
-            {% endfor %}
-
-            {% if page < total_pages %}
-              <a href="/product/{{ product.id }}?pg={{ page + 1 }}" class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-chevron-right"></i></a>
-              <a href="/product/{{ product.id }}?pg={{ total_pages }}" class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"><i class="gg-push-chevron-right"></i></a>
+            <a
+              href="/product/{{ product.id }}?pg=1"
+              class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"
+              ><i class="gg-push-chevron-left"></i
+            ></a>
+            <a
+              href="/product/{{ product.id }}?pg={{ page - 1 }}"
+              class="h-full px-3 rounded-md ml-0 text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"
+              ><i class="gg-chevron-left"></i
+            ></a>
+            {% endif %} {% for p in range(1, total_pages + 1) %}
+            <a
+              href="/product/{{ product.id }}?pg={{ p }}"
+              class="h-full flex text-sm items-center px-3 rounded-md {{ 'border border-border bg-sydney2 text-white' if p == page else 'text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white' }}"
+              >{{ p }}</a
+            >
+            {% endfor %} {% if page < total_pages %}
+            <a
+              href="/product/{{ product.id }}?pg={{ page + 1 }}"
+              class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"
+              ><i class="gg-chevron-right"></i
+            ></a>
+            <a
+              href="/product/{{ product.id }}?pg={{ total_pages }}"
+              class="h-full px-3 rounded-md text-sydney bg-white border border-border hover:bg-sydney2 hover:text-white"
+              ><i class="gg-push-chevron-right"></i
+            ></a>
             {% endif %}
           </div>
         </div>
@@ -388,7 +710,9 @@
 
       <!-- Tab3 REFUND POLICY -->
       <div id="tab3" class="hidden gap-2 flex-col w-0 p-3 anim anim-FadeIn">
-        <div class="w-full flex flex-col items-center justify-center gap-2 py-2">
+        <div
+          class="w-full flex flex-col items-center justify-center gap-2 py-2"
+        >
           <h2 class="text-sydney">Refund Policy</h2>
           <div class="text-xs w-full text-left text-white">
             Format:<br />
@@ -401,16 +725,22 @@
             <br />
             NO PO BOXES OR CALIFORNIA ORDERS AT THIS TIME <br />
             <br />
-            **ORDERS THAT ARE RETURNED TO SENDER FOR ANY REASON WILL NOT BE RESHIPPED OR REFUNDED<br />
+            **ORDERS THAT ARE RETURNED TO SENDER FOR ANY REASON WILL NOT BE
+            RESHIPPED OR REFUNDED<br />
             <br />
-            **IF THE TRACKING NUMBER STATES 'DELIVERED' THERE WILL BE NO REFUNDS/RESHIPS<br />
+            **IF THE TRACKING NUMBER STATES 'DELIVERED' THERE WILL BE NO
+            REFUNDS/RESHIPS<br />
             <br />
-            **DOUBLE CHECK YOUR ADDRESS BEFORE SENDING THEM TO US WE JUST COPY AND PASTE<br />
+            **DOUBLE CHECK YOUR ADDRESS BEFORE SENDING THEM TO US WE JUST COPY
+            AND PASTE<br />
             <br />
-            **IF A PARCEL IS SEIZED WE OFFER 100% RESHIP TO A NEW ADDRESS. "LOST" GETS 50%<br />
+            **IF A PARCEL IS SEIZED WE OFFER 100% RESHIP TO A NEW ADDRESS.
+            "LOST" GETS 50%<br />
             <br />
             <br />
-            **we will look into order issues after 10 days have passed from day order is marked as completed if you message me before this there is a good chance you do not get a responce<br />
+            **we will look into order issues after 10 days have passed from day
+            order is marked as completed if you message me before this there is
+            a good chance you do not get a responce<br />
             <br />
             <br />
             ***Q&A***<br />
@@ -420,11 +750,16 @@
             <br />
             Q: i see my order was shipped but i dont see anything on my<br />
             informed delivery<br />
-            A: informed delivery is not 100% reliable. sometimes it does not show up<br />
+            A: informed delivery is not 100% reliable. sometimes it does not
+            show up<br />
             <br />
             Q: I see a shipping label was created on informed for the<br />
             past 2 days, but nothing shipped.<br />
-            A: Orders are shipped out multiple times a week! shipping label created is normal, Sometimes USPS takes up to 3 days to grab packages. There is nothing we can do about this. Sometimes USPS will NOT scan parcels at pick up. There is nothing we can do about this. If you still have no order after 10 business days reach out!<br />
+            A: Orders are shipped out multiple times a week! shipping label
+            created is normal, Sometimes USPS takes up to 3 days to grab
+            packages. There is nothing we can do about this. Sometimes USPS will
+            NOT scan parcels at pick up. There is nothing we can do about this.
+            If you still have no order after 10 business days reach out!<br />
             <br />
             <br />
             3-5 day shipping does NOT include weekends!

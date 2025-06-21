@@ -1,9 +1,9 @@
 {% macro user_profile_component( orders_url=url_for('user.orders'),
-favorites_url=url_for('user.favorites'), settings_url=url_for('user.edit_profile'),
-logout_url=url_for('user.logout'), notifications_url=url_for('user.messages'),
-btc_url=url_for('user.wallet'), xmr_url=url_for('user.wallet'),
-profile_url=url_for('user.profile'), profile_data=profile_data ) %} {% if 'user_id' in
-session and profile_data %}
+favorites_url=url_for('user.favorites'),
+settings_url=url_for('user.edit_profile'), logout_url=url_for('user.logout'),
+notifications_url=url_for('user.messages'), btc_url=url_for('user.wallet'),
+xmr_url=url_for('user.wallet'), profile_url=url_for('user.profile'),
+profile_data=profile_data ) %} {% if 'user_id' in session and profile_data %}
 <div
   class="border-solid border rounded-md p-2 z-0 hover:!border-sydney w-full flex flex-wrap mb-2"
 >
@@ -11,15 +11,15 @@ session and profile_data %}
     <a class="m-auto" href="{{ profile_url }}" target="_blank">
       <div class="picture picture-user w-[80px] !h-[80px] rounded-md">
         <img
-          {%if profile_data.avatar%}
+          {%if
+          profile_data.avatar%}
           src="{{ profile_data.avatar }}"
           {%else%}
           src="{{ url_for('static', filename='images/avatar.jpg') }}"
           {%endif%}
-
-          class="w-[80px] !h-[80px] rounded-md" 
+          class="w-[80px] !h-[80px] rounded-md"
           alt=""
-          />
+        />
       </div>
     </a>
   </div>
@@ -66,7 +66,10 @@ session and profile_data %}
       <div class="w-1/2 flex flex-col items-center py-[1px]">
         <div class="flex gap-1 items-center text-white">
           <div class="btc bg-center text-white bg-no-repeat h-6 w-[17px]">
-            <img  src="{{ url_for('static', filename='images/btc.webp') }}" alt="" />
+            <img
+              src="{{ url_for('static', filename='images/btc.webp') }}"
+              alt=""
+            />
           </div>
           <div
             class="btc-icon mb-0.5 hidden rounded-full"
@@ -77,9 +80,7 @@ session and profile_data %}
               background-color: #fff !important;
             "
             alt="BTC"
-          >
-         
-        </div>
+          ></div>
           Bitcoin
         </div>
         <a
@@ -95,22 +96,20 @@ session and profile_data %}
       >
         <div class="flex gap-1 items-center text-white">
           <div class="xmr bg-center bg-no-repeat h-6 w-6 p-1">
-            <img  src="{{ url_for('static', filename='images/xmr.png') }}"  style="
-            width: 20px !important;
-            height: 20px !important;
-            margin-left: 3px;
-            
-          " alt="" />
+            <img
+              src="{{ url_for('static', filename='images/xmr.png') }}"
+              style="
+                width: 20px !important;
+                height: 20px !important;
+                margin-left: 3px;
+              "
+              alt=""
+            />
           </div>
           <img
             class="xmr-icon mb-0.5 hidden rounded-full bg-white"
-            style="
-              width: 20px;
-              height: 20px;
-              margin-left: 3px;
-              
-            "
-             src="{{ url_for('static', filename='images/xmr.png') }}"
+            style="width: 20px; height: 20px; margin-left: 3px"
+            src="{{ url_for('static', filename='images/xmr.png') }}"
             alt="XMR"
           />
           Monero

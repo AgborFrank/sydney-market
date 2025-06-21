@@ -19,10 +19,11 @@
     (AUD)'), ('GBP', 'British Pound (GBP)') ] %}
     <div class="flex items-center justify-between hover:bg-hover2">
       <div class="text-white">{{ name }}</div>
-      <span class="bgreen"
-        >{{ rates.bitcoin.get(code, 0) | format_currency }}</span
-      >
-    </div>
+      <span class="bgreen">
+        {% set rate_key = 'BTC/' + code %}
+        {{ (rates[rate_key].rate if rate_key in rates else 0) | format_currency }}
+      </span>
+      </div>
     {% endfor %}
     <a
       href="{{ url_for('user.balance') }}"
@@ -38,10 +39,11 @@
     (AUD)'), ('GBP', 'British Pound (GBP)') ] %}
     <div class="flex items-center justify-between hover:bg-hover2">
       <div class="text-white">{{ name }}</div>
-      <span class="bgreen"
-        >{{ rates.monero.get(code, 0) | format_currency }}</span
-      >
-    </div>
+      <span class="bgreen">
+        {% set rate_key = 'XMR/' + code %}
+        {{ (rates[rate_key].rate if rate_key in rates else 0) | format_currency }}
+      </span>
+      </div>
     {% endfor %}
     <a
       href="{{ url_for('user.balance', crypto='xmr') }}"

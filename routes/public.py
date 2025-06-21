@@ -648,7 +648,7 @@ def report_vendor(vendor_id):
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT username FROM users WHERE id = ?", (vendor_id,))
+            c.execute("SELECT username, btc_balance FROM users WHERE id = ?", (vendor_id,))
             vendor = c.fetchone()
             if not vendor:
                 flash("Vendor not found.", 'error')
@@ -661,6 +661,7 @@ def report_vendor(vendor_id):
         print(f"Error in report_vendor: {str(e)}")
         flash("An error occurred while reporting the vendor.", 'error')
         return redirect(url_for('public.index'))
+
 @public_bp.route('/report_vendor', methods=['GET', 'POST'])
 def old_report_vendor():
     if 'user_id' not in session:
@@ -702,6 +703,7 @@ def how_to_sell():
         flash('Please log in to access the marketplace.', 'error')
         return redirect(url_for('user.login'))
     dated = datetime.now() - timedelta(days=15)
+    
     return render_template('how_to_sell.html', dated=dated)
 
 @public_bp.route('/how-to-pgp')

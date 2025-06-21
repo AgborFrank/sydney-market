@@ -22,57 +22,6 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-def get_user_profile_data(user_id):
-    """Fetch user profile data for the user profile component."""
-    profile_data = {
-        'pusername': 'Unknown',
-        'feedback_percentage': 0.0,
-        'trust_level': 1,
-        'notification_count': 0,
-        'btc_balance': 0.0,
-        'xmr_balance': 0.0,
-        'role': 'user'
-    }
-
-    try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Fetch user info
-            c.execute("SELECT pusername, role FROM users WHERE id = ?", (user_id,))
-            user_row = c.fetchone()
-            if not user_row:
-                logger.error(f"No user found for user_id: {user_id}")
-                return None, "User not found. Please log in again."
-
-            profile_data['pusername'] = user_row['pusername'] or 'Unknown'
-            profile_data['role'] = user_row['role']
-
-            # Fetch balances
-            c.execute("SELECT balance_btc, balance_xmr FROM balances WHERE user_id = ?", (user_id,))
-            balance = c.fetchone()
-            if balance:
-                profile_data['btc_balance'] = balance['balance_btc'] or 0.0
-                profile_data['xmr_balance'] = balance['balance_xmr'] or 0.0
-
-            # Fetch trust level and feedback for vendors
-            if profile_data['role'] == 'vendor':
-                c.execute("SELECT level, positive_feedback_percentage FROM vendor_levels WHERE vendor_id = ?", (user_id,))
-                vendor_data = c.fetchone()
-                if vendor_data:
-                    profile_data['trust_level'] = vendor_data['level'] or 1
-                    profile_data['feedback_percentage'] = vendor_data['positive_feedback_percentage'] or 0.0
-
-        return profile_data, None
-    except Exception as e:
-        logger.error(f"Error fetching user profile data: {str(e)}")
-        return None, f"Error fetching profile data: {str(e)}"
-
-def get_profile_data(user_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    profile = c.fetchone()
-    return dict(profile) if profile else {}
 
 def init_db(reset=False):
     with get_db_connection() as conn:
@@ -847,12 +796,72 @@ def get_featured_products(limit=6):
     except Exception as e:
         logger.error(f"Error fetching featured products: {str(e)}")
         return []  
+
 def get_settings():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT key, value FROM settings")
         return dict(c.fetchall())
-    
+
+def get_user_profile_data(user_id):
+    """Fetch user profile data for the user profile component."""
+    profile_data = {
+        'pusername': 'Unknown',
+        'feedback_percentage': 0.0,
+        'trust_level': 1,
+        'notification_count': 0,
+        'btc_balance': 0.0,
+        'xmr_balance': 0.0,
+        'role': 'user'
+    }
+
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            # Fetch user info
+            c.execute("SELECT pusername, role FROM users WHERE id = ?", (user_id,))
+            user_row = c.fetchone()
+            if not user_row:
+                logger.error(f"No user found for user_id: {user_id}")
+                return None, "User not found. Please log in again."
+
+            profile_data['pusername'] = user_row['pusername'] or 'Unknown'
+            profile_data['role'] = user_row['role']
+
+            # Fetch balances
+            c.execute("SELECT balance_btc, balance_xmr FROM balances WHERE user_id = ?", (user_id,))
+            balance = c.fetchone()
+            if balance:
+                profile_data['btc_balance'] = balance['balance_btc'] or 0.0
+                profile_data['xmr_balance'] = balance['balance_xmr'] or 0.0
+
+            # Fetch trust level and feedback for vendors
+            if profile_data['role'] == 'vendor':
+                c.execute("SELECT level, positive_feedback_percentage FROM vendor_levels WHERE vendor_id = ?", (user_id,))
+                vendor_data = c.fetchone()
+                if vendor_data:
+                    profile_data['trust_level'] = vendor_data['level'] or 1
+                    profile_data['feedback_percentage'] = vendor_data['positive_feedback_percentage'] or 0.0
+
+        return profile_data, None
+    except Exception as e:
+        logger.error(f"Error fetching user profile data: {str(e)}")
+        return None, f"Error fetching profile data: {str(e)}"
+
+def get_profile_data(user_id):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    profile = c.fetchone()
+    if profile:
+        return dict(profile)
+    return {
+        'pusername': 'Guest',
+        'btc_balance': 0,
+        'xmr_balance': 0,
+        'role': 'guest'
+    }
+  
 def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
@@ -867,28 +876,41 @@ def get_rates():
     return rates
 
 def update_rates():
-    # Fetch rates from CoinGecko API
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,monero&vs_currencies=usd"
+    # Define the currencies you want to fetch
+    target_currencies = 'usd,eur,cad,gbp,aud'
+    # Fetch rates from CoinGecko API for both Bitcoin and Monero against all target currencies
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,monero&vs_currencies={target_currencies}"
+    
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=10) # Increased timeout for larger request
         response.raise_for_status()
         data = response.json()
         
-        rates = {
-            'BTC/USD': data.get('bitcoin', {}).get('usd', 0.0),
-            'XMR/USD': data.get('monero', {}).get('usd', 0.0)
-        }
+        # --- START: NEW LOGIC TO HANDLE MULTIPLE CURRENCIES ---
+        rates_to_store = {}
         
-        # Update database
+        if 'bitcoin' in data:
+            for currency, rate in data['bitcoin'].items():
+                rates_to_store[f'BTC/{currency.upper()}'] = rate
+        
+        if 'monero' in data:
+            for currency, rate in data['monero'].items():
+                rates_to_store[f'XMR/{currency.upper()}'] = rate
+
+        # Update database with the new rates
         conn = get_db_connection()
         c = conn.cursor()
-        for currency_pair, rate in rates.items():
+        for currency_pair, rate in rates_to_store.items():
             c.execute("""
                 INSERT OR REPLACE INTO rates (currency_pair, rate, updated_at)
                 VALUES (?, ?, ?)
             """, (currency_pair, rate, datetime.utcnow().isoformat()))
         conn.commit()
-        return rates
+        # --- END: NEW LOGIC ---
+
+        # The function should now return the newly fetched rates for immediate use
+        return get_rates() 
+
     except (requests.RequestException, ValueError) as e:
         print(f"Error updating rates: {e}")
         return get_rates()  # Return cached rates on failure

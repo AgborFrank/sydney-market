@@ -1,24 +1,27 @@
-{% extends 'user/user_base.html' %}
-{% block title %}Wallet - {{ settings['site_name'] }}{% endblock %}
-{% block user_content %}
+{% extends 'user/user_base.html' %} {% block title %}Wallet - {{
+settings['site_name'] }}{% endblock %} {% block user_content %}
 <div class="container mx-auto p-6">
   <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Wallet</h1>
-  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
-    Manage your Bitcoin and Monero balances, deposit funds, or request withdrawals.
+  <h3
+    class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold"
+  >
+    Manage your Bitcoin and Monero balances, deposit funds, or request
+    withdrawals.
   </h3>
 
   <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mt-4 max-w-3xl mx-auto">
-        {% for category, message in messages %}
-          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mt-4 max-w-3xl mx-auto">
+    {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
 
   <!-- Balances -->
   <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
@@ -42,12 +45,18 @@
       <div>
         <p class="font-bold text-white">Bitcoin Deposit Address</p>
         <p class="text-white break-all">{{ btc_deposit_address }}</p>
-        <p class="text-white text-sm">Send BTC to this address. Funds appear after 2 confirmations. Do not send directly from exchanges.</p>
+        <p class="text-white text-sm">
+          Send BTC to this address. Funds appear after 2 confirmations. Do not
+          send directly from exchanges.
+        </p>
       </div>
       <div>
         <p class="font-bold text-white">Monero Deposit Address</p>
         <p class="text-white break-all">{{ xmr_deposit_address }}</p>
-        <p class="text-white text-sm">Send XMR to this address. Funds appear after confirmations. Use a third-party wallet for privacy.</p>
+        <p class="text-white text-sm">
+          Send XMR to this address. Funds appear after confirmations. Use a
+          third-party wallet for privacy.
+        </p>
       </div>
     </div>
   </div>
@@ -56,8 +65,8 @@
   <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
     <h2 class="text-xl font-bold text-white">Withdraw Funds</h2>
     <form method="post" class="mt-4 space-y-4">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="action" value="withdraw">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="withdraw" />
 
       <div class="flex flex-col gap-2">
         <label class="font-bold text-white">Currency</label>
@@ -69,31 +78,50 @@
 
       <div class="flex flex-col gap-2">
         <label class="font-bold text-white">Amount</label>
-        <input type="number" name="amount" class="std" step="0.00000001" min="0.00000001" required>
-        <p class="text-white text-sm">Withdrawal fee: ${{ withdrawal_fee }} (deducted in {{ currency }}).</p>
+        <input
+          type="number"
+          name="amount"
+          class="std"
+          step="0.00000001"
+          min="0.00000001"
+          required
+        />
+        <p class="text-white text-sm">
+          Withdrawal fee: ${{ withdrawal_fee }} (deducted in {{ currency }}).
+        </p>
       </div>
 
       <div class="flex flex-col gap-2">
         <label class="font-bold text-white">Destination Address</label>
-        <input type="text" name="address" class="std" required maxlength="95">
+        <input type="text" name="address" class="std" required maxlength="95" />
       </div>
 
       {% if user.two_factor_secret %}
-        <div class="flex flex-col gap-2">
-          <label class="font-bold text-white">2FA Code</label>
-          <input type="text" name="two_factor_code" class="std" required maxlength="6">
-        </div>
-      {% endif %}
-
-      {% if user.pgp_public_key %}
-        <div class="flex flex-col gap-2">
-          <label class="font-bold text-white">PGP Signature</label>
-          <textarea name="pgp_signature" class="std" rows="4" required placeholder="Sign 'withdraw {currency} {amount}' with your PGP key"></textarea>
-        </div>
+      <div class="flex flex-col gap-2">
+        <label class="font-bold text-white">2FA Code</label>
+        <input
+          type="text"
+          name="two_factor_code"
+          class="std"
+          required
+          maxlength="6"
+        />
+      </div>
+      {% endif %} {% if user.pgp_public_key %}
+      <div class="flex flex-col gap-2">
+        <label class="font-bold text-white">PGP Signature</label>
+        <textarea
+          name="pgp_signature"
+          class="std"
+          rows="4"
+          required
+          placeholder="Sign 'withdraw {currency} {amount}' with your PGP key"
+        ></textarea>
+      </div>
       {% endif %}
 
       <div class="flex justify-center">
-        <input type="submit" value="Request Withdrawal" class="bstd">
+        <input type="submit" value="Request Withdrawal" class="bstd" />
       </div>
     </form>
   </div>
@@ -102,40 +130,42 @@
   <div class="mt-8 max-w-5xl mx-auto">
     <h2 class="text-xl font-bold text-white">Transaction History</h2>
     {% if transactions %}
-      <table class="w-full text-white border-collapse">
-        <thead>
-          <tr class="bg-sydney bg-opacity-20">
-            <th class="p-2 text-left font-bold">Date</th>
-            <th class="p-2 text-left font-bold">Type</th>
-            <th class="p-2 text-left font-bold">Currency</th>
-            <th class="p-2 text-left font-bold">Amount</th>
-            <th class="p-2 text-left font-bold">Address</th>
-            <th class="p-2 text-left font-bold">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for tx in transactions %}
-            <tr class="border-b border-sydney border-opacity-50">
-              <td class="p-2">{{ tx.created_at }}</td>
-              <td class="p-2">{{ tx.type|capitalize }}</td>
-              <td class="p-2">{{ tx.currency }}</td>
-              <td class="p-2">{{ tx.amount|round(8) }}</td>
-              <td class="p-2 break-all">{{ tx.address or 'N/A' }}</td>
-              <td class="p-2">
-                <span class="px-2 py-1 rounded text-sm {{
+    <table class="w-full text-white border-collapse">
+      <thead>
+        <tr class="bg-sydney bg-opacity-20">
+          <th class="p-2 text-left font-bold">Date</th>
+          <th class="p-2 text-left font-bold">Type</th>
+          <th class="p-2 text-left font-bold">Currency</th>
+          <th class="p-2 text-left font-bold">Amount</th>
+          <th class="p-2 text-left font-bold">Address</th>
+          <th class="p-2 text-left font-bold">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr class="border-b border-sydney border-opacity-50">
+          <td class="p-2">{{ tx.created_at }}</td>
+          <td class="p-2">{{ tx.type|capitalize }}</td>
+          <td class="p-2">{{ tx.currency }}</td>
+          <td class="p-2">{{ tx.amount|round(8) }}</td>
+          <td class="p-2 break-all">{{ tx.address or 'N/A' }}</td>
+          <td class="p-2">
+            <span
+              class="px-2 py-1 rounded text-sm {{
                   'bg-yellow-600' if tx.status == 'pending' else
                   'bg-green-600' if tx.status == 'completed' else
                   'bg-red-600'
-                }}">
-                  {{ tx.status|capitalize }}
-                </span>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                }}"
+            >
+              {{ tx.status|capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
-      <p class="text-white">No transactions found.</p>
+    <p class="text-white">No transactions found.</p>
     {% endif %}
   </div>
 </div>

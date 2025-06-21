@@ -2,12 +2,12 @@
 {% extends 'base.html' %} {% block title %}Marketplace Rules - Sydney{% endblock
 %} {% block content %}
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold text-gray-900 mb-6">Marketplace Rules</h1>
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <p class="text-gray-600 mb-4">
+  <h1 class="text-xl font-bold text-gray-100 mb-6">Marketplace Rules</h1>
+  <div class="bg-transparent p-6 ">
+    <p class="text-gray-400 mb-4">
       Last Updated: {{ dated.strftime('%B %d, %Y') }}
     </p>
-    <p class="text-gray-700 mb-6">
+    <p class="text-gray-300 mb-6">
       Sydney is committed to providing a secure and fair platform for buyers and
       vendors. These Marketplace Rules ensure a safe trading environment and
       must be followed by all users. Violation of these rules may result in
@@ -15,136 +15,136 @@
     </p>
 
     <!-- Section 1: General Conduct -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">1. General Conduct</h2>
-    <p class="text-gray-600 mb-4">All users are expected to:</p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">1. General Conduct</h2>
+    <p class="text-gray-400 mb-4">All users are expected to:</p>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         Act in good faith and treat others with respect in all interactions.
       </li>
-      <li>
+      <li class="text-gray-300">
         Use accurate and truthful information when creating accounts or
         listings.
       </li>
-      <li>
+      <li class="text-gray-300">
         Maintain the confidentiality of your account credentials and PGP private
         keys.
       </li>
-      <li>
+      <li class="text-gray-300">
         Comply with all applicable laws and regulations in your jurisdiction.
       </li>
     </ul>
 
     <!-- Section 2: Prohibited Activities -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       2. Prohibited Activities
     </h2>
-    <p class="text-gray-600 mb-4">
+    <p class="text-gray-400 mb-4">
       The following are strictly forbidden on Sydney:
     </p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         <strong>Fraud:</strong> Misrepresenting products, manipulating reviews,
         or engaging in scams (e.g., phishing, fake listings).
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Illegal Goods:</strong> Selling items prohibited by
         international laws, including weapons, controlled substances (unless
         legally permitted), or stolen goods.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Hacking:</strong> Attempting to exploit, hack, or disrupt the
         platform, including DDoS attacks or unauthorized access.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Harassment:</strong> Threats, abusive language, or doxxing other
         users.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Money Laundering:</strong> Using Sydney to obscure the origin of
         funds.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Spam:</strong> Posting unsolicited messages or advertisements
         outside designated areas.
       </li>
     </ul>
 
     <!-- Section 3: Vendor Responsibilities -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       3. Vendor Responsibilities
     </h2>
-    <p class="text-gray-600 mb-4">Vendors must adhere to additional rules:</p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <p class="text-gray-400 mb-4">Vendors must adhere to additional rules:</p>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         <strong>Accurate Listings:</strong> Provide clear, honest descriptions,
         pricing (in BTC), and stock levels for all products.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Timely Fulfillment:</strong> Ship orders within [specify
         timeframe, e.g., 48 hours] of payment confirmation and mark them as
         shipped promptly.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Quality Assurance:</strong> Ensure products match descriptions
         and meet reasonable quality standards.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Communication:</strong> Respond to buyer inquiries within
         [specify timeframe, e.g., 24 hours] using encrypted messaging.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Subscription:</strong> Maintain an active subscription package
         to list products.
       </li>
     </ul>
 
     <!-- Section 4: Escrow and Transactions -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       4. Escrow and Transactions
     </h2>
-    <p class="text-gray-600 mb-4">
+    <p class="text-gray-400 mb-4">
       Sydney uses a 2-of-3 multisig escrow system to secure transactions:
     </p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         <strong>Buyers:</strong> Send the exact BTC amount to the multisig
         escrow address provided during checkout. Confirm payment once sent.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Vendors:</strong> Fulfill orders after payment is locked in
         escrow and mark them as shipped.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Release:</strong> Buyers must release funds within [specify
         timeframe, e.g., 7 days] of receiving the product, or funds remain
         locked.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Disputes:</strong> Raise disputes within [specify timeframe,
         e.g., 14 days] of payment if issues arise; admins will mediate using
         escrow keys.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>No Direct Payments:</strong> Bypassing escrow (e.g., direct BTC
         transfers) is prohibited and voids platform protection.
       </li>
     </ul>
 
     <!-- Section 5: Account Management -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       5. Account Management
     </h2>
-    <p class="text-gray-600 mb-4">Rules governing account usage:</p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <p class="text-gray-400 mb-4">Rules governing account usage:</p>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         <strong>One Account:</strong> Users and vendors may maintain only one
         account; duplicate accounts will be suspended.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Security:</strong> Use strong passwords and update PGP keys if
         compromised.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Inactivity:</strong> Accounts inactive for [specify period,
         e.g., 6 months] may be flagged for deletion, with prior notice via
         messaging.
@@ -152,47 +152,47 @@
     </ul>
 
     <!-- Section 6: Enforcement and Penalties -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       6. Enforcement and Penalties
     </h2>
-    <p class="text-gray-600 mb-4">Violations are handled as follows:</p>
-    <ul class="list-disc pl-6 text-gray-600 mb-6">
-      <li>
+    <p class="text-gray-400 mb-4">Violations are handled as follows:</p>
+    <ul class="list-disc pl-6 text-gray-400 mb-6">
+      <li class="text-gray-300">
         <strong>Warnings:</strong> Minor infractions (e.g., delayed responses)
         may result in a warning via encrypted message.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Suspension:</strong> Repeated or moderate violations (e.g.,
         inaccurate listings) may lead to temporary account suspension.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Termination:</strong> Severe violations (e.g., fraud, illegal
         sales) will result in permanent account termination and forfeiture of
         escrow funds.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Appeals:</strong> Contact support within [specify timeframe,
         e.g., 7 days] of enforcement action to appeal, providing evidence.
       </li>
-      <li>
+      <li class="text-gray-300">
         <strong>Admin Discretion:</strong> Admins reserve the right to interpret
         and enforce these rules to protect the platform.
       </li>
     </ul>
 
     <!-- Section 7: Changes to Rules -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">
       7. Changes to Marketplace Rules
     </h2>
-    <p class="text-gray-600 mb-6">
+    <p class="text-gray-400 mb-6">
       We may update these rules as needed. Changes will be posted here with an
       updated "Last Updated" date. Continued use of Sydney after changes
       indicates acceptance.
     </p>
 
     <!-- Section 8: Contact Us -->
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">8. Contact Us</h2>
-    <p class="text-gray-600 mb-6">
+    <h2 class="text-xl font-semibold text-gray-300 mb-4">8. Contact Us</h2>
+    <p class="text-gray-400 mb-6">
       For clarification or to report violations, contact support via the
       messaging system or send a PGP-encrypted message to [insert admin PGP key
       or contact method].
