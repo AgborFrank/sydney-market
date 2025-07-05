@@ -128,21 +128,21 @@ profile_data=profile_data ) %} {% if 'user_id' in session and profile_data %}
   >
     <a
       href="{{ orders_url }}"
-      class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+      class="h-8 text sydney text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
     >
       <div class="scale-[90%]"><i class="gg-tag"></i></div>
       My Orders
     </a>
     <a
       href="{{ favorites_url }}"
-      class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+      class="h-8 text sydney text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
     >
       <div class="scale-[90%]"><i class="gg-heart"></i></div>
       Favorites
     </a>
     <a
       href="{{ settings_url }}"
-      class="h-8 text text-white abacus hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+      class="h-8 text text-white sydney hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
     >
       <div class="scale-[90%]"><i class="gg-profile"></i></div>
       Settings
@@ -151,7 +151,7 @@ profile_data=profile_data ) %} {% if 'user_id' in session and profile_data %}
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <button
         type="submit"
-        class="h-8 text abacus text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
+        class="h-8 text sydney text-white hover:bg-sydney hover:text-white border-solid border border-sydney font-bold rounded py-2 px-1 w-full text-center flex items-center justify-center gap-3"
       >
         <div class="scale-[90%]"><i class="gg-log-out"></i></div>
         Log Out

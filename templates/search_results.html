@@ -1,46 +1,168 @@
 <!-- templates/search_results.html -->
-{% extends 'base.html' %} {% block title %}Search Results - Sydney{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Search Results - Sydney{% endblock %}
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">
-    Search Results for "{{ query }}"
-  </h1>
 
-  {% if products %}
-  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+<!-- Header -->
+<div class="bg-slate-800 py-6 text-center border-b border-slate-600">
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+      <path
+        fill-rule="evenodd"
+        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+        clip-rule="evenodd"
+      ></path>
+    </svg>
+    <h1 class="text-xl font-bold text-white">SEARCH RESULTS</h1>
+  </div>
+  <p class="text-sm text-gray-300">Found {{ products|length }} results.</p>
+</div>
+
+<!-- Results Grid -->
+<div class="container mx-auto px-4 py-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     {% for product in products %}
-    <div
-      class="bg-white py-2 px-3 rounded-lg shadow-md hover:shadow-lg transition duration-200"
-    >
-      <a
-        href="{{ url_for('public.product_detail', product_id=product['id']) }}"
-      >
-        {% if product['featured_image'] %}
-        <img
-          src="{{ url_for('static', filename=product['featured_image']) }}"
-          alt="{{ product['title'] }}"
-          class="w-full h-24 object-contain rounded-md mb-2"
-        />
+    <div class="bg-slate-800 rounded-lg border border-slate-600 px-4">
+      <!-- Tags Row -->
+      <div class="flex gap-2 border-solid border border-border  rounded-md items-center py-1 pl-2 mb-2 mt-2">
+        {% if product.sticky %}
+        <span class="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded">[STICKY]</span>
         {% endif %}
-        <h2 class="text-md font-semibold text-gray-700">
-          {{ product['title'] }}
-        </h2>
-        <p class="text-gray-600 mb-2">
-          {{ product['description']|truncate(100) }}
-        </p>
-        <p class="text-gray-900 font-bold mb-3">
-          {{ product['price_btc'] }} BTC
-        </p>
-        <span
-          class="block w-full bg-primary text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-secondary text-center transition duration-200 hover:text-white"
-          >Place Order</span
-        >
-      </a>
+        {% if product.is_featured %}
+        <span class="bg-yellow-500 text-black px-2 py-1 text-xs font-bold rounded">[FEATURED]</span>
+        {% endif %}
+        {% if product.vendor_level is defined and product.vendor_level >= 8 and product.vendor_positive_feedback_percentage >= 97 and product.vendor_sales_count >= 500 %}
+        <span class="bg-green-600 text-white px-2 py-1 text-xs font-bold rounded">FE 100%</span>
+        {% endif %}
+        <h3 class="text-white font-semibold ">{{ product.title }}</h3>
+      </div>
+
+      <!-- Product Title -->
+      
+        
+          <div class="flex flex-row  justify-between  items-center border-b border-border  pr-4 mb-2">
+            <div class="bg-teal-600 text-white px-2 py-1 text-xs rounded  ">
+              {{ product.category or 'Category' }}
+            </div>
+
+            <div class="text-sm text-gray-300 ">
+              {{ product.origin_country or 'N/A' }} → {{ product.shipping_destinations or 'N/A' }}
+            </div>
+          </div>
+       
+   
+      
+      <!-- Main Content Layout -->
+      <div class="flex gap-4">
+        <!-- Product Image -->
+        <div class="w-24 h-24 flex-shrink-0 my-1 bg-card border-solid border border-border text-center rounded-md">
+          <img
+            src="{{ product.image_url }}"
+            alt="Product Image"
+            class="w-full h-full group-hover:scale-110 object-cover rounded bg-slate-700 border border-slate-600"
+            loading="lazy"
+          />
+        </div>
+
+       
+        
+        <!-- Product Details -->
+        <div class="flex-1">
+          <div class="flex justify-between items-start mb-2">
+            <!-- Left Column - Vendor Info -->
+            <div class="flex-1 pr-4">
+              
+              
+              
+              <div class="text-sm mb-1 ">
+                <span class="text-gray-300">Sold by:</span> 
+                <span class="text-white">{{ product.vendor_username or 'Vendor' }}</span>
+              </div>
+              
+              <div class="text-sm mb-1">
+                <span class="text-gray-300">Feedback:</span> 
+                <span class="text-green-400">{{ product.vendor_positive_feedback_percentage|default(0)|round(2) }}%</span>
+                {% if product.vendor_level %}
+                <span class="bg-purple-600 text-white px-1 text-xs rounded ml-1">Level {{ product.vendor_level }}</span>
+                {% endif %}
+              </div>
+              
+              <div class="text-sm mb-1">
+                <span class="text-gray-300">Other Feedback:</span> 
+                <span class="text-green-400">{{ product.vendor_positive_feedback_percentage|default(0)|round(2) }}%</span>
+              </div>
+              
+              <div class="text-sm">
+                <span class="text-gray-300">Payment:</span> 
+                <span class="text-white">Escrow</span>
+              </div>
+            </div>
+            
+            <!-- Right Column - Pricing & Actions -->
+            <div class="text-right">
+            
+              <!-- Cryptocurrency Pricing -->
+              <div class="flex items-center gap-2 mb-2 justify-end">
+                <div class="bg-[] rounded-full w-6 h-6 flex items-center justify-center">
+                  <span class="text-xs font-bold">₿</span>
+                </div>
+                <span class="text-sm">
+                  BTC {% if product.price_usd is not none and rates and rates.bitcoin.usd %}{{ (product.price_usd / rates.bitcoin.usd)|round(8) }}{% else %}N/A{% endif %}
+                </span>
+              </div>
+              
+              <div class="flex items-center gap-2 mb-2 justify-end">
+                <div class="bg-orange-600 rounded-full w-6 h-6 flex items-center justify-center">
+                  <span class="text-xs font-bold">M</span>
+                </div>
+                <span class="text-sm">
+                  XMR {% if product.price_usd is not none and rates and rates.monero.usd %}{{ (product.price_usd / rates.monero.usd)|round(8) }}{% else %}N/A{% endif %}
+                </span>
+              </div>
+              
+              <!-- USD Price -->
+              <div class="text-xl font-bold mb-2">
+                USD {% if product.price_usd is not none %}{{ product.price_usd|round(2) }}{% else %}N/A{% endif %}
+              </div>
+              
+              <!-- Place Order Button -->
+              <a
+                href="{{ url_for('public.place_order', product_id=product.id) }}"
+                class="bg-primary hover:bg-primary text-white px-2 py-1 rounded text-sm font-semibold inline-block"
+              >
+                Place Order →
+              </a>
+            </div>
+          </div>
+          
+          <!-- Bottom Row - Rating & Stats -->
+          
+        </div>
+        
+      </div>
+      <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-700">
+        <div class="flex items-center gap-1">
+          <span class="text-sm text-gray-300">Listing Feedback:</span>
+          <div class="flex text-yellow-400">
+            {% set safe_avg = product.avg_rating if product.avg_rating is not none else 0 %}
+            {% set stars = safe_avg|default(0)|round(0, 'floor')|int %}
+            {% for i in range(stars) %}★{% endfor %}
+            {% for i in range(5 - stars) %}<span class="text-gray-600">★</span>{% endfor %}
+          </div>
+        </div>
+        
+        <div class="text-sm text-gray-300">
+          Views: {{ product.views|default(0) }} | Sales: {{ product.sales_count|default(0) }}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-span-2 text-center text-gray-400 py-8">
+      <div class="text-lg mb-2">No products found.</div>
+      <p class="text-sm">Try adjusting your search criteria or browse our categories.</p>
     </div>
     {% endfor %}
   </div>
-  {% else %}
-  <p class="text-gray-600">No products found matching "{{ query }}".</p>
-  {% endif %}
 </div>
+
 {% endblock %}

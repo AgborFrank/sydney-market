@@ -1,0 +1,30 @@
+{% extends 'user/user_base.html' %} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">Notifications</h1>
+  <div class="bg-white rounded shadow p-4">
+    {% for n in notifications %}
+    <div
+      class="mb-3 p-3 rounded border {% if n['type']=='success' %}border-green-400 bg-green-50{% elif n['type']=='error' %}border-red-400 bg-red-50{% else %}border-blue-400 bg-blue-50{% endif %}"
+    >
+      <div class="flex justify-between items-center">
+        <span>{{ n['message'] }}</span>
+        {% if not n['is_read'] %}
+        <form
+          method="POST"
+          action="{{ url_for('user.mark_notification', notification_id=n['id']) }}"
+          style="display: inline"
+        >
+          <button type="submit" class="text-xs text-blue-600 ml-2">
+            Mark as read
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="text-xs text-gray-500 mt-1">{{ n['created_at'] }}</div>
+    </div>
+    {% else %}
+    <div class="text-gray-500">No notifications found.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

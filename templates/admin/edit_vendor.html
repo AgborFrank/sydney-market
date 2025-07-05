@@ -1,0 +1,232 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Edit Vendor - {{ vendor.pusername }} - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<div class="container mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-white">
+            Edit Vendor: {{ vendor.pusername }}
+        </h1>
+        <div class="flex space-x-2">
+            <a href="{{ url_for('admin.admin_vendor_level_history', vendor_id=vendor.id) }}" 
+               class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200">
+                View Level History
+            </a>
+            <a href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.id) }}" 
+               class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition duration-200">
+                Back to Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-6">
+                {% for category, message in messages %}
+                    <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="max-w-4xl mx-auto">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        
+        <!-- Basic Information Section -->
+        <div class="bg-sydney bg-opacity-10 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">Basic Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="pusername" class="block text-sm font-medium text-white mb-2">
+                        Public Username *
+                    </label>
+                    <input type="text" 
+                           id="pusername" 
+                           name="pusername" 
+                           value="{{ vendor.pusername }}" 
+                           required
+                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                </div>
+                
+                <div>
+                    <label for="vendor_status" class="block text-sm font-medium text-white mb-2">
+                        Vendor Status
+                    </label>
+                    <select id="vendor_status" 
+                            name="vendor_status"
+                            class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                        <option value="">Select Status</option>
+                        <option value="active" {{ 'selected' if vendor.vendor_status == 'active' }}>Active</option>
+                        <option value="suspended" {{ 'selected' if vendor.vendor_status == 'suspended' }}>Suspended</option>
+                        <option value="banned" {{ 'selected' if vendor.vendor_status == 'banned' }}>Banned</option>
+                        <option value="pending" {{ 'selected' if vendor.vendor_status == 'pending' }}>Pending</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <label for="btc_address" class="block text-sm font-medium text-white mb-2">
+                    Bitcoin Address
+                </label>
+                <input type="text" 
+                       id="btc_address" 
+                       name="btc_address" 
+                       value="{{ vendor.btc_address or '' }}"
+                       placeholder="Enter Bitcoin address"
+                       class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+            </div>
+            
+            <div class="mt-6">
+                <label for="pgp_public_key" class="block text-sm font-medium text-white mb-2">
+                    PGP Public Key
+                </label>
+                <textarea id="pgp_public_key" 
+                          name="pgp_public_key" 
+                          rows="4"
+                          placeholder="Enter PGP public key"
+                          class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">{{ vendor.pgp_public_key or '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- Vendor Stats Section -->
+        <div class="bg-sydney bg-opacity-10 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">Vendor Statistics</h2>
+            <p class="text-sm text-gray-300 mb-4">Manually adjust vendor statistics. These values affect vendor level calculations.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="level" class="block text-sm font-medium text-white mb-2">
+                        Vendor Level (1-10)
+                    </label>
+                    <input type="number" 
+                           id="level" 
+                           name="level" 
+                           value="{{ vendor.vendor_level or vendor.level or 1 }}"
+                           min="1" 
+                           max="10"
+                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <p class="text-xs text-gray-400 mt-1">Current level: {{ vendor.vendor_level or vendor.level or 'N/A' }}</p>
+                </div>
+                
+                <div>
+                    <label for="sales_count" class="block text-sm font-medium text-white mb-2">
+                        Sales Count
+                    </label>
+                    <input type="number" 
+                           id="sales_count" 
+                           name="sales_count" 
+                           value="{{ vendor.sales_count or 0 }}"
+                           min="0"
+                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <p class="text-xs text-gray-400 mt-1">Current: {{ vendor.sales_count or 0 }} sales</p>
+                </div>
+                
+                <div>
+                    <label for="positive_feedback_percentage" class="block text-sm font-medium text-white mb-2">
+                        Positive Feedback % (0-100)
+                    </label>
+                    <input type="number" 
+                           id="positive_feedback_percentage" 
+                           name="positive_feedback_percentage" 
+                           value="{{ '%.1f' % vendor.positive_feedback_percentage if vendor.positive_feedback_percentage else 0 }}"
+                           min="0" 
+                           max="100" 
+                           step="0.1"
+                           class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <p class="text-xs text-gray-400 mt-1">Current: {{ '%.1f' % vendor.positive_feedback_percentage if vendor.positive_feedback_percentage else 0 }}%</p>
+                </div>
+            </div>
+            
+            <!-- Current Stats Display -->
+            <div class="mt-6 p-4 bg-gray-800 rounded-lg">
+                <h3 class="text-lg font-semibold text-white mb-3">Current Statistics</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-400">Average Rating:</span>
+                        <span class="text-white ml-2">{{ '%.1f' % vendor.avg_rating if vendor.avg_rating else 'N/A' }}/5</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Joined:</span>
+                        <span class="text-white ml-2">{{ vendor.joined_at or 'N/A' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Last Updated:</span>
+                        <span class="text-white ml-2">{{ vendor.updated_at or 'N/A' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400">Role:</span>
+                        <span class="text-white ml-2">{{ vendor.role|capitalize }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Requirements Reference -->
+        <div class="bg-sydney bg-opacity-10 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">Vendor Level Requirements</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                {% for level in range(1, 11) %}
+                <div class="flex items-center space-x-2 p-2 bg-gray-800 rounded">
+                    <span class="px-2 py-1 rounded text-white font-bold bg-lvl{{ level }}">{{ level }}</span>
+                    <span class="text-gray-300">
+                        {% if level == 1 %}
+                            New Vendor
+                        {% elif level == 2 %}
+                            10+ sales, 90%+ feedback
+                        {% elif level == 3 %}
+                            15+ sales, 92%+ feedback
+                        {% elif level == 4 %}
+                            25+ sales, 93%+ feedback
+                        {% elif level == 5 %}
+                            50+ sales, 94%+ feedback
+                        {% elif level == 6 %}
+                            100+ sales, 95%+ feedback
+                        {% elif level == 7 %}
+                            250+ sales, 96%+ feedback
+                        {% elif level == 8 %}
+                            500+ sales, 97%+ feedback
+                        {% elif level == 9 %}
+                            1000+ sales, 98%+ feedback
+                        {% elif level == 10 %}
+                            2000+ sales, 99%+ feedback
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-4">
+            <a href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.id) }}" 
+               class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition duration-200">
+                Cancel
+            </a>
+            <button type="submit" 
+                    onclick="return confirm('Are you sure you want to update this vendor? This action cannot be undone.')"
+                    class="bg-yellow-400 text-gray-900 px-6 py-2 rounded-md hover:bg-yellow-500 transition duration-200 font-semibold">
+                Update Vendor
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+/* Vendor level colors */
+.bg-lvl1 { background-color: #6B7280; }
+.bg-lvl2 { background-color: #10B981; }
+.bg-lvl3 { background-color: #3B82F6; }
+.bg-lvl4 { background-color: #8B5CF6; }
+.bg-lvl5 { background-color: #F59E0B; }
+.bg-lvl6 { background-color: #EF4444; }
+.bg-lvl7 { background-color: #EC4899; }
+.bg-lvl8 { background-color: #8B5CF6; }
+.bg-lvl9 { background-color: #F59E0B; }
+.bg-lvl10 { background-color: #EF4444; }
+</style>
+{% endblock %} 

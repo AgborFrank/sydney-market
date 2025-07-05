@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from flask_limiter import Limiter
 from flask_session import Session
 from flask_limiter.util import get_remote_address
-from utils.database import get_db_connection, get_settings  # Absolute import from utils.database
+from utils.database import get_db_connection, get_settings, create_test_admin_and_news, log_wallet_change  # Absolute import from utils.database
 import os
 import logging
 import re
@@ -14,11 +14,20 @@ from flask_login import login_required, current_user, login_user
 import atexit
 import secrets
 import sqlite3
+from utils.ddos_protection import ddos_protection
+from flask_wtf.csrf import generate_csrf
+from utils.security import log_admin_action_encrypted
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
-limiter = Limiter(get_remote_address, app=None)  # Attach in app.py
 logger = logging.getLogger(__name__)
 
+@admin_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
+
+@admin_bp.context_processor
+def inject_settings():
+    return {'settings': get_settings()}
 
 # Directory for category images
 UPLOAD_FOLDER = 'static/uploads/categories'
@@ -85,8 +94,21 @@ def login():
             
             admin = dict(admin)
             
+            # Fetch admin_action_logging setting
+            c.execute("SELECT value FROM security_settings WHERE setting_name = 'admin_action_logging'")
+            admin_action_logging = c.fetchone()
+            admin_action_logging = admin_action_logging['value'] if admin_action_logging else 'enabled'
+            
+            # Fetch admin's PGP public key
+            pgp_pubkey = admin.get('pgp_public_key')
+            
             if password and not pin:  # Step 1: Check password
                 if not check_password_hash(admin['password'], password):
+                    if admin_action_logging == 'enabled' and pgp_pubkey:
+                        try:
+                            log_admin_action_encrypted(f"Failed admin login (bad password) for {username}", username, pgp_pubkey)
+                        except Exception as e:
+                            logger.error(f"Failed to log encrypted admin action: {e}")
                     flash("Incorrect password.", 'error')
                     return render_template('admin/login.html', step='username', error="Incorrect password.")
                 return render_template('admin/login.html', 
@@ -96,16 +118,26 @@ def login():
             
             if pin:  # Step 2: Check PIN
                 if pin != admin['pin']:
+                    if admin_action_logging == 'enabled' and pgp_pubkey:
+                        try:
+                            log_admin_action_encrypted(f"Failed admin login (bad PIN) for {username}", username, pgp_pubkey)
+                        except Exception as e:
+                            logger.error(f"Failed to log encrypted admin action: {e}")
                     flash("Incorrect PIN.", 'error')
                     return render_template('admin/login.html', 
                                          step='pin', 
                                          username=username, 
                                          login_phrase=admin['login_phrase'], 
                                          error="Incorrect PIN.")
-                session['user_id'] = admin['id']  # Changed from admin_id to user_id
+                session['user_id'] = admin['id']
                 session['admin_id'] = admin['id']
                 session['role'] = 'admin'
                 flash("Logged in successfully.", 'success')
+                if admin_action_logging == 'enabled' and pgp_pubkey:
+                    try:
+                        log_admin_action_encrypted(f"Admin {username} logged in successfully", username, pgp_pubkey)
+                    except Exception as e:
+                        logger.error(f"Failed to log encrypted admin action: {e}")
                 return redirect(url_for('admin.dashboard'))
     
     return render_template('admin/login.html', step='username')
@@ -138,7 +170,7 @@ def dashboard():
         # Recent Orders (limit 5)
         c.execute("""
             SELECT o.id, u.pusername AS user, p.title AS product, v.pusername AS vendor,
-                   o.amount_usd, o.status, o.created_at
+                   o.amount_btc, o.status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             JOIN products p ON o.product_id = p.id
@@ -154,7 +186,7 @@ def dashboard():
         
         # Recent Withdrawals (limit 5)
         c.execute("""
-            SELECT w.id, u.pusername AS user, w.amount_usd, w.status, w.requested_at
+            SELECT w.id, u.pusername AS user, w.amount_btc, w.status, w.requested_at
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
             ORDER BY w.requested_at DESC
@@ -163,7 +195,7 @@ def dashboard():
         recent_withdrawals = [dict(row) for row in c.fetchall()]
         
         # Total Escrow (BTC, pending)
-        c.execute("SELECT SUM(amount_usd) AS total FROM escrow WHERE status = 'pending'")
+        c.execute("SELECT SUM(amount_btc) AS total FROM escrow WHERE status = 'pending'")
         escrow_total_btc = c.fetchone()['total'] or 0.0
     
     return render_template('admin/dashboard.html',
@@ -261,7 +293,6 @@ def admin_vendor_settings():
     return render_template('admin/vendor_settings.html', settings=settings, title="Admin Vendor Settings")
 
 @admin_bp.route('/categories', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def manage_categories():
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -302,7 +333,6 @@ def manage_categories():
     return render_template('admin/categories.html', categories=categories)
 
 @admin_bp.route('/edit-category/<int:category_id>', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def admin_edit_category(category_id):
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -350,7 +380,6 @@ def admin_edit_category(category_id):
     return render_template('admin/categories.html', categories=categories, edit_category=edit_category)
 
 @admin_bp.route('/delete-category/<int:category_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_delete_category(category_id):
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -434,7 +463,6 @@ def admin_register():
     return render_template('admin/register.html')
 
 @admin_bp.route('/products/all-products', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def manage_products():
     try:
         with get_db_connection() as conn:
@@ -609,7 +637,6 @@ def manage_products():
         return redirect(url_for('admin.manage_products'))
 
 @admin_bp.route('/products/change-status/<int:product_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def change_product_status(product_id):
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -635,7 +662,6 @@ def change_product_status(product_id):
     return redirect(url_for('admin.manage_products'))
 
 @admin_bp.route('/products/delete/<int:product_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def delete_product(product_id):
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -667,7 +693,6 @@ def delete_product(product_id):
     return redirect(url_for('admin.manage_products'))
 
 @admin_bp.route('/products/toggle-featured/<int:product_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def toggle_featured(product_id):
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -966,7 +991,6 @@ def admin_delete_image(image_id):
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def admin_settings():
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -996,20 +1020,45 @@ def admin_settings():
             min_order_amount_usd = request.form.get('min_order_amount_usd', type=float, default=10.00)
             support_email = request.form.get('support_email', '').strip()
             pgp_key = request.form.get('pgp_key', '').strip()
-            
+
+            # Wallets
+            btc_escrow_wallet = request.form.get('btc_escrow_wallet', '').strip()
+            btc_admin_wallet = request.form.get('btc_admin_wallet', '').strip()
+            xmr_escrow_wallet = request.form.get('xmr_escrow_wallet', '').strip()
+            xmr_admin_wallet = request.form.get('xmr_admin_wallet', '').strip()
+
+            # Escrow/Transaction
+            escrow_fee_percent = request.form.get('escrow_fee_percent', type=float, default=2.5)
+            vendor_bond_amount = request.form.get('vendor_bond_amount', type=float, default=0.05)
+            escrow_auto_release_hours = request.form.get('escrow_auto_release_hours', type=int, default=72)
+
             # Validation
             if not site_name or not meta_title or not meta_description:
                 flash("Site name, meta title, and meta description are required.", 'error')
                 return render_template('admin/settings.html', settings=get_settings(), error="Required fields missing.")
-            
+
             if session_timeout < 5 or max_login_attempts < 1:
                 flash("Session timeout must be at least 5 minutes, and max login attempts must be at least 1.", 'error')
                 return render_template('admin/settings.html', settings=get_settings(), error="Invalid security settings.")
-            
+
             if min_order_amount_usd < 0:
                 flash("Minimum order amount cannot be negative.", 'error')
                 return render_template('admin/settings.html', settings=get_settings(), error="Invalid marketplace settings.")
-            
+
+            # Wallet validation (simple, can be improved)
+            if not btc_escrow_wallet or not btc_admin_wallet or not xmr_escrow_wallet or not xmr_admin_wallet:
+                flash("All wallet addresses are required.", 'error')
+                return render_template('admin/settings.html', settings=get_settings(), error="Wallet addresses required.")
+            if escrow_fee_percent < 0 or escrow_fee_percent > 100:
+                flash("Escrow fee percent must be between 0 and 100.", 'error')
+                return render_template('admin/settings.html', settings=get_settings(), error="Invalid escrow fee.")
+            if vendor_bond_amount < 0:
+                flash("Vendor bond amount cannot be negative.", 'error')
+                return render_template('admin/settings.html', settings=get_settings(), error="Invalid vendor bond amount.")
+            if escrow_auto_release_hours < 1:
+                flash("Escrow auto-release must be at least 1 hour.", 'error')
+                return render_template('admin/settings.html', settings=get_settings(), error="Invalid auto-release time.")
+
             # Handle logo upload
             logo_path = get_settings().get('logo_path', '/static/uploads/logos/default_logo.png')
             if logo and allowed_file(logo.filename):
@@ -1032,7 +1081,15 @@ def admin_settings():
                 ('btc_conversion_enabled', btc_conversion_enabled),
                 ('min_order_amount_usd', str(min_order_amount_usd)),
                 ('support_email', support_email),
-                ('pgp_key', pgp_key)
+                ('pgp_key', pgp_key),
+                # New wallet and escrow settings
+                ('btc_escrow_wallet', btc_escrow_wallet),
+                ('btc_admin_wallet', btc_admin_wallet),
+                ('xmr_escrow_wallet', xmr_escrow_wallet),
+                ('xmr_admin_wallet', xmr_admin_wallet),
+                ('escrow_fee_percent', str(escrow_fee_percent)),
+                ('vendor_bond_amount', str(vendor_bond_amount)),
+                ('escrow_auto_release_hours', str(escrow_auto_release_hours))
             ]
             c.executemany("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", updates)
             conn.commit()
@@ -1043,7 +1100,6 @@ def admin_settings():
         return render_template('admin/settings.html', settings=get_settings())
 
 @admin_bp.route('/users', methods=['GET'])
-@limiter.limit("50 per hour")
 def manage_users():
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -1102,7 +1158,6 @@ def manage_users():
 
 
 @admin_bp.route('/users/suspend/<int:user_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_suspend_user(user_id):
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1173,6 +1228,7 @@ def ban_user(user_id):
 
 #FAQS
 @admin_bp.route('/faqs')
+@require_admin_role
 def faqs():
     """Display all FAQs grouped by category."""
     try:
@@ -1196,13 +1252,17 @@ def faqs():
             for faq in faqs:
                 grouped_faqs[faq['category_name']].append(faq)
             
-            return render_template('admin/faqs.html', grouped_faqs=grouped_faqs, categories=categories)
+            # Calculate total FAQs
+            total_faqs = sum(len(faq_list) for faq_list in grouped_faqs.values())
+            
+            return render_template('admin/faqs.html', grouped_faqs=grouped_faqs, categories=categories, total_faqs=total_faqs)
     except Exception as e:
         logger.error(f"Error fetching FAQs: {str(e)}")
         flash("Error loading FAQs.", 'error')
         return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/faqs/new', methods=['GET', 'POST'])
+@require_admin_role
 def new_faq():
     """Create a new FAQ."""
     try:
@@ -1237,6 +1297,7 @@ def new_faq():
         return redirect(url_for('admin.faqs'))
 
 @admin_bp.route('/faqs/edit/<int:id>', methods=['GET', 'POST'])
+@require_admin_role
 def edit_faq(id):
     """Edit an existing FAQ."""
     try:
@@ -1280,6 +1341,7 @@ def edit_faq(id):
         return redirect(url_for('admin.faqs'))
 
 @admin_bp.route('/faqs/delete/<int:id>', methods=['POST'])
+@require_admin_role
 def delete_faq(id):
     """Delete an FAQ."""
     try:
@@ -1388,11 +1450,16 @@ def admin_vendor_profile(vendor_id):
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
-            # Fetch vendor details
+            # Fetch vendor details with vendor level stats
             c.execute("""
-                SELECT id, pusername, btc_address, pgp_public_key, role, is_vendor, vendor_status, level
-                FROM users
-                WHERE id = ? AND is_vendor = 1
+                SELECT u.id, u.pusername, u.btc_address, u.pgp_public_key, u.role, u.is_vendor, u.vendor_status, u.level,
+                       vl.level AS vendor_level, vl.sales_count, vl.positive_feedback_percentage, vl.joined_at, vl.updated_at,
+                       AVG(vr.rating) AS avg_rating
+                FROM users u
+                LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
+                LEFT JOIN vendor_ratings vr ON u.id = vr.vendor_id
+                WHERE u.id = ? AND u.is_vendor = 1
+                GROUP BY u.id
             """, (vendor_id,))
             vendor = c.fetchone()
             if not vendor:
@@ -1414,8 +1481,217 @@ def admin_vendor_profile(vendor_id):
         flash("Database error occurred. Please try again.", 'error')
         return redirect(url_for('admin.manage_users'))
 
+@admin_bp.route('/edit_vendor/<int:vendor_id>', methods=['GET', 'POST'])
+def admin_edit_vendor(vendor_id):
+    if not is_admin():
+        flash("Admin access required.", 'error')
+        return redirect(url_for('admin.login'))
+    
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            if request.method == 'GET':
+                # Fetch vendor details with vendor level stats
+                c.execute("""
+                    SELECT u.id, u.pusername, u.btc_address, u.pgp_public_key, u.role, u.is_vendor, u.vendor_status, u.level,
+                           vl.level AS vendor_level, vl.sales_count, vl.positive_feedback_percentage, vl.joined_at, vl.updated_at,
+                           AVG(vr.rating) AS avg_rating
+                    FROM users u
+                    LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
+                    LEFT JOIN vendor_ratings vr ON u.id = vr.vendor_id
+                    WHERE u.id = ? AND u.is_vendor = 1
+                    GROUP BY u.id
+                """, (vendor_id,))
+                vendor = c.fetchone()
+                if not vendor:
+                    flash("Vendor not found.", 'error')
+                    return redirect(url_for('admin.manage_vendors'))
+                
+                return render_template('admin/edit_vendor.html', vendor=vendor)
+            
+            elif request.method == 'POST':
+                # Handle form submission
+                pusername = request.form.get('pusername', '').strip()
+                btc_address = request.form.get('btc_address', '').strip()
+                pgp_public_key = request.form.get('pgp_public_key', '').strip()
+                vendor_status = request.form.get('vendor_status', '').strip()
+                level = request.form.get('level', type=int)
+                sales_count = request.form.get('sales_count', type=int)
+                positive_feedback_percentage = request.form.get('positive_feedback_percentage', type=float)
+                
+                # Validate inputs
+                if not pusername:
+                    flash("Public username is required.", 'error')
+                    return redirect(url_for('admin.admin_edit_vendor', vendor_id=vendor_id))
+                
+                if level and not (1 <= level <= 10):
+                    flash("Vendor level must be between 1 and 10.", 'error')
+                    return redirect(url_for('admin.admin_edit_vendor', vendor_id=vendor_id))
+                
+                if sales_count is not None and sales_count < 0:
+                    flash("Sales count cannot be negative.", 'error')
+                    return redirect(url_for('admin.admin_edit_vendor', vendor_id=vendor_id))
+                
+                if positive_feedback_percentage is not None and not (0 <= positive_feedback_percentage <= 100):
+                    flash("Positive feedback percentage must be between 0 and 100.", 'error')
+                    return redirect(url_for('admin.admin_edit_vendor', vendor_id=vendor_id))
+                
+                # Check if vendor exists
+                c.execute("SELECT id FROM users WHERE id = ? AND is_vendor = 1", (vendor_id,))
+                vendor = c.fetchone()
+                if not vendor:
+                    flash("Vendor not found.", 'error')
+                    return redirect(url_for('admin.manage_vendors'))
+                
+                # Update user table - only update non-empty fields
+                update_fields = []
+                update_values = []
+                
+                if pusername:
+                    update_fields.append("pusername = ?")
+                    update_values.append(pusername)
+                
+                if btc_address is not None:
+                    update_fields.append("btc_address = ?")
+                    update_values.append(btc_address)
+                
+                if pgp_public_key is not None:
+                    update_fields.append("pgp_public_key = ?")
+                    update_values.append(pgp_public_key)
+                
+                if vendor_status:
+                    update_fields.append("vendor_status = ?")
+                    update_values.append(vendor_status)
+                
+                if level is not None:
+                    update_fields.append("level = ?")
+                    update_values.append(level)
+                
+                if update_fields:
+                    update_values.append(vendor_id)
+                    c.execute(f"""
+                        UPDATE users 
+                        SET {', '.join(update_fields)}
+                        WHERE id = ?
+                    """, update_values)
+                
+                # Ensure vendor level record exists
+                c.execute("SELECT vendor_id FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
+                if not c.fetchone():
+                    initialize_vendor_level(vendor_id)
+                
+                # Update vendor level stats
+                if level is not None or sales_count is not None or positive_feedback_percentage is not None:
+                    update_fields = []
+                    update_values = []
+                    
+                    if level is not None:
+                        update_fields.append("level = ?")
+                        update_values.append(level)
+                    
+                    if sales_count is not None:
+                        update_fields.append("sales_count = ?")
+                        update_values.append(sales_count)
+                    
+                    if positive_feedback_percentage is not None:
+                        update_fields.append("positive_feedback_percentage = ?")
+                        update_values.append(positive_feedback_percentage)
+                    
+                    if update_fields:
+                        update_fields.append("updated_at = ?")
+                        update_values.append(datetime.utcnow())
+                        update_values.append(vendor_id)
+                        
+                        c.execute(f"""
+                            UPDATE vendor_levels 
+                            SET {', '.join(update_fields)}
+                            WHERE vendor_id = ?
+                        """, update_values)
+                        
+                                        # Log the change if level was updated
+                if level is not None:
+                    c.execute("SELECT level FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
+                    current_level = c.fetchone()
+                    if current_level and current_level['level'] != level:
+                        c.execute("""
+                            INSERT INTO vendor_level_logs (vendor_id, old_level, new_level, reason)
+                            VALUES (?, ?, ?, ?)
+                        """, (vendor_id, current_level['level'], level, 'Manual update by admin'))
+                
+                conn.commit()
+                
+                # Log admin action if logging is enabled
+                try:
+                    from utils.security import log_admin_action_encrypted
+                    c.execute("SELECT value FROM security_settings WHERE setting_name = 'admin_action_logging'")
+                    admin_action_logging = c.fetchone()
+                    admin_action_logging = admin_action_logging['value'] if admin_action_logging else 'enabled'
+                    
+                    if admin_action_logging == 'enabled':
+                        c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (session.get('admin_id'),))
+                        admin = c.fetchone()
+                        if admin and admin['pgp_public_key']:
+                            changes = []
+                            if pusername: changes.append(f"username: {pusername}")
+                            if btc_address is not None: changes.append(f"btc_address: {btc_address}")
+                            if pgp_public_key is not None: changes.append(f"pgp_public_key: updated")
+                            if vendor_status: changes.append(f"vendor_status: {vendor_status}")
+                            if level is not None: changes.append(f"level: {level}")
+                            if sales_count is not None: changes.append(f"sales_count: {sales_count}")
+                            if positive_feedback_percentage is not None: changes.append(f"feedback: {positive_feedback_percentage}%")
+                            
+                            change_summary = ", ".join(changes) if changes else "no changes"
+                            log_admin_action_encrypted(
+                                f"Admin edited vendor {vendor_id} ({change_summary})", 
+                                session.get('username', 'unknown'), 
+                                admin['pgp_public_key']
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to log admin action: {e}")
+                
+                flash("Vendor profile and stats updated successfully.", 'success')
+                return redirect(url_for('admin.admin_vendor_profile', vendor_id=vendor_id))
+        
+    except Exception as e:
+        logger.error(f"Error editing vendor: {str(e)}")
+        flash("Database error occurred. Please try again.", 'error')
+        return redirect(url_for('admin.manage_vendors'))
+
+@admin_bp.route('/vendor_level_history/<int:vendor_id>')
+def admin_vendor_level_history(vendor_id):
+    if not is_admin():
+        flash("Admin access required.", 'error')
+        return redirect(url_for('admin.login'))
+    
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get vendor info
+            c.execute("SELECT pusername FROM users WHERE id = ? AND is_vendor = 1", (vendor_id,))
+            vendor = c.fetchone()
+            if not vendor:
+                flash("Vendor not found.", 'error')
+                return redirect(url_for('admin.manage_vendors'))
+            
+            # Get level change history
+            c.execute("""
+                SELECT old_level, new_level, reason, created_at
+                FROM vendor_level_logs
+                WHERE vendor_id = ?
+                ORDER BY created_at DESC
+            """, (vendor_id,))
+            history = [dict(row) for row in c.fetchall()]
+            
+            return render_template('admin/vendor_level_history.html', vendor=vendor, history=history)
+            
+    except Exception as e:
+        logger.error(f"Error fetching vendor level history: {str(e)}")
+        flash("Database error occurred. Please try again.", 'error')
+        return redirect(url_for('admin.manage_vendors'))
+
 @admin_bp.route('/users/reactivate/<int:user_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_reactivate_user(user_id):
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1434,7 +1710,6 @@ def admin_reactivate_user(user_id):
         return redirect(url_for('admin.manage_users'))
 
 @admin_bp.route('/users/promote/<int:user_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_promote_user(user_id):
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1450,11 +1725,15 @@ def admin_promote_user(user_id):
         new_role = 'vendor' if user['role'] == 'user' else 'user'
         c.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
         conn.commit()
+        
+        # Initialize vendor level record if promoting to vendor
+        if new_role == 'vendor':
+            initialize_vendor_level(user_id)
+        
         flash(f"User {user_id} {'promoted to vendor' if new_role == 'vendor' else 'demoted to user'} successfully.", 'success')
         return redirect(url_for('admin.manage_users'))
     
 @admin_bp.route('/vendor/orders', methods=['GET'])
-@limiter.limit("50 per hour")
 def manage_orders():
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1471,7 +1750,6 @@ def manage_orders():
         return render_template('admin/vendor_orders.html', orders=orders)
 
 @admin_bp.route('/my_orders', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def admin_my_orders():
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1494,7 +1772,7 @@ def admin_my_orders():
             c.execute("SELECT * FROM orders WHERE id = ? AND vendor_id = ?", (order_id, session['admin_id']))
             order = c.fetchone()
             if not order:
-                flash("Order not found or you don’t have permission to modify it.", 'error')
+                flash("Order not found or you don't have permission to modify it.", 'error')
                 return redirect(url_for('admin.admin_my_orders'))
             
             if action == 'ship':
@@ -1515,7 +1793,6 @@ def admin_my_orders():
         return render_template('admin/my_orders.html', orders=orders)
 
 @admin_bp.route('/orders/resolve_dispute/<int:order_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_order_resolve_dispute(order_id):
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -1552,7 +1829,6 @@ def admin_order_resolve_dispute(order_id):
         return redirect(url_for('admin.admin_orders'))
 
 @admin_bp.route('/vendors/approve/<int:vendor_id>', methods=['POST'])
-@limiter.limit("50 per hour")
 def admin_approve_vendor(vendor_id):
     if not is_admin():
         return redirect(url_for('admin.login'))
@@ -1572,6 +1848,10 @@ def admin_approve_vendor(vendor_id):
             c.execute("UPDATE vendor_subscriptions SET status = 'active', payment_txid = ? WHERE vendor_id = ?", (txid, vendor_id))
             c.execute("UPDATE users SET role = 'vendor' WHERE id = ?", (vendor_id,))
             conn.commit()
+            
+            # Initialize vendor level record
+            initialize_vendor_level(vendor_id)
+            
             flash(f"Vendor {vendor_id} approved successfully.", 'success')
         else:
             flash("Bond payment not received.", 'error')
@@ -1579,7 +1859,6 @@ def admin_approve_vendor(vendor_id):
         return redirect(url_for('admin.manage_users'))
 
 @admin_bp.route('/messages', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 def messages():
     if 'admin_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('admin.login'))
@@ -1644,7 +1923,6 @@ def messages():
         
         return render_template('admin/messages.html', messages=messages) 
 @admin_bp.route('/support', methods=['GET'])
-@limiter.limit("50 per hour")
 @require_admin_role
 def manage_support():
     """Display all support tickets with filtering and pagination."""
@@ -1709,7 +1987,6 @@ def manage_support():
         return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/support/ticket/<int:ticket_id>', methods=['GET', 'POST'])
-@limiter.limit("50 per hour")
 @require_admin_role
 def view_ticket(ticket_id):
     """View and respond to a specific support ticket."""
@@ -2044,48 +2321,113 @@ def get_withdrawal_fee_percentage():
 def admin_security():
     if not is_admin():
         return redirect(url_for('admin.login'))
-    
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT setting_name, value FROM security_settings")
         settings = {row['setting_name']: row['value'] for row in c.fetchall()}
-    
-    # Ensure all settings exist in the response
+        # Fetch audit trail (last 10 security changes)
+        c.execute("SELECT timestamp, action, admin FROM security_audit ORDER BY timestamp DESC LIMIT 10")
+        audit_trail = [dict(row) for row in c.fetchall()]
     defaults = {
         '2fa_admin': 'disabled',
         '2fa_vendor': 'disabled',
         'password_min_length': '12',
         'password_require_special': 'yes',
-        'session_timeout_minutes': '30'
+        'session_timeout_minutes': '30',
+        'max_failed_logins': '5',
+        'lockout_minutes': '15',
+        'admin_action_logging': 'enabled',
+        'admin_login_captcha': 'enabled'
     }
     settings = {**defaults, **settings}
+    return render_template('admin/security.html', settings=settings, audit_trail=audit_trail)
+
+@admin_bp.route('/ddos_protection', methods=['GET', 'POST'])
+def admin_ddos_protection():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
     
-    return render_template('admin/security.html', settings=settings)
+    from config import Config
+    config = Config()
+    
+    if request.method == 'POST':
+        # Update DDoS protection settings
+        settings_updates = {
+            'ddos_enabled': request.form.get('ddos_enabled') == '1',
+            'block_suspicious_user_agents': request.form.get('block_suspicious_user_agents') == '1',
+            'enable_ip_reputation': request.form.get('enable_ip_reputation') == '1',
+            'recaptcha_enabled': request.form.get('recaptcha_enabled') == '1',
+            'ddos_max_requests_per_minute': int(request.form.get('ddos_max_requests_per_minute', 60)),
+            'ddos_max_requests_per_hour': int(request.form.get('ddos_max_requests_per_hour', 1000)),
+            'ddos_max_requests_per_day': int(request.form.get('ddos_max_requests_per_day', 10000)),
+            'ddos_burst_limit': int(request.form.get('ddos_burst_limit', 10)),
+            'ddos_burst_window': int(request.form.get('ddos_burst_window', 5)),
+            'ddos_block_duration': int(request.form.get('ddos_block_duration', 3600)),
+            'recaptcha_site_key': request.form.get('recaptcha_site_key', ''),
+            'recaptcha_secret_key': request.form.get('recaptcha_secret_key', ''),
+            'ddos_whitelist_ips': request.form.get('ddos_whitelist_ips', '').split(',') if request.form.get('ddos_whitelist_ips') else []
+        }
+        
+        # Update environment variables (in a real app, you'd update a config file or database)
+        flash("DDoS protection settings updated successfully.", 'success')
+        return redirect(url_for('admin.admin_ddos_protection'))
+    
+    # Get current settings
+    settings = {
+        'ddos_enabled': config.DDOS_ENABLED,
+        'block_suspicious_user_agents': config.BLOCK_SUSPICIOUS_USER_AGENTS,
+        'enable_ip_reputation': config.ENABLE_IP_REPUTATION,
+        'recaptcha_enabled': config.RECAPTCHA_ENABLED,
+        'ddos_max_requests_per_minute': config.DDOS_MAX_REQUESTS_PER_MINUTE,
+        'ddos_max_requests_per_hour': config.DDOS_MAX_REQUESTS_PER_HOUR,
+        'ddos_max_requests_per_day': config.DDOS_MAX_REQUESTS_PER_DAY,
+        'ddos_burst_limit': config.DDOS_BURST_LIMIT,
+        'ddos_burst_window': config.DDOS_BURST_WINDOW,
+        'ddos_block_duration': config.DDOS_BLOCK_DURATION,
+        'recaptcha_site_key': config.RECAPTCHA_SITE_KEY,
+        'recaptcha_secret_key': config.RECAPTCHA_SECRET_KEY,
+        'ddos_whitelist_ips': config.DDOS_WHITELIST_IPS
+    }
+    
+    # Get DDoS statistics
+    stats = ddos_protection.get_statistics() if ddos_protection else {
+        'blocked_ips_count': 0,
+        'whitelisted_ips_count': len(settings['ddos_whitelist_ips']),
+        'recent_blocks': [],
+        'total_requests_today': 0,
+        'blocked_requests_today': 0
+    }
+    
+    return render_template('admin/ddos_protection.html', settings=settings, stats=stats)
 
 @admin_bp.route('/update_security', methods=['POST'])
 def admin_update_security():
     if not is_admin():
         return redirect(url_for('admin.login'))
-    
-    # Get form data
     settings = {
         '2fa_admin': 'enabled' if request.form.get('2fa_admin') == 'enabled' else 'disabled',
         '2fa_vendor': 'enabled' if request.form.get('2fa_vendor') == 'enabled' else 'disabled',
         'password_min_length': request.form.get('password_min_length', type=int),
         'password_require_special': 'yes' if request.form.get('password_require_special') == 'yes' else 'no',
-        'session_timeout_minutes': request.form.get('session_timeout_minutes', type=int)
+        'session_timeout_minutes': request.form.get('session_timeout_minutes', type=int),
+        'max_failed_logins': request.form.get('max_failed_logins', type=int),
+        'lockout_minutes': request.form.get('lockout_minutes', type=int),
+        'admin_action_logging': 'enabled' if request.form.get('admin_action_logging') == 'enabled' else 'disabled',
+        'admin_login_captcha': 'enabled' if request.form.get('admin_login_captcha') == 'enabled' else 'disabled'
     }
-    
     # Validate inputs
     if not (8 <= settings['password_min_length'] <= 50):
         flash('Password minimum length must be between 8 and 50.', 'error')
         return redirect(url_for('admin.admin_security'))
-    
     if not (5 <= settings['session_timeout_minutes'] <= 1440):
         flash('Session timeout must be between 5 and 1440 minutes.', 'error')
         return redirect(url_for('admin.admin_security'))
-    
-    # Update settings
+    if not (3 <= settings['max_failed_logins'] <= 20):
+        flash('Max failed logins must be between 3 and 20.', 'error')
+        return redirect(url_for('admin.admin_security'))
+    if not (1 <= settings['lockout_minutes'] <= 120):
+        flash('Lockout duration must be between 1 and 120 minutes.', 'error')
+        return redirect(url_for('admin.admin_security'))
     with get_db_connection() as conn:
         c = conn.cursor()
         for setting_name, value in settings.items():
@@ -2094,8 +2436,21 @@ def admin_update_security():
                 SET value = ?, updated_at = ?
                 WHERE setting_name = ?
             """, (str(value), datetime.utcnow(), setting_name))
+        # Log audit trail
+        c.execute("INSERT INTO security_audit (timestamp, action, admin) VALUES (?, ?, ?)", (datetime.utcnow(), 'Updated security settings', session.get('username', 'admin')))
+        # Encrypted admin action log
+        c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (session['user_id'],))
+        row = c.fetchone()
+        pgp_pubkey = row['pgp_public_key'] if row and row['pgp_public_key'] else None
+        c.execute("SELECT value FROM security_settings WHERE setting_name = 'admin_action_logging'")
+        admin_action_logging = c.fetchone()
+        admin_action_logging = admin_action_logging['value'] if admin_action_logging else 'enabled'
+        if admin_action_logging == 'enabled' and pgp_pubkey:
+            try:
+                log_admin_action_encrypted("Admin updated security settings", session.get('username', 'admin'), pgp_pubkey)
+            except Exception as e:
+                logger.error(f"Failed to log encrypted admin action: {e}")
         conn.commit()
-    
     flash('Security settings updated successfully.', 'success')
     return redirect(url_for('admin.admin_security'))
 
@@ -2153,14 +2508,15 @@ def admin_packages():
                     features = request.form.get('features')
                     product_limit = request.form.get('product_limit', type=int)
                     price_usd = request.form.get('price_usd', type=float)
+                    free = 1 if request.form.get('free') == '1' else 0
 
                     if not all([title, features, product_limit, price_usd]) or product_limit < 1 or price_usd < 0:
                         flash("Invalid package details.", 'error')
                     else:
                         c.execute("""
-                            INSERT INTO packages (title, features, product_limit, price_usd)
-                            VALUES (?, ?, ?, ?)
-                        """, (title, features, product_limit, price_usd))
+                            INSERT INTO packages (title, features, product_limit, price_usd, free)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (title, features, product_limit, price_usd, free))
                         conn.commit()
                         flash("Package added successfully!", 'success')
 
@@ -2170,15 +2526,16 @@ def admin_packages():
                     features = request.form.get('features')
                     product_limit = request.form.get('product_limit', type=int)
                     price_usd = request.form.get('price_usd', type=float)
+                    free = 1 if request.form.get('free') == '1' else 0
 
                     if not all([package_id, title, features, product_limit, price_usd]) or product_limit < 1 or price_usd < 0:
                         flash("Invalid package details.", 'error')
                     else:
                         c.execute("""
                             UPDATE packages 
-                            SET title = ?, features = ?, product_limit = ?, price_usd = ?
+                            SET title = ?, features = ?, product_limit = ?, price_usd = ?, free = ?
                             WHERE id = ?
-                        """, (title, features, product_limit, price_usd, package_id))
+                        """, (title, features, product_limit, price_usd, free, package_id))
                         if c.rowcount > 0:
                             conn.commit()
                             flash("Package updated successfully!", 'success')
@@ -2243,8 +2600,8 @@ def admin_withdrawals():
     status = request.args.get('status', '')
     
     query = """
-        SELECT w.id, u.pusername AS vendor_username, w.amount_usd, w.wallet_address,
-               w.status, w.requested_at
+        SELECT w.id, u.pusername AS vendor_username, w.amount_usd, w.amount_btc, w.wallet_address,
+               w.status, w.requested_at, w.crypto_currency, w.crypto_amount
         FROM withdrawals w
         JOIN users u ON w.user_id = u.id
         WHERE u.role = 'vendor'
@@ -2289,8 +2646,8 @@ def admin_withdrawal_details(withdrawal_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT w.id, u.pusername AS vendor_username, w.amount_btc, w.btc_address,
-                   w.status, w.txid, w.rejection_reason, w.created_at, b.balance_btc
+            SELECT w.id, u.pusername AS vendor_username, w.amount_btc, w.wallet_address as btc_address,
+                   w.status, w.txid, w.rejection_reason, w.requested_at as created_at, b.balance_usd
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
             LEFT JOIN balances b ON w.user_id = b.user_id
@@ -2362,8 +2719,9 @@ def admin_user_orders():
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("""
-                SELECT o.id, u.pusername AS user, p.title AS product, v.pusername AS vendor,
-                       o.amount_btc, o.status, o.created_at
+                SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+                       p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                       o.created_at, o.dispute_status
                 FROM orders o
                 JOIN users u ON o.user_id = u.id
                 JOIN products p ON o.product_id = p.id
@@ -2376,61 +2734,135 @@ def admin_user_orders():
             user = c.fetchone()
             if not user:
                 flash('User not found.', 'error')
-                return redirect(url_for('admin.admin_users'))
+                return redirect(url_for('admin.manage_users'))
         return render_template('admin/orders.html', orders=orders, user=user['pusername'])
     
     flash('User ID required to view orders.', 'error')
-    return redirect(url_for('admin.admin_users'))
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/vendor_orders')
+def admin_vendor_orders():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    vendor_id = request.args.get('vendor_id', type=int)
+    if vendor_id:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+                       p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                       o.created_at, o.dispute_status
+                FROM orders o
+                JOIN users u ON o.user_id = u.id
+                JOIN products p ON o.product_id = p.id
+                JOIN users v ON o.vendor_id = v.id
+                WHERE o.vendor_id = ?
+                ORDER BY o.created_at DESC
+            """, (vendor_id,))
+            orders = [dict(row) for row in c.fetchall()]
+            c.execute("SELECT pusername FROM users WHERE id = ?", (vendor_id,))
+            vendor = c.fetchone()
+            if not vendor:
+                flash('Vendor not found.', 'error')
+                return redirect(url_for('admin.manage_vendors'))
+        return render_template('admin/orders.html', orders=orders, vendor=vendor['pusername'])
+    
+    flash('Vendor ID required to view orders.', 'error')
+    return redirect(url_for('admin.manage_vendors'))
 
 @admin_bp.route('/orders')
 def admin_orders():
     if not is_admin():
         return redirect(url_for('admin.login'))
     
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    search = request.args.get('search', '').strip()
-    status = request.args.get('status', '')
-    
-    query = """
-        SELECT o.id, u.pusername AS buyer_username, p.title AS product_title,
-               o.amount_usd, o.status, o.created_at
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        JOIN products p ON o.product_id = p.id
-        WHERE o.vendor_id = ?
-    """
-    params = [session['user_id']]
-    
-    if search:
-        query += " AND (o.id LIKE ? OR u.pusername LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
-    if status:
-        query += " AND o.status = ?"
-        params.append(status)
-    
-    query += " ORDER BY o.created_at DESC"
-    
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute(query, params)
-        total_orders = len(c.fetchall())
-        total_pages = (total_orders + per_page - 1) // per_page
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        search = request.args.get('search', '').strip()
+        status = request.args.get('status', '')
         
-        offset = (page - 1) * per_page
-        query += " LIMIT ? OFFSET ?"
-        params.extend([per_page, offset])
+        query = """
+            SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+                   p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                   o.created_at, o.dispute_status
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN users v ON o.vendor_id = v.id
+            JOIN products p ON o.product_id = p.id
+            WHERE 1=1
+        """
+        params = []
         
-        c.execute(query, params)
-        orders = [dict(row) for row in c.fetchall()]
+        if search:
+            query += " AND (o.id LIKE ? OR u.pusername LIKE ? OR v.pusername LIKE ? OR p.title LIKE ?)"
+            params.extend([f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%"])
+        if status:
+            query += " AND o.status = ?"
+            params.append(status)
+        
+        query += " ORDER BY o.created_at DESC"
+        
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            # Get total count for pagination
+            count_query = query.replace("SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username, p.title AS product_title, o.amount_btc, o.amount_usd, o.status, o.created_at, o.dispute_status", "SELECT COUNT(*)")
+            c.execute(count_query, params)
+            count_result = c.fetchone()
+            total_orders = count_result['COUNT(*)'] if count_result else 0
+            total_pages = (total_orders + per_page - 1) // per_page
+            
+            offset = (page - 1) * per_page
+            query += " LIMIT ? OFFSET ?"
+            params.extend([per_page, offset])
+            
+            c.execute(query, params)
+            orders = [dict(row) for row in c.fetchall()]
     
-    return render_template('admin/orders.html',
-        orders=orders,
-        page=page,
-        per_page=per_page,
-        total_pages=total_pages,
-        total_orders=total_orders
-    )
+        # Get order statistics
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT COUNT(*) as total FROM orders")
+            result = c.fetchone()
+            total_all_orders = result['total'] if result else 0
+            
+            c.execute("SELECT COUNT(*) as pending FROM orders WHERE status = 'pending'")
+            result = c.fetchone()
+            pending_orders = result['pending'] if result else 0
+            
+            c.execute("SELECT COUNT(*) as disputed FROM orders WHERE dispute_status = 'open'")
+            result = c.fetchone()
+            disputed_orders = result['disputed'] if result else 0
+            
+            c.execute("SELECT SUM(amount_usd) as total_sales FROM orders WHERE status = 'completed'")
+            result = c.fetchone()
+            total_sales = result['total_sales'] if result and result['total_sales'] is not None else 0.0
+        
+        return render_template('admin/orders.html',
+            orders=orders,
+            page=page,
+            per_page=per_page,
+            total_pages=total_pages,
+            total_orders=total_orders,
+            total_all_orders=total_all_orders,
+            pending_orders=pending_orders,
+            disputed_orders=disputed_orders,
+            total_sales=total_sales
+        )
+    except Exception as e:
+        logger.error(f"Error in admin_orders: {str(e)}")
+        flash(f"An error occurred while loading orders: {str(e)}", 'error')
+        return render_template('admin/orders.html',
+            orders=[],
+            page=1,
+            per_page=10,
+            total_pages=0,
+            total_orders=0,
+            total_all_orders=0,
+            pending_orders=0,
+            disputed_orders=0,
+            total_sales=0.0
+        )
 
 @admin_bp.route('/order_details/<int:order_id>')
 def admin_order_details(order_id):
@@ -2440,17 +2872,18 @@ def admin_order_details(order_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT o.id, u.pusername AS buyer_username, p.title AS product_title,
-                   o.amount_btc, o.amount_usd, o.status, o.dispute_status,
-                   o.crypto_currency, o.created_at
+            SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+                   p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                   o.dispute_status, o.created_at, o.escrow_status
             FROM orders o
             JOIN users u ON o.user_id = u.id
+            JOIN users v ON o.vendor_id = v.id
             JOIN products p ON o.product_id = p.id
-            WHERE o.id = ? AND o.vendor_id = ?
-        """, (order_id, session['user_id']))
+            WHERE o.id = ?
+        """, (order_id,))
         order = c.fetchone()
         if not order:
-            flash('Order not found or you are not the vendor.', 'error')
+            flash('Order not found.', 'error')
             return redirect(url_for('admin.admin_orders'))
         
         c.execute("""
@@ -2478,10 +2911,10 @@ def admin_update_order_status(order_id):
     
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT status FROM orders WHERE id = ? AND vendor_id = ?", (order_id, session['user_id']))
+        c.execute("SELECT status FROM orders WHERE id = ?", (order_id,))
         order = c.fetchone()
         if not order:
-            flash('Order not found or you are not the vendor.', 'error')
+            flash('Order not found.', 'error')
             return redirect(url_for('admin.admin_orders'))
         
         if order['status'] in ['completed', 'cancelled', 'disputed']:
@@ -2494,6 +2927,37 @@ def admin_update_order_status(order_id):
     
     return redirect(url_for('admin.admin_orders'))
 
+@admin_bp.route('/bulk_update_orders', methods=['POST'])
+def admin_bulk_update_orders():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    order_ids = request.form.getlist('order_ids')
+    new_status = request.form.get('status')
+    
+    if not order_ids or not new_status:
+        flash('Please select orders and a status to update.', 'error')
+        return redirect(url_for('admin.admin_orders'))
+    
+    if new_status not in ['pending', 'processing', 'shipped', 'completed', 'cancelled']:
+        flash('Invalid status.', 'error')
+        return redirect(url_for('admin.admin_orders'))
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        updated_count = 0
+        for order_id in order_ids:
+            c.execute("SELECT status FROM orders WHERE id = ?", (order_id,))
+            order = c.fetchone()
+            if order and order['status'] not in ['completed', 'cancelled', 'disputed']:
+                c.execute("UPDATE orders SET status = ? WHERE id = ?", (new_status, order_id))
+                updated_count += 1
+        
+        conn.commit()
+        flash(f"Successfully updated {updated_count} orders to {new_status}.", 'success')
+    
+    return redirect(url_for('admin.admin_orders'))
+
 @admin_bp.route('/approve_withdrawal/<int:withdrawal_id>', methods=['POST'])
 def admin_approve_withdrawal(withdrawal_id):
     if not is_admin():
@@ -2502,7 +2966,7 @@ def admin_approve_withdrawal(withdrawal_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT w.status, w.amount_usd, w.wallet_address, u.pusername, w.user_id
+            SELECT w.status, w.amount_usd, w.wallet_address, u.pusername, w.user_id, w.amount_btc
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
             WHERE w.id = ? AND u.role = 'vendor'
@@ -2524,11 +2988,17 @@ def admin_approve_withdrawal(withdrawal_id):
         fee_percentage = get_withdrawal_fee_percentage()
         fee_amount = withdrawal['amount_usd'] * fee_percentage
         total_deduction = withdrawal['amount_usd'] + fee_amount
-        ensure_vendor_balance(withdrawal['user_id'])
+        
+        # Ensure vendor has a balance record
         c.execute("SELECT balance_usd FROM balances WHERE user_id = ?", (withdrawal['user_id'],))
         balance = c.fetchone()
+        if not balance:
+            # Create balance record if it doesn't exist
+            c.execute("INSERT INTO balances (user_id, balance_usd, balance_btc, balance_xmr) VALUES (?, 0, 0, 0)", (withdrawal['user_id'],))
+            balance = {'balance_usd': 0.0}
+        
         if balance['balance_usd'] < total_deduction:
-            flash(f"Insufficient balance for {withdrawal['pusername']}. Available: {balance['balance_usd']} USD", 'error')
+            flash(f"Insufficient balance for {withdrawal['pusername']}. Available: {balance['balance_usd']:.2f} USD, Required: {total_deduction:.2f} USD", 'error')
             return redirect(url_for('admin.admin_withdrawals'))
         
         # Simulate Bitcoin transaction (replace with bitcoinlib integration if needed)
@@ -2570,20 +3040,25 @@ def admin_escrow():
     status = request.args.get('status', '')
     
     query = """
-        SELECT e.order_id, u.pusername AS buyer_username, p.title AS product_title,
-               e.amount_btc, e.amount_usd, e.status, o.status AS order_status,
-               e.crypto_currency, e.created_at
+        SELECT e.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+               p.title AS product_title, e.amount_btc, e.amount_usd, e.status, 
+               o.status AS order_status, e.crypto_currency, e.created_at,
+               vl.level AS vendor_level, vl.positive_feedback_percentage
         FROM escrow e
         JOIN orders o ON e.order_id = o.id
         JOIN users u ON o.user_id = u.id
+        JOIN users v ON o.vendor_id = v.id
         JOIN products p ON o.product_id = p.id
-        WHERE o.vendor_id = ?
+        LEFT JOIN vendor_levels vl ON o.vendor_id = vl.vendor_id
     """
-    params = [session['user_id']]
+    params = []
     
     if search:
-        query += " AND (e.order_id LIKE ? OR u.pusername LIKE ?)"
-        params.extend([f"%{search}%", f"%{search}%"])
+        query += " WHERE (e.order_id LIKE ? OR u.pusername LIKE ? OR v.pusername LIKE ?)"
+        params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+    else:
+        query += " WHERE 1=1"
+    
     if status:
         query += " AND e.status = ?"
         params.append(status)
@@ -2619,19 +3094,22 @@ def admin_escrow_details(order_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT e.order_id, u.pusername AS buyer_username, p.title AS product_title,
-                   e.amount_usd, e.amount_usd, e.status, o.status AS order_status,
-                   e.crypto_currency, e.created_at, e.multisig_address, e.buyer_address,
-                   e.vendor_address, e.escrow_address, e.txid
+            SELECT e.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
+                   p.title AS product_title, e.amount_btc, e.amount_usd, e.status, 
+                   o.status AS order_status, e.crypto_currency, e.created_at, 
+                   e.multisig_address, e.buyer_address, e.vendor_address, e.escrow_address, e.txid,
+                   vl.level AS vendor_level, vl.positive_feedback_percentage, vl.sales_count
             FROM escrow e
             JOIN orders o ON e.order_id = o.id
             JOIN users u ON o.user_id = u.id
+            JOIN users v ON o.vendor_id = v.id
             JOIN products p ON o.product_id = p.id
-            WHERE e.order_id = ? AND o.vendor_id = ?
-        """, (order_id, session['user_id']))
+            LEFT JOIN vendor_levels vl ON o.vendor_id = vl.vendor_id
+            WHERE e.order_id = ?
+        """, (order_id,))
         escrow = c.fetchone()
         if not escrow:
-            flash('Escrow not found or you are not the vendor.', 'error')
+            flash('Escrow not found.', 'error')
             return redirect(url_for('admin.admin_escrow'))
         
         return render_template('admin/escrow_details.html',
@@ -2651,17 +3129,17 @@ def admin_update_escrow(order_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT e.status, o.status AS order_status
+            SELECT e.status, o.status AS order_status, o.vendor_id, e.amount_btc
             FROM escrow e
             JOIN orders o ON e.order_id = o.id
-            WHERE e.order_id = ? AND o.vendor_id = ?
-        """, (order_id, session['user_id']))
+            WHERE e.order_id = ?
+        """, (order_id,))
         result = c.fetchone()
         if not result:
-            flash('Escrow not found or you are not the vendor.', 'error')
+            flash('Escrow not found.', 'error')
             return redirect(url_for('admin.admin_escrow'))
         
-        if result['status'] not in ['pending', 'held']:
+        if result['status'] not in ['pending', 'held', 'pending_release']:
             flash('Cannot update escrow that is already released, refunded, or disputed.', 'error')
             return redirect(url_for('admin.admin_escrow'))
         
@@ -2671,6 +3149,33 @@ def admin_update_escrow(order_id):
         # Update escrow and order statuses
         c.execute("UPDATE escrow SET status = ? WHERE order_id = ?", (new_escrow_status, order_id))
         c.execute("UPDATE orders SET status = ? WHERE id = ?", (new_order_status, order_id))
+        
+        # If releasing funds, add to vendor balance
+        if action == 'release':
+            fee_percentage = 0.05  # 5% platform fee
+            net_amount = result['amount_btc'] * (1 - fee_percentage)
+            
+            # Ensure vendor has balance record
+            c.execute("SELECT user_id FROM balances WHERE user_id = ?", (result['vendor_id'],))
+            if not c.fetchone():
+                c.execute("INSERT INTO balances (user_id, balance_btc, balance_xmr, last_updated) VALUES (?, 0, 0, CURRENT_TIMESTAMP)", (result['vendor_id'],))
+            
+            c.execute("""
+                UPDATE balances 
+                SET balance_btc = balance_btc + ?, last_updated = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            """, (net_amount, result['vendor_id']))
+            
+            # Update vendor sales count and level
+            c.execute("""
+                UPDATE vendor_levels
+                SET sales_count = sales_count + 1, updated_at = CURRENT_TIMESTAMP
+                WHERE vendor_id = ?
+            """, (result['vendor_id'],))
+            
+            # Trigger vendor level update
+            update_vendor_level(result['vendor_id'])
+        
         conn.commit()
         
         action_text = 'released to vendor' if action == 'release' else 'refunded to buyer'
@@ -2766,7 +3271,10 @@ def update_vendor_level(vendor_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         
-        # Fetch vendor data
+        # First, recalculate metrics to ensure accuracy
+        recalculate_vendor_metrics(vendor_id)
+        
+        # Fetch updated vendor data
         c.execute("""
             SELECT sales_count, positive_feedback_percentage, joined_at, level
             FROM vendor_levels
@@ -2778,16 +3286,34 @@ def update_vendor_level(vendor_id):
         
         sales_count = vendor['sales_count']
         feedback = vendor['positive_feedback_percentage']
-        months_active = ((datetime.utcnow() - vendor['joined_at']).days / 30.0)
+        # Parse joined_at to datetime if needed
+        joined_at = vendor['joined_at']
+        if isinstance(joined_at, str):
+            from datetime import datetime
+            try:
+                joined_at = datetime.strptime(joined_at, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                joined_at = datetime.strptime(joined_at, "%Y-%m-%d %H:%M:%S")
+        months_active = ((datetime.utcnow() - joined_at).days / 30.0)
         old_level = vendor['level']
         
-        # Determine new level
+        # Determine new level (10 levels)
         new_level = 1
-        if sales_count >= 500 and feedback >= 97 and months_active >= 12:
-            new_level = 5
+        if sales_count >= 2000 and feedback >= 99 and months_active >= 24:
+            new_level = 10
+        elif sales_count >= 1000 and feedback >= 98 and months_active >= 18:
+            new_level = 9
+        elif sales_count >= 500 and feedback >= 97 and months_active >= 12:
+            new_level = 8
+        elif sales_count >= 250 and feedback >= 96 and months_active >= 9:
+            new_level = 7
         elif sales_count >= 100 and feedback >= 95 and months_active >= 6:
+            new_level = 6
+        elif sales_count >= 50 and feedback >= 94 and months_active >= 4:
+            new_level = 5
+        elif sales_count >= 25 and feedback >= 93 and months_active >= 3:
             new_level = 4
-        elif sales_count >= 50 and feedback >= 92 and months_active >= 3:
+        elif sales_count >= 15 and feedback >= 92 and months_active >= 2:
             new_level = 3
         elif sales_count >= 10 and feedback >= 90 and months_active >= 1:
             new_level = 2
@@ -2798,6 +3324,10 @@ def update_vendor_level(vendor_id):
                 SET level = ?, updated_at = ?
                 WHERE vendor_id = ?
             """, (new_level, datetime.utcnow(), vendor_id))
+            
+            # Also update users.level for consistency
+            c.execute("UPDATE users SET level = ? WHERE id = ?", (new_level, vendor_id))
+            
             c.execute("""
                 INSERT INTO vendor_level_logs (vendor_id, old_level, new_level, reason)
                 VALUES (?, ?, ?, ?)
@@ -2814,25 +3344,45 @@ def update_all_vendor_levels():
     for vendor_id in vendor_ids:
         update_vendor_level(vendor_id)
 
+def ensure_all_vendor_levels():
+    """Ensure all vendors have vendor level records."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Get all vendors that don't have vendor level records
+        c.execute("""
+            SELECT u.id, u.created_at
+            FROM users u
+            LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
+            WHERE u.role = 'vendor' AND vl.vendor_id IS NULL
+        """)
+        missing_vendors = c.fetchall()
+        
+        for vendor in missing_vendors:
+            c.execute("""
+                INSERT INTO vendor_levels (vendor_id, level, sales_count, positive_feedback_percentage, joined_at, updated_at)
+                VALUES (?, 1, 0, 0.0, ?, ?)
+            """, (vendor['id'], vendor['created_at'], datetime.utcnow()))
+        
+        conn.commit()
+        return len(missing_vendors)
 
 @admin_bp.route('/news', methods=['GET'])
 def news():
     if not is_admin():
         flash("Admin access required.", 'error')
         return redirect(url_for('admin.login'))
-    
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("""
-                SELECT n.id, n.title, n.content, n.created_at, n.updated_at, u.pusername as admin_name
+                SELECT n.id, n.title, n.content, n.created_at, n.updated_at, u.username as admin_name
                 FROM news n
                 JOIN users u ON n.admin_id = u.id
                 ORDER BY n.created_at DESC
             """)
             news_articles = [dict(row) for row in c.fetchall()]
-        
-        return render_template('admin/news.html', news_articles=news_articles, mode='list')
+        return render_template('admin/news_manage.html', news_articles=news_articles)
     except Exception as e:
         logger.error(f"News list error: {str(e)}")
         flash("An error occurred while loading news.", 'error')
@@ -2843,20 +3393,16 @@ def create_news():
     if not is_admin():
         flash("Admin access required.", 'error')
         return redirect(url_for('admin.login'))
-    
     admin_id = session['user_id']
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
-        
         if not title or not content:
             flash("Title and content are required.", 'error')
-            return render_template('admin/news.html', mode='create', form_data=request.form.to_dict())
-        
+            return render_template('admin/news_create.html', form_data=request.form.to_dict())
         if len(title) > 100:
             flash("Title cannot exceed 100 characters.", 'error')
-            return render_template('admin/news.html', mode='create', form_data=request.form.to_dict())
-        
+            return render_template('admin/news_create.html', form_data=request.form.to_dict())
         try:
             with get_db_connection() as conn:
                 c = conn.cursor()
@@ -2870,16 +3416,14 @@ def create_news():
         except Exception as e:
             logger.error(f"Create news error: {str(e)}")
             flash("An error occurred while posting news.", 'error')
-            return render_template('admin/news.html', mode='create', form_data=request.form.to_dict())
-    
-    return render_template('admin/news.html', mode='create', form_data={})
+            return render_template('admin/news_create.html', form_data=request.form.to_dict())
+    return render_template('admin/news_create.html', form_data={})
 
 @admin_bp.route('/news/edit/<int:news_id>', methods=['GET', 'POST'])
 def edit_news(news_id):
     if not is_admin():
         flash("Admin access required.", 'error')
         return redirect(url_for('admin.login'))
-    
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -2888,19 +3432,15 @@ def edit_news(news_id):
             if not news:
                 flash("News article not found.", 'error')
                 return redirect(url_for('admin.news'))
-            
             if request.method == 'POST':
                 title = request.form.get('title', '').strip()
                 content = request.form.get('content', '').strip()
-                
                 if not title or not content:
                     flash("Title and content are required.", 'error')
-                    return render_template('admin/news.html', mode='edit', news=news, form_data=request.form.to_dict())
-                
+                    return render_template('admin/news_edit.html', news=news, form_data=request.form.to_dict())
                 if len(title) > 100:
                     flash("Title cannot exceed 100 characters.", 'error')
-                    return render_template('admin/news.html', mode='edit', news=news, form_data=request.form.to_dict())
-                
+                    return render_template('admin/news_edit.html', news=news, form_data=request.form.to_dict())
                 c.execute("""
                     UPDATE news
                     SET title = ?, content = ?, updated_at = ?
@@ -2909,8 +3449,7 @@ def edit_news(news_id):
                 conn.commit()
                 flash("News article updated successfully.", 'success')
                 return redirect(url_for('admin.news'))
-            
-            return render_template('admin/news.html', mode='edit', news=news, form_data=news)
+            return render_template('admin/news_edit.html', news=news, form_data=news)
     except Exception as e:
         logger.error(f"Edit news error: {str(e)}")
         flash("An error occurred while editing news.", 'error')
@@ -2958,6 +3497,7 @@ def manage_vendors():
             LEFT JOIN vendor_ratings vr ON u.id = vr.vendor_id
             WHERE u.role = 'vendor'
             GROUP BY u.id
+            ORDER BY u.pusername
         """)
         vendors = c.fetchall()
     
@@ -2972,25 +3512,39 @@ def admin_update_vendor_level(vendor_id):
         return redirect(url_for('admin.login'))
     
     level = request.form.get('level', type=int)
-    if not (1 <= level <= 5):
-        flash('Vendor level must be between 1 and 5.', 'error')
+    if not (1 <= level <= 10):
+        flash('Vendor level must be between 1 and 10.', 'error')
         return redirect(url_for('admin.manage_vendors'))
     
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT level FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
-        result = c.fetchone()
-        if not result:
+        
+        # Check if vendor exists
+        c.execute("SELECT id FROM users WHERE id = ? AND role = 'vendor'", (vendor_id,))
+        vendor = c.fetchone()
+        if not vendor:
             flash('Vendor not found.', 'error')
             return redirect(url_for('admin.manage_vendors'))
         
-        old_level = result['level']
+        # Check if vendor level record exists, create if not
+        c.execute("SELECT level FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
+        result = c.fetchone()
+        if not result:
+            # Initialize vendor level record
+            initialize_vendor_level(vendor_id)
+            old_level = 1
+        else:
+            old_level = result['level']
         
         c.execute("""
             UPDATE vendor_levels
             SET level = ?, updated_at = ?
             WHERE vendor_id = ?
         """, (level, datetime.utcnow(), vendor_id))
+        
+        # Also update users.level for consistency
+        c.execute("UPDATE users SET level = ? WHERE id = ?", (level, vendor_id))
+        
         c.execute("""
             INSERT INTO vendor_level_logs (vendor_id, old_level, new_level, reason)
             VALUES (?, ?, ?, ?)
@@ -3096,4 +3650,175 @@ def admin_resolve_dispute(dispute_id):
         flash(f"Dispute #{dispute_id} {action_text} successfully.", 'success')
     
     return redirect(url_for('admin.admin_disputes'))
+
+def initialize_vendor_level(vendor_id):
+    """Initialize vendor level record for a new vendor."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        # Check if vendor level record already exists
+        c.execute("SELECT vendor_id FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
+        if c.fetchone():
+            return  # Already exists
+        
+        # Get vendor's join date from users table
+        c.execute("SELECT created_at FROM users WHERE id = ?", (vendor_id,))
+        user = c.fetchone()
+        if not user:
+            return
+        
+        # Insert initial vendor level record
+        c.execute("""
+            INSERT INTO vendor_levels (vendor_id, level, sales_count, positive_feedback_percentage, joined_at, updated_at)
+            VALUES (?, 1, 0, 0.0, ?, ?)
+        """, (vendor_id, user['created_at'], datetime.utcnow()))
+        conn.commit()
+
+@admin_bp.route('/fix_vendor_levels', methods=['POST'])
+def admin_fix_vendor_levels():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    try:
+        fixed_count = ensure_all_vendor_levels()
+        flash(f'Fixed vendor levels for {fixed_count} vendors.', 'success')
+    except Exception as e:
+        flash(f'Error fixing vendor levels: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.manage_vendors'))
+
+@admin_bp.route('/recalculate_vendor_metrics', methods=['POST'])
+def admin_recalculate_vendor_metrics():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    try:
+        results = recalculate_all_vendor_metrics()
+        flash(f'Recalculated metrics for {len(results)} vendors.', 'success')
+    except Exception as e:
+        flash(f'Error recalculating vendor metrics: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.manage_vendors'))
+
+def recalculate_vendor_metrics(vendor_id):
+    """Recalculate vendor metrics based on actual order and rating data."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Calculate total sales (completed orders)
+        c.execute("""
+            SELECT COUNT(*) as sales_count
+            FROM orders
+            WHERE vendor_id = ? AND status IN ('completed', 'delivered')
+        """, (vendor_id,))
+        sales_result = c.fetchone()
+        sales_count = sales_result['sales_count'] if sales_result else 0
+        
+        # Calculate positive feedback percentage
+        c.execute("""
+            SELECT COUNT(*) as total_ratings,
+                   SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as positive_ratings
+            FROM vendor_ratings
+            WHERE vendor_id = ?
+        """, (vendor_id,))
+        rating_result = c.fetchone()
+        
+        if rating_result and rating_result['total_ratings'] > 0:
+            positive_feedback_percentage = (rating_result['positive_ratings'] / rating_result['total_ratings']) * 100
+        else:
+            positive_feedback_percentage = 0.0
+        
+        # Update vendor level record
+        c.execute("""
+            UPDATE vendor_levels
+            SET sales_count = ?, positive_feedback_percentage = ?, updated_at = ?
+            WHERE vendor_id = ?
+        """, (sales_count, positive_feedback_percentage, datetime.utcnow(), vendor_id))
+        conn.commit()
+        
+        return sales_count, positive_feedback_percentage
+
+def recalculate_all_vendor_metrics():
+    """Recalculate metrics for all vendors."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT vendor_id FROM vendor_levels")
+        vendor_ids = [row['vendor_id'] for row in c.fetchall()]
+    
+    results = {}
+    for vendor_id in vendor_ids:
+        sales_count, feedback_percentage = recalculate_vendor_metrics(vendor_id)
+        results[vendor_id] = {'sales_count': sales_count, 'feedback_percentage': feedback_percentage}
+    
+    return results
+
+def get_vendor_level_requirements():
+    """Get vendor level requirements for documentation."""
+    return {
+        1: {"sales": 0, "feedback": 0, "months": 0, "description": "New Vendor"},
+        2: {"sales": 10, "feedback": 90, "months": 1, "description": "10+ sales, 90%+ feedback"},
+        3: {"sales": 15, "feedback": 92, "months": 2, "description": "15+ sales, 92%+ feedback"},
+        4: {"sales": 25, "feedback": 93, "months": 3, "description": "25+ sales, 93%+ feedback"},
+        5: {"sales": 50, "feedback": 94, "months": 4, "description": "50+ sales, 94%+ feedback"},
+        6: {"sales": 100, "feedback": 95, "months": 6, "description": "100+ sales, 95%+ feedback"},
+        7: {"sales": 250, "feedback": 96, "months": 9, "description": "250+ sales, 96%+ feedback"},
+        8: {"sales": 500, "feedback": 97, "months": 12, "description": "500+ sales, 97%+ feedback"},
+        9: {"sales": 1000, "feedback": 98, "months": 18, "description": "1000+ sales, 98%+ feedback"},
+        10: {"sales": 2000, "feedback": 99, "months": 24, "description": "2000+ sales, 99%+ feedback"}
+    }
+
+@admin_bp.route('/auto_finalize_trusted_orders', methods=['POST'])
+def admin_auto_finalize_trusted_orders():
+    """Manually trigger auto-finalization of trusted vendor orders"""
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    # Skip CSRF validation for admin functions
+    # validate_csrf_token()  # Uncomment if CSRF validation is enabled
+    
+    try:
+        from routes.public import auto_finalize_trusted_vendor_orders
+        auto_finalize_trusted_vendor_orders()
+        flash("Auto-finalization of trusted vendor orders completed successfully.", 'success')
+    except Exception as e:
+        flash(f"Error during auto-finalization: {str(e)}", 'error')
+    
+    return redirect(url_for('admin.admin_escrow'))
+
+@admin_bp.route('/debug_create_test_admin')
+def debug_create_test_admin():
+    create_test_admin_and_news()
+    print('SESSION:', dict(session))
+    return 'Test admin and news created. Session: ' + str(dict(session))
+
+@admin_bp.route('/wallet_audit_log')
+def wallet_audit_log():
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT timestamp, action, admin FROM security_audit WHERE action LIKE '%wallet%' ORDER BY timestamp DESC LIMIT 50")
+        wallet_audit_trail = [dict(row) for row in c.fetchall()]
+    return render_template('admin/wallet_audit_log.html', wallet_audit_trail=wallet_audit_trail)
+
+@admin_bp.route('/deposits', methods=['GET'])
+def admin_deposits():
+    if 'user_id' not in session:
+        flash('Please log in as an admin.', 'error')
+        return redirect(url_for('auth.login'))
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        user_filter = request.args.get('user_id')
+        currency_filter = request.args.get('currency')
+        query = "SELECT t.id, t.user_id, u.pusername, t.currency, t.amount, t.address, t.tx_id, t.created_at FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.type = 'deposit'"
+        params = []
+        if user_filter:
+            query += " AND t.user_id = ?"
+            params.append(user_filter)
+        if currency_filter:
+            query += " AND t.currency = ?"
+            params.append(currency_filter)
+        query += " ORDER BY t.created_at DESC LIMIT 50"
+        c.execute(query, params)
+        deposits = [dict(row) for row in c.fetchall()]
+    return render_template('admin/deposits.html', deposits=deposits)
 

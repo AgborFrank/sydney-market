@@ -25,11 +25,11 @@ block content %}
           <td class="py-2 px-4">{{ order['status'] }}</td>
           <td class="py-2 px-4">{{ order['escrow_status'] }}</td>
           <td class="py-2 px-4 space-x-2">
-            {% if order['escrow_status'] == 'locked' and order['status'] ==
+            {% if order['escrow_status'] == 'held' and order['status'] ==
             'shipped' %}
             <form
               method="POST"
-              action="{{ url_for('release_escrow', order_id=order['id']) }}"
+              action="{{ url_for('public.release_escrow', order_id=order['id']) }}"
               class="inline"
             >
               <button
@@ -39,13 +39,18 @@ block content %}
                 Release
               </button>
             </form>
-            {% endif %} {% if order['escrow_status'] == 'locked' and not
+            {% endif %} {% if order['escrow_status'] == 'held' and not
             order['dispute_status'] %}
             <form
               method="POST"
-              action="{{ url_for('dispute_order', order_id=order['id']) }}"
+              action="{{ url_for('public.dispute_order', order_id=order['id']) }}"
               class="inline"
             >
+              <input
+                type="hidden"
+                name="reason"
+                value="Order issue - please specify in dispute"
+              />
               <button
                 type="submit"
                 class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600"

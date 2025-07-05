@@ -1,83 +1,293 @@
 {% extends 'admin/admin_base.html' %}
 
 {% block admin_content %}
-<div class=" p-6 rounded-lg shadow-lg">
-  <h1 class="text-2xl font-bold  mb-4">Manage FAQs</h1>
-  
+<div class="min-h-screen bg-gray-50 p-6">
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">FAQ Management</h1>
+        <p class="text-gray-600 mt-2">Manage frequently asked questions to help users navigate the marketplace effectively</p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="text-sm text-blue-600 font-medium">Total FAQs</div>
+          <div class="text-2xl font-bold text-blue-700">{{ total_faqs }}</div>
+        </div>
+        <a href="{{ url_for('admin.new_faq') }}" 
+           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          <span>Add New FAQ</span>
+        </a>
+      </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Active Categories</p>
+            <p class="text-2xl font-bold text-gray-900">{{ categories | length }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Questions</p>
+            <p class="text-2xl font-bold text-gray-900">{{ total_faqs }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <div class="flex items-center">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Last Updated</p>
+            <p class="text-lg font-bold text-gray-900">Today</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Add/Edit FAQ Form -->
   {% if action %}
-    <div class="bg-white border border-abacus2 rounded-md p-4 mb-6">
-      <h2 class="text-lg font-semibold text-black ">{{ 'Add New FAQ' if action == 'new' else 'Edit FAQ' }}</h2>
-      <form method="POST" action="{{ url_for('admin.new_faq') if action == 'new' else url_for('admin.edit_faq', id=faq.id) }}" class="flex flex-col gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex items-center mb-6">
+        <div class="p-2 bg-blue-100 rounded-lg mr-4">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">{{ 'Create New FAQ' if action == 'new' else 'Edit FAQ' }}</h2>
+          <p class="text-gray-600">{{ 'Add a new frequently asked question to help users' if action == 'new' else 'Update the FAQ content and category' }}</p>
+        </div>
+      </div>
+      
+      <form method="POST" action="{{ url_for('admin.new_faq') if action == 'new' else url_for('admin.edit_faq', id=faq.id) }}" class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <div>
-          <label for="question" class="block text-sm font-medium text-gray-500">Question</label>
-          <input type="text" name="question" id="question" value="{{ faq.question if faq else '' }}" required
-                 class="w-full border border-border rounded-md p-2 text-black">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <label for="question" class="block text-sm font-semibold text-gray-700 mb-2">
+              Question <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="question" id="question" value="{{ faq.question if faq else '' }}" required
+                   placeholder="Enter a clear, concise question..."
+                   class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+            <p class="text-sm text-gray-500 mt-1">Keep questions clear and specific to help users find answers quickly</p>
+          </div>
+          
+          <div>
+            <label for="category_id" class="block text-sm font-semibold text-gray-700 mb-2">
+              Category <span class="text-red-500">*</span>
+            </label>
+            <select name="category_id" id="category_id" required 
+                    class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+              <option value="">Select a category...</option>
+              {% for category in categories %}
+                <option value="{{ category.id }}" {% if faq and faq.category_id == category.id %}selected{% endif %}>
+                  {{ category.name }}
+                </option>
+              {% endfor %}
+            </select>
+            <p class="text-sm text-gray-500 mt-1">Choose the most relevant category to organize FAQs effectively</p>
+          </div>
         </div>
+        
         <div>
-          <label for="answer" class="block text-sm font-medium text-gray-500">Answer</label>
-          <textarea name="answer" id="answer" required
-                    class="w-full border border-border rounded-md p-2 text-black">{{ faq.answer if faq else '' }}</textarea>
+          <label for="answer" class="block text-sm font-semibold text-gray-700 mb-2">
+            Answer <span class="text-red-500">*</span>
+          </label>
+          <textarea name="answer" id="answer" required rows="6"
+                    placeholder="Provide a comprehensive answer that addresses the question..."
+                    class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none">{{ faq.answer if faq else '' }}</textarea>
+          <p class="text-sm text-gray-500 mt-1">Write clear, helpful answers that users can easily understand and follow</p>
         </div>
-        <div>
-          <label for="category_id" class="block text-sm font-medium text-gray-500">Category</label>
-          <select name="category_id" id="category_id" required class="w-full border border-border rounded-md p-2 text-black">
-            {% for category in categories %}
-              <option value="{{ category.id }}" {% if faq and faq.category_id == category.id %}selected{% endif %}>
-                {{ category.name }}
-              </option>
-            {% endfor %}
-          </select>
+        
+        <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+          <a href="{{ url_for('admin.faqs') }}" 
+             class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            Cancel
+          </a>
+          <button type="submit" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{{ 'Create FAQ' if action == 'new' else 'Update FAQ' }}</span>
+          </button>
         </div>
-        <button type="submit" class="bg-black text-white px-4 py-2 rounded-md hover:bg-abacus">
-          {{ 'Create FAQ' if action == 'new' else 'Update FAQ' }}
-        </button>
       </form>
     </div>
   {% endif %}
   
   <!-- FAQ List -->
-  <div class="bg-white border border-abacus2 rounded-md p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-abacus">FAQs by Category</h2>
-      <a href="{{ url_for('admin.new_faq') }}" class="bg-black text-white px-4 py-2 rounded-md hover:bg-abacus">
-        Add FAQ
-      </a>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">FAQ Categories & Questions</h2>
+          <p class="text-gray-600 mt-1">Organize and manage FAQs by category for better user experience</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <input type="text" placeholder="Search FAQs..." 
+                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
     
-    {% if grouped_faqs %}
-      {% for category, faqs in grouped_faqs.items() %}
-        {% if faqs %}
-          <div class="mb-6">
-            <h3 class="text-md font-semibold text-abacus mb-2">{{ category }}</h3>
-            <ul class="space-y-2">
-              {% for faq in faqs %}
-                <li class="border-b border-border pb-2">
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <p class="font-medium text-black">{{ faq.question }}</p>
-                      <p class="text-sm text-gray-500">{{ faq.answer[:100] }}{% if faq.answer|length > 100 %}...{% endif %}</p>
-                    </div>
-                    <div class="flex gap-2">
-                      <a href="{{ url_for('admin.edit_faq', id=faq.id) }}"
-                         class="text-abacus hover:underline">Edit</a>
-                      <form action="{{ url_for('admin.delete_faq', id=faq.id) }}" method="POST"
-                            onsubmit="return confirm('Are you sure you want to delete this FAQ?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                        <button type="submit" class="text-red-500 hover:underline">Delete</button>
-                      </form>
+    <div class="p-6">
+      {% if grouped_faqs %}
+        <div class="space-y-8">
+          {% for category, faqs in grouped_faqs.items() %}
+            {% if faqs %}
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="p-2 bg-blue-100 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                      </div>
+                      <h3 class="text-lg font-semibold text-gray-900">{{ category }}</h3>
+                      <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {{ faqs | length }} FAQ{{ 's' if faqs | length != 1 else '' }}
+                      </span>
                     </div>
                   </div>
-                </li>
-              {% endfor %}
-            </ul>
+                </div>
+                
+                <div class="divide-y divide-gray-200">
+                  {% for faq in faqs %}
+                    <div class="p-6 hover:bg-gray-50 transition-colors">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-start space-x-3">
+                            <div class="p-1.5 bg-green-100 rounded-lg mt-0.5">
+                              <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                              </svg>
+                            </div>
+                            <div class="flex-1">
+                              <h4 class="font-semibold text-gray-900 mb-2">{{ faq.question }}</h4>
+                              <p class="text-gray-600 text-sm leading-relaxed">
+                                {{ faq.answer[:150] }}{% if faq.answer|length > 150 %}...{% endif %}
+                              </p>
+                              <div class="flex items-center space-x-4 mt-3 text-xs text-gray-500">
+                                <span class="flex items-center space-x-1">
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                  </svg>
+                                  <span>Last updated: Today</span>
+                                </span>
+                                <span class="flex items-center space-x-1">
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                  </svg>
+                                  <span>{{ faq.answer | length }} characters</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 ml-4">
+                          <a href="{{ url_for('admin.edit_faq', id=faq.id) }}"
+                             class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit
+                          </a>
+                          <form action="{{ url_for('admin.delete_faq', id=faq.id) }}" method="POST" class="inline"
+                                onsubmit="return confirm('Are you sure you want to delete this FAQ? This action cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 transition-colors">
+                              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                              </svg>
+                              Delete
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-12">
+          <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
           </div>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <p class="text-gray-500 italic">No FAQs available.</p>
-    {% endif %}
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No FAQs Available</h3>
+          <p class="text-gray-600 mb-6">Get started by creating your first FAQ to help users navigate the marketplace</p>
+          <a href="{{ url_for('admin.new_faq') }}" 
+             class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Create Your First FAQ
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <!-- Help Section -->
+  <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+    <div class="flex items-start space-x-3">
+      <div class="p-2 bg-blue-100 rounded-lg">
+        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold text-blue-900 mb-2">FAQ Management Tips</h3>
+        <ul class="text-blue-800 space-y-1 text-sm">
+          <li>• Keep questions clear and specific to help users find answers quickly</li>
+          <li>• Use descriptive categories to organize FAQs effectively</li>
+          <li>• Write comprehensive answers that address common user concerns</li>
+          <li>• Regularly update FAQs based on user feedback and support tickets</li>
+          <li>• Consider creating FAQs for common payment, shipping, and security questions</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

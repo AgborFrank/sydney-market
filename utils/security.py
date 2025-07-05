@@ -4,6 +4,11 @@ import pgpy
 import hashlib
 import logging
 from config import Config
+from datetime import datetime
+import smtplib
+import socks
+import socket
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -88,3 +93,51 @@ def store_pgp_keys(user_id, pusername, email, passphrase):
             logger.error(f"Failed to store PGP keys: {str(e)}")
             return False
     return False
+
+def log_admin_action_encrypted(action, admin, pgp_pubkey):
+    message = f"[{datetime.utcnow()}] {admin}: {action}"
+    pubkey, _ = pgpy.PGPKey.from_blob(pgp_pubkey)
+    msg = pgpy.PGPMessage.new(message)
+    encrypted = pubkey.encrypt(msg)
+    with open('admin_action_logs.pgp', 'a') as f:
+        f.write(str(encrypted) + '\n')
+
+def send_pgp_email_over_tor(to_email, subject, message, pgp_public_key, smtp_host, smtp_port, smtp_user, smtp_password, from_email=None):
+    """
+    Encrypts the message with the recipient's PGP public key and sends it via SMTP over Tor.
+    """
+    # Encrypt message with PGP
+    try:
+        pubkey, _ = pgpy.PGPKey.from_blob(pgp_public_key)
+        msg = pgpy.PGPMessage.new(message)
+        encrypted_message = str(pubkey.encrypt(msg))
+    except Exception as e:
+        print(f"[PGP] Encryption failed: {e}")
+        return False
+
+    # Prepare email
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from email.header import Header
+
+    from_addr = from_email or smtp_user
+    mime_msg = MIMEMultipart()
+    mime_msg['From'] = from_addr
+    mime_msg['To'] = to_email
+    mime_msg['Subject'] = Header(subject, 'utf-8')
+    mime_msg.attach(MIMEText(encrypted_message, 'plain', 'utf-8'))
+
+    # Route all sockets through Tor SOCKS5 proxy
+    socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 9050)
+    socket.socket = socks.socksocket
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(from_addr, [to_email], mime_msg.as_string())
+        print(f"[Email] PGP email sent to {to_email} via Tor.")
+        return True
+    except Exception as e:
+        print(f"[Email] Failed to send email via Tor: {e}")
+        return False

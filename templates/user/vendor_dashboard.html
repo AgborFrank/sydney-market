@@ -1,111 +1,247 @@
-{% extends 'user/user_base.html' %}
-{% block title %}{{ title }} - {{ settings['site_name'] }}{% endblock %}
-{% block user_content %}
+{% extends 'user/user_base.html' %} {% block title %}{{ title }} - {{
+settings['site_name'] }}{% endblock %} {% block user_content %}
+<style>
+  .bg-cardyy {
+    background-color: #182747FF !important;
+}
+</style>
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">Business Account</h1>
+  <h1 class="text-xl font-bold text-white  mb-6">
+    Business Account
+  </h1>
 
   <!-- Vendor Profile Header -->
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 flex items-center gap-6">
+  <div
+    class="bg-cardyy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 flex items-center gap-6"
+  >
     {% if stats.avatar %}
-      <img src="{{ url_for('static', filename='uploads/avatars/' + stats.avatar) }}" alt="Vendor Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-yellow-400">
+    <img
+      src="{{ url_for('static', filename='uploads/avatars/' + stats.avatar) }}"
+      alt="Vendor Avatar"
+      class="w-20 h-20 rounded-full object-cover border-2 border-yellow-400"
+    />
     {% else %}
-      <img src="{{ url_for('static', filename='images/dark-avatar.png') }}" alt="Default Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-gray-400">
-    {% endif %}
-    {% if stats.logo %}
-      <img src="{{ url_for('static', filename='uploads/logos/' + stats.logo) }}" alt="Vendor Logo" class="w-20 h-20 object-contain">
+    <img
+      src="{{ url_for('static', filename='images/dark-avatar.png') }}"
+      alt="Default Avatar"
+      class="w-20 h-20 rounded-full object-cover border-2 border-gray-400"
+    />
+    {% endif %} {% if stats.logo %}
+    <img
+      src="{{ url_for('static', filename='uploads/logos/' + stats.logo) }}"
+      alt="Vendor Logo"
+      class="w-20 h-20 object-contain"
+    />
     {% else %}
-      <div class="w-20 h-20 bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 rounded-md">No Logo</div>
+    <div
+      class="w-20 h-20 bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 rounded-md"
+    >
+      No Logo
+    </div>
     {% endif %}
     <div>
-      <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ vendor_name }}</p>
+      <p class="text-2xl font-semibold text-blue-500  dark:text-gray-100">
+        {{ vendor_name }}
+      </p>
       <ul class="text-md text-gray-700 dark:text-gray-300 mt-2">
-        <li><span class="inline-block bg-green-700 text-white text-sm font-bold px-2 py-1 rounded-full">Level {{ stats.level }}</span></li>
-        <li class="mt-1"><span class="text-green-600">Positive Reviews:</span> {{ stats.positive_feedbacks }}</li>
-        <li><span class="text-red-600">Negative Reviews:</span> {{ stats.negative_feedbacks }}</li>
-        <li><span class="text-yellow-400">Total Sales:</span> {{ stats.total_sales }}</li>
-        <li><span class="text-gray-700 dark:text-gray-300">Ships from:</span> {{ stats.shipping_location }}</li>
+        <li>
+          <span
+            class="inline-block bg-lvl{{ stats.level }} text-white text-sm font-bold px-2 py-1 rounded-full"
+            >Level {{ stats.level }}</span
+          >
+        </li>
+        <li class="mt-1">
+          <span class="text-green-600">Positive Reviews:</span> {{
+          stats.positive_feedbacks }}
+        </li>
+        <li>
+          <span class="text-red-600">Negative Reviews:</span> {{
+          stats.negative_feedbacks }}
+        </li>
+        <li>
+          <span class="text-yellow-400">Total Sales:</span> {{ stats.total_sales
+          }}
+        </li>
+        <li>
+          <span class="text-blue-500 dark:text-gray-300">Ships from:</span> {{
+          stats.shipping_location }}
+        </li>
       </ul>
     </div>
   </div>
 
   <!-- Stats Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Orders</h2>
-      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">{{ stats.total_orders }}</p>
+    <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        Total Orders
+      </h2>
+      <p class="text-3xl font-bold text-blue-500 dark:text-gray-100 mt-2">
+        {{ stats.total_orders }}
+      </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Shipped</h2>
-      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">{{ stats.total_shipped }}</p>
+    <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        Total Shipped
+      </h2>
+      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+        {{ stats.total_shipped }}
+      </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Total Sales</h2>
-      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">{{ stats.total_sales }}</p>
+    <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        Total Sales
+      </h2>
+      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+        {{ stats.total_sales }}
+      </p>
     </div>
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">Revenue</h2>
-      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">${{ "%.2f"|format(stats.revenue) }}</p>
+    <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
+        Revenue
+      </h2>
+      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+        ${{ "%.2f"|format(stats.revenue) }}
+      </p>
     </div>
   </div>
 
   <!-- Recent Orders -->
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Orders</h2>
+  <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+      Recent Orders
+    </h2>
     {% if recent_orders %}
-      <div class="space-y-4">
-        {% for order in recent_orders %}
-          <div class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300">
-            <p><strong>Order ID:</strong> {{ order.id }}</p>
-            <p><strong>Buyer:</strong> {{ order.buyer_username }}</p>
-            <p><strong>Product:</strong> {{ order.title }}</p>
-            <p><strong>Amount:</strong> ${{ order.amount_usd }}</p>
-            <p><strong>Status:</strong> {{ order.status }}</p>
-            <p><strong>Date:</strong> {{ order.created_at }}</p>
-          </div>
-        {% endfor %}
+    <div class="space-y-4">
+      {% for order in recent_orders %}
+      <div
+        class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300"
+      >
+        <p><strong>Order ID:</strong> {{ order.id }}</p>
+        <p><strong>Buyer:</strong> {{ order.buyer_username }}</p>
+        <p><strong>Product:</strong> {{ order.title }}</p>
+        <p><strong>Amount:</strong> ${{ order.amount_usd }}</p>
+        <p><strong>Status:</strong> {{ order.status }}</p>
+        <p><strong>Date:</strong> {{ order.created_at }}</p>
       </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <p class="text-gray-700 dark:text-gray-300">No recent orders.</p>
+    <p class="text-gray-700 dark:text-gray-300">No recent orders.</p>
     {% endif %}
   </div>
 
   <!-- Recent Reviews -->
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Reviews</h2>
+  <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+      Recent Reviews
+    </h2>
     {% if recent_reviews %}
-      <div class="space-y-4">
-        {% for review in recent_reviews %}
-          <div class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300">
-            <p><strong>Reviewer:</strong> {{ review.reviewer }}</p>
-            <p><strong>Product:</strong> {{ review.title }}</p>
-            <p><strong>Rating:</strong> {{ review.rating }}/5</p>
-            <p><strong>Comment:</strong> {{ review.comment }}</p>
-            <p><strong>Date:</strong> {{ review.created_at }}</p>
-          </div>
-        {% endfor %}
+    <div class="space-y-4">
+      {% for review in recent_reviews %}
+      <div
+        class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300"
+      >
+        <p><strong>Reviewer:</strong> {{ review.reviewer }}</p>
+        <p><strong>Product:</strong> {{ review.title }}</p>
+        <p><strong>Rating:</strong> {{ review.rating }}/5</p>
+        <p><strong>Comment:</strong> {{ review.comment }}</p>
+        <p><strong>Date:</strong> {{ review.created_at }}</p>
       </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <p class="text-gray-700 dark:text-gray-300">No recent reviews.</p>
+    <p class="text-gray-700 dark:text-gray-300">No recent reviews.</p>
     {% endif %}
   </div>
 
   <!-- Recent Messages -->
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Messages</h2>
+  <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
+    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+      Recent Messages
+    </h2>
     {% if recent_messages %}
-      <div class="space-y-4">
-        {% for message in recent_messages %}
-          <div class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300">
-            <p><strong>Sender:</strong> {{ message.sender }}</p>
-            <p><strong>Subject:</strong> {{ message.subject }}</p>
-            <p><strong>Message:</strong> {{ message.body }}</p>
-            <p><strong>Date:</strong> {{ message.sent_at }}</p>
-          </div>
-        {% endfor %}
+    <div class="space-y-4">
+      {% for message in recent_messages %}
+      <div
+        class="border-b dark:border-gray-600 pb-2 text-gray-700 dark:text-gray-300"
+      >
+        <p><strong>Sender:</strong> {{ message.sender }}</p>
+        <p><strong>Subject:</strong> {{ message.subject }}</p>
+        <p><strong>Message:</strong> {{ message.body }}</p>
+        <p><strong>Date:</strong> {{ message.sent_at }}</p>
       </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <p class="text-gray-700 dark:text-gray-300">No recent messages.</p>
+    <p class="text-gray-700 dark:text-gray-300">No recent messages.</p>
     {% endif %}
+  </div>
+
+  <!-- Vendor Actions -->
+  <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+      Vendor Actions
+    </h2>
+    <div class="flex flex-wrap gap-4">
+      <a href="{{ url_for('vendor.products_create') }}" class="bstd"
+        >Add Product</a
+      >
+      <a href="{{ url_for('vendor.products_index') }}" class="bstd"
+        >View Products</a
+      >
+      <a href="{{ url_for('vendor.vendor_orders') }}" class="bstd"
+        >View Orders</a
+      >
+      <a href="{{ url_for('vendor.vendor_reviews') }}" class="bstd"
+        >Manage Reviews</a
+      >
+      <a href="{{ url_for('user.wallet') }}" class="bstd">Withdraw Funds</a>
+      <a href="{{ url_for('vendor.business_details') }}" class="bstd"
+        >Business Details</a
+      >
+    </div>
+  </div>
+
+  <!-- Vendor Analytics -->
+  <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+      Analytics
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div>
+        <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
+          Order Completion Rate
+        </h3>
+        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+          {{ stats.completion_rate|default('N/A') }}%
+        </p>
+      </div>
+      <div>
+        <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
+          Average Rating
+        </h3>
+        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+          {{ stats.avg_rating|default('N/A') }}/5
+        </p>
+      </div>
+      <div>
+        <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
+          Revenue (30d)
+        </h3>
+        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+          ${{ stats.revenue_30d|default('0.00') }}
+        </p>
+      </div>
+      <div>
+        <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
+          Conversion Rate
+        </h3>
+        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+          {{ stats.conversion_rate|default('N/A') }}%
+        </p>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

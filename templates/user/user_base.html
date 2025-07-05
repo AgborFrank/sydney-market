@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="title" content="{{ settings.meta_title }}" />
     <meta name="description" content="{{ settings.meta_description }}" />
-    <link href="{{ url_for('static', filename='images/favicon.png') }}" rel="shortcut icon">
+    <link
+      href="{{ url_for('static', filename='images/favicon.png') }}"
+      rel="shortcut icon"
+    />
     <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
     <link
       rel="stylesheet"
@@ -43,7 +46,7 @@
       .hover\:bg-primary-90:hover {
           background-color: rgba(var(--primary-color-rgb), 0.9);
       }
-      /* Abacus Market styles */
+      /* sydney Market styles */
       .border-sydney { border-color: #3b82f6; }
       .text-sydney { color: #3b82f6; }
       .bg-sydney { background-color: #3b82f6; }
@@ -52,7 +55,7 @@
       .hover\:bg-hover2:hover { background-color: #f3f4f6; }
       .bgreen { color: #16a34a; }
       .bred { color: #dc2626; }
-      .hover\:!border-abacus2:hover { border-color: #1d4ed8; }
+      .hover\:!border-sydney2:hover { border-color: #1d4ed8; }
       .bg-sydney2 { background-color: #1d4ed8; }
       /* Missing styles */
       .border-sydney { border-color: #1d4ed8; }
@@ -72,6 +75,7 @@
       <div
         class="contentcont z-0 bg-primary border-solid border-[1px] border-border rounded-md w-full"
       >
+      
         <div
           class="content mx-auto min-h-[calc(100vh-230px)] px-[16px] py-[15px] flex flex-wrap gap-2"
         >
@@ -84,7 +88,7 @@
               macros.user_profile_component(profile_data=profile_data) }}
               <!-- Profile Actions -->
               <div
-                class="bg-primary border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
+                class="bg-card border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
               >
                 <h1
                   class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
@@ -192,22 +196,22 @@
               <!-- Buyers Statistics -->
               {% import "components/buyers_stats.html" as buyers_stats %} {{
               buyers_stats.buyers_stats(stats) }}
-             
+
               <!-- Exchange Rates -->
               {% import "components/exchange.html" as exchange %} {{
-              exchange.exchange_rates(rates) }}
-              {% endif %}
-              {% include 'components/categories_sidebar.html' %}
+              exchange.exchange_rates(rates) }} {% endif %} {% include
+              'components/categories_sidebar.html' %}
               <!--LATEST NEWS-->
               {% include 'components/news_sidebar.html' %}
-              
-            <!-- END LATEST NEWS -->
+
+              <!-- END LATEST NEWS -->
             </div>
           </div>
           <!-- Main Content -->
           <div
             class="2xl:w-[calc(100%-300px)] flex flex-col mx-auto justify-start gap-2 text-xs text-sydney bg-card p-2 border-solid border border-border hover:border-sydney rounded-md"
           >
+          
             {% block user_content %}{% endblock %}
           </div>
         </div>

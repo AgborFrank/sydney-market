@@ -1,0 +1,85 @@
+{% extends 'admin/admin_base.html' %} {% block title %}Edit News - {{
+settings['site_name'] }}{% endblock %} {% block admin_content %}
+<div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 mt-8">
+  <h1 class="text-2xl font-bold mb-4">Edit News Article</h1>
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mb-6">
+    {% for category, message in messages %}
+    <div
+      class="rounded-md p-4 mb-3 {% if category == 'success' %}bg-green-50 border border-green-200{% else %}bg-red-50 border border-red-200{% endif %}"
+    >
+      <div class="flex">
+        <div class="flex-shrink-0">
+          {% if category == 'success' %}
+          <i class="fas fa-check-circle text-green-400"></i>
+          {% else %}
+          <i class="fas fa-exclamation-circle text-red-400"></i>
+          {% endif %}
+        </div>
+        <div class="ml-3">
+          <p
+            class="text-sm font-medium {% if category == 'success' %}text-green-800{% else %}text-red-800{% endif %}"
+          >
+            {{ message }}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+  <form method="post" action="" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div>
+      <label for="title" class="block text-sm font-medium text-gray-700 mb-2"
+        >Article Title <span class="text-red-500">*</span></label
+      >
+      <input
+        type="text"
+        id="title"
+        name="title"
+        value="{{ form_data.title or news.title or '' }}"
+        required
+        maxlength="100"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+        placeholder="Enter article title..."
+      />
+      <p class="mt-1 text-sm text-gray-500">Maximum 100 characters</p>
+    </div>
+    <div>
+      <label for="content" class="block text-sm font-medium text-gray-700 mb-2"
+        >Article Content <span class="text-red-500">*</span></label
+      >
+      <textarea
+        id="content"
+        name="content"
+        rows="10"
+        required
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-vertical"
+        placeholder="Write your article content here..."
+      >
+{{ form_data.content or news.content or '' }}</textarea
+      >
+      <p class="mt-1 text-sm text-gray-500">
+        Use clear, concise language to communicate with users
+      </p>
+    </div>
+    <div
+      class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200"
+    >
+      <a
+        href="{{ url_for('admin.news') }}"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+        ><i class="fas fa-times mr-2"></i>Cancel</a
+      >
+      <button
+        type="submit"
+        class="inline-flex items-center px-6 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+      >
+        <i class="fas fa-save mr-2"></i>Update Article
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

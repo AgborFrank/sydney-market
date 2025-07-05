@@ -1,0 +1,34 @@
+{% if breadcrumbs %}
+<nav
+  class="flex items-center text-sm text-gray-400 py-2 border-solid border border-border hover:border-sydney rounded-md px-6"
+  aria-label="Breadcrumb"
+>
+  <ol class="inline-flex items-center space-x-1 md:space-x-2">
+    {% for crumb in breadcrumbs %}
+    <li class="inline-flex items-center">
+      {% if crumb.url and not loop.last %}
+      <a href="{{ crumb.url }}" class="hover:text-white font-medium"
+        >{{ crumb.label }}</a
+      >
+      {% else %}
+      <span class="text-sydney font-semibold">{{ crumb.label }}</span>
+      {% endif %} {% if not loop.last %}
+      <svg
+        class="w-4 h-4 mx-2 text-gray-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 5l7 7-7 7"
+        />
+      </svg>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}

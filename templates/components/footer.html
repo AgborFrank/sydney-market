@@ -1,12 +1,8 @@
 <!-- templates/footer.html -->
-<footer class="bg-secondary text-gray-300">
-  <!-- Back to Top -->
-  <div class="bg-gray-700 py-2 text-center">
-    <a href="#" class="text-sm hover:text-white">Back to top</a>
-  </div>
+<footer class="bg-card text-gray-300">
 
   <!-- Main Footer Content -->
-  <div class="container mx-auto px-4 py-10 ">
+  <div class="container mx-auto px-4 py-10">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
       <!-- Get to Know Us -->
       <div>
@@ -64,7 +60,13 @@
             >
           </li>
           <li><a href="#" class="hover:text-white">Shop with Points</a></li>
-          <li><a href="#" class="hover:text-white">Reload Your Balance</a></li>
+          <li>
+            <a
+              href="{{ url_for('public.reload_balance') }}"
+              class="hover:text-white"
+              >Reload Your Balance</a
+            >
+          </li>
         </ul>
       </div>
 
@@ -73,7 +75,7 @@
         <h3 class="text-white font-bold mb-4">For Vendors</h3>
         <ul class="space-y-2">
           <li>
-            <a href="/vendor/register" class="hover:text-white"
+            <a href="{{ url_for('user.register') }}" class="hover:text-white"
               >Create Account</a
             >
           </li>

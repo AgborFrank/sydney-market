@@ -6,6 +6,8 @@ from routes import require_role
 from werkzeug.utils import secure_filename
 import logging
 import os
+import datetime
+import requests
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -81,11 +83,21 @@ def calculate_vendor_level(vendor_id):
         # Order completion rate
         completion_rate = (sales / total_orders) * 100 if total_orders > 0 else 0
 
-        # Determine level
+        # Determine level (10 levels)
         level = 1  # Default
-        if sales >= 100 and positive_reviews >= 50 and negative_reviews < 15 and completion_rate > 90:
-            level = 5
+        if sales >= 2000 and positive_reviews >= 200 and negative_reviews < 50 and completion_rate > 95:
+            level = 10
+        elif sales >= 1000 and positive_reviews >= 150 and negative_reviews < 40 and completion_rate > 94:
+            level = 9
+        elif sales >= 500 and positive_reviews >= 100 and negative_reviews < 30 and completion_rate > 93:
+            level = 8
+        elif sales >= 250 and positive_reviews >= 75 and negative_reviews < 25 and completion_rate > 92:
+            level = 7
+        elif sales >= 100 and positive_reviews >= 50 and negative_reviews < 15 and completion_rate > 90:
+            level = 6
         elif sales >= 51 and positive_reviews >= 30 and negative_reviews < 10 and completion_rate > 85:
+            level = 5
+        elif sales >= 25 and positive_reviews >= 20 and negative_reviews < 8 and completion_rate > 82:
             level = 4
         elif sales >= 21 and positive_reviews >= 15 and negative_reviews < 5 and completion_rate > 80:
             level = 3
@@ -379,11 +391,15 @@ def products_index():
         title="Your Products - Sydney"
     )
 @vendor_bp.route('/products/create', methods=['GET', 'POST'])
-#@require_vendor_role
 def products_create():
     if 'user_id' not in session:
         flash("Please log in to create a product.", 'error')
         return redirect(url_for('user.login'))
+
+    # Enforce active subscription
+    if not has_active_subscription(session['user_id']):
+        flash("You must have an active vendor subscription to add products.", 'error')
+        return redirect(url_for('vendor.subscribe'))
 
     # Verify vendor eligibility
     with get_db_connection() as conn:
@@ -517,7 +533,7 @@ def products_edit(product_id):
         c.execute("SELECT * FROM products WHERE id = ? AND vendor_id = ?", (product_id, session['user_id']))
         product = c.fetchone()
         if not product:
-            flash("Product not found or you don’t have permission to edit it.", 'error')
+            flash("Product not found or you don't have permission to edit it.", 'error')
             return redirect(url_for('vendor.products_index'))
 
         if request.method == 'POST':
@@ -600,7 +616,7 @@ def delete_product(product_id):
         c.execute("SELECT image_path FROM products WHERE id = ? AND vendor_id = ?", (product_id, session['user_id']))
         product = c.fetchone()
         if not product:
-            flash("Product not found or you don’t have permission.", 'error')
+            flash("Product not found or you don't have permission.", 'error')
             return redirect(url_for('vendor.products_index'))
         
         if product['image_path'] and os.path.exists(product['image_path']):
@@ -650,7 +666,7 @@ def vendor_order_detail(order_id):
         """, (order_id, session['user_id']))
         order = c.fetchone()
         if not order:
-            flash("Order not found or you don’t have permission to view it.", 'error')
+            flash("Order not found or you don't have permission to view it.", 'error')
             return redirect(url_for('vendor.vendor_orders'))
 
         if request.method == 'POST':
@@ -716,34 +732,39 @@ def subscribe():
 
             if request.method == 'POST':
                 package_id = request.form.get('package_id', type=int)
-                crypto_currency = request.form.get('crypto_currency')
-
-                if not package_id or crypto_currency not in ['BTC', 'XMR']:
-                    flash("Invalid package or currency.", 'error')
-                    return redirect(url_for('vendor.subscribe'))
-
                 c.execute("SELECT * FROM packages WHERE id = ?", (package_id,))
                 package = c.fetchone()
                 if not package:
                     flash("Package not found.", 'error')
                     return redirect(url_for('vendor.subscribe'))
-
                 package = dict(package)
+                if package.get('free', 0) == 1:
+                    # Free package: activate immediately
+                    expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
+                    c.execute("""
+                        INSERT INTO vendor_subscriptions (vendor_id, package_id, status, expires_at, payment_txid)
+                        VALUES (?, ?, 'active', ?, NULL)
+                    """, (session['user_id'], package_id, expires_at))
+                    conn.commit()
+                    flash("Free package activated! You now have an active subscription.", 'success')
+                    return redirect(url_for('vendor.products_index'))
+                # Paid package: require crypto selection and payment
+                crypto_currency = request.form.get('crypto_currency')
+                if crypto_currency not in ['BTC', 'XMR']:
+                    flash("Invalid currency.", 'error')
+                    return redirect(url_for('vendor.subscribe'))
                 crypto_price = get_crypto_price(crypto_currency)
                 if not crypto_price:
                     flash("Unable to fetch crypto price. Try again later.", 'error')
                     return redirect(url_for('vendor.subscribe'))
-
                 crypto_amount = package['price_usd'] / crypto_price
                 wallet_address = ADMIN_BTC_ADDRESS if crypto_currency == "BTC" else ADMIN_XMR_ADDRESS
-
                 expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
                 c.execute("""
                     INSERT INTO vendor_subscriptions (vendor_id, package_id, status, expires_at, payment_txid)
                     VALUES (?, ?, 'pending', ?, ?)
                 """, (session['user_id'], package_id, expires_at, None))
                 conn.commit()
-
                 flash(f"Please send {crypto_amount:.6f} {crypto_currency} to {wallet_address} and provide the TXID below.", 'info')
                 return redirect(url_for('vendor.confirm_payment', package_id=package_id, crypto_currency=crypto_currency))
 

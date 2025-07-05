@@ -1,0 +1,183 @@
+# 🛡️ Cursor AI Prompt: Privacy-Focused Python Multivendor Marketplace
+
+You are a senior backend developer with deep expertise in Python, Flask, and secure, scalable architecture design. Your task is to generate a complete Flask-based multivendor marketplace inspired by Abacus, optimized for privacy, anonymity, and cryptocurrency transactions (BTC and XMR). This project will be deployed on the Tor network and must emphasize performance, modularity, and robust security best practices.
+
+---
+
+## ✅ Development Standards
+
+- **Programming Style**: Functional-first, declarative code. Use classes **only** where justified (e.g., SQLAlchemy models, Flask views).
+- **Code Quality**:
+  - Avoid unnecessary nesting; use early returns and guard clauses.
+  - Modularize logic and avoid duplication.
+  - Use descriptive variable names (`is_active`, `has_permission`).
+  - Follow PEP8, using `snake_case` for files, functions, and variables.
+  - Apply the RORO (Receive an Object, Return an Object) pattern where appropriate.
+
+---
+
+## ✅ Project Structure
+
+Use Flask **application factory** pattern and organize views with **Blueprints**:
+
+- `auth_routes`
+- `listing_routes`
+- `transaction_routes`
+- `message_routes`
+- `admin_routes`
+
+Recommended folder structure:
+app/
+blueprints/
+models/
+schemas/
+templates/
+static/
+utils/
+migrations/
+config.py
+run.py
+requirements.txt
+
+
+---
+
+## ✅ Core Features
+
+### 🔐 Authentication & Security
+
+- `flask-login` + `flask-jwt-extended` for session & JWT auth.
+- PGP 2FA using `pgpy` or `gnupg`.
+- CAPTCHA during login/registration with `python-anticaptcha`.
+- Role-based access control (buyer, vendor, admin).
+- Auto-logout after 12h via `apscheduler`.
+- CSRF protection with `flask-wtf`.
+
+### 💰 Cryptocurrency Transactions
+
+- BTC: `bitcoinlib`, XMR: `monero`.
+- Wallet-less escrow w/ multisig using `fastecdsa`.
+- Real-time price fetching: `pycoingecko`.
+- Delete transaction logs after 12h with `apscheduler`.
+
+### 🛍️ Vendor & Listing Management
+
+- Vendor registration with verifiable bond (e.g., 0.05 BTC).
+- Vendors can create/edit/delete listings with `flask-wtf`.
+- Validate listing data using `marshmallow`.
+- Support reviews and ratings (e.g., 4.3+/5 system).
+
+### 👤 Buyer Features
+
+- Browse listings by category, price, or rating.
+- Secure escrow checkout.
+- Submit feedback post-purchase.
+- Dispute resolution w/ moderator logs.
+
+### ✉️ Secure Messaging
+
+- All communication encrypted with `pgpy`.
+- Messages auto-expire and self-delete.
+
+### 🛡️ Privacy & Tor
+
+- No IP storage.
+- Tor hidden service compatibility.
+- Log expiration and session cleanup with `apscheduler`.
+- Emphasis on XMR, with BTC fallback.
+
+### 👨‍💼 Admin Panel
+
+- User/listing/dispute management.
+- Vendor verification and moderation.
+- Secure admin logs encrypted with PGP.
+
+---
+
+## ✅ Performance & Optimization
+
+- Redis for:
+  - Caching (e.g., search results)
+  - Server-side sessions (`flask-session`)
+  - Rate limiting via `flask-limiter`
+- ORM: `flask-sqlalchemy` + `flask-migrate`
+- Validation: `marshmallow`
+- Target ~2.3s load time (Abacus benchmark).
+- Environment configuration via `python-dotenv`.
+
+---
+
+## ✅ Dependencies (`requirements.txt`)
+flask
+flask-login
+flask-session
+flask-migrate
+flask-jwt-extended
+flask-wtf
+flask-sqlalchemy
+flask-limiter
+flask-bcrypt
+python-dotenv
+apscheduler
+marshmallow
+redis
+bitcoinlib
+monero
+pgpy
+gnupg
+pycoingecko
+pytz
+werkzeug
+python-anticaptcha
+fastecdsa
+
+---
+
+## ✅ UI Requirements
+
+- Jinja2 + Tailwind CSS (dark theme, responsive, Tor-friendly).
+- Pages to implement:
+  - Homepage (featured + search)
+  - Login/Register + 2FA
+  - Buyer/Vendor/Admin dashboards
+  - Product listing and detail views
+  - Checkout flow
+  - Encrypted messaging
+
+---
+
+## ✅ Deliverables
+
+1. Full Flask codebase (modular, secure, scalable).
+2. Tailwind CSS-styled Jinja2 templates.
+3. Marshmallow schemas for all models.
+4. Unit & integration tests using `pytest`.
+5. `README.md` with:
+   - Setup instructions
+   - Tor hidden service deployment
+   - Redis & PostgreSQL config
+   - Security notes
+6. `.env.example` file for environment configuration.
+
+---
+
+## ✅ Example Tasks for Cursor AI
+
+- ✅ Scaffold application factory and register all Blueprints.
+- ✅ Create models, schemas, and database migrations.
+- ✅ Implement authentication with JWT + PGP 2FA + CAPTCHA.
+- ✅ Set up encrypted messaging with auto-deletion.
+- ✅ Build secure listing management and vendor workflows.
+- ✅ Add Monero + Bitcoin escrow logic with multisig.
+- ✅ Configure background jobs with `apscheduler`.
+- ✅ Protect APIs with `flask-limiter` + Redis.
+- ✅ Style templates with Tailwind CSS (dark, responsive).
+- ✅ Write tests for all major components.
+- ✅ Document setup and deployment clearly.
+
+---
+
+## 🚀 Final Instruction
+
+Generate the complete, production-ready codebase and all required files/templates/configs/tests, following the above architecture and principles. Use reasonable defaults that align with Abacus Marketplace and prioritize security, privacy, modularity, and performance.
+

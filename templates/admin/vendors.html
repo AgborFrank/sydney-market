@@ -7,11 +7,59 @@
 
 <div class="bg-white p-6 rounded-lg shadow-md mb-6">
     <h3 class="text-lg font-semibold text-gray-700 mb-4">Vendor Ratings and Levels</h3>
-    <p class="text-sm text-gray-500 mb-4">View and manage vendor ratings and levels. Levels are updated automatically daily at 00:00 UTC or after order completions/ratings. Use the button below to trigger an immediate update.</p>
-    <form method="POST" action="{{ url_for('admin.admin_update_all_vendor_levels') }}" class="mb-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Update All Vendor Levels Now</button>
-    </form>
+    <p class="text-sm text-gray-500 mb-4">View and manage vendor ratings and levels. Levels are updated automatically daily at 00:00 UTC or after order completions/ratings. Use the buttons below to manage vendor levels.</p>
+    
+    <div class="flex space-x-4 mb-4">
+        <form method="POST" action="{{ url_for('admin.admin_update_all_vendor_levels') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Update All Vendor Levels Now</button>
+        </form>
+        
+        <form method="POST" action="{{ url_for('admin.admin_fix_vendor_levels') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">Fix Missing Vendor Levels</button>
+        </form>
+        
+        <form method="POST" action="{{ url_for('admin.admin_recalculate_vendor_metrics') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">Recalculate Vendor Metrics</button>
+        </form>
+    </div>
+    
+    <!-- Vendor Level Legend -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+        <h4 class="text-sm font-semibold text-gray-700 mb-3">Vendor Level Requirements</h4>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+            {% for level in range(1, 11) %}
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-1 rounded text-white font-bold bg-lvl{{ level }}">{{ level }}</span>
+                <span>
+                    {% if level == 1 %}
+                        New Vendor
+                    {% elif level == 2 %}
+                        10+ sales, 90%+ feedback
+                    {% elif level == 3 %}
+                        15+ sales, 92%+ feedback
+                    {% elif level == 4 %}
+                        25+ sales, 93%+ feedback
+                    {% elif level == 5 %}
+                        50+ sales, 94%+ feedback
+                    {% elif level == 6 %}
+                        100+ sales, 95%+ feedback
+                    {% elif level == 7 %}
+                        250+ sales, 96%+ feedback
+                    {% elif level == 8 %}
+                        500+ sales, 97%+ feedback
+                    {% elif level == 9 %}
+                        1000+ sales, 98%+ feedback
+                    {% elif level == 10 %}
+                        2000+ sales, 99%+ feedback
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 
     {% if vendors %}
     <table class="min-w-full divide-y divide-gray-200">
@@ -32,7 +80,17 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <a href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.vendor_id) }}" class="text-yellow-400 hover:text-yellow-500">{{ vendor.pusername }}</a>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ vendor.level }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {% if vendor.level %}
+                        <span class="px-2 py-1 rounded text-green-600 text-xs font-bold bg-lvl{{ vendor.level }}">
+                            Level {{ vendor.level }}
+                        </span>
+                    {% else %}
+                        <span class="px-2 py-1 rounded text-white text-xs font-bold bg-gray-500">
+                            N/A
+                        </span>
+                    {% endif %}
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ vendor.sales_count }}</td>
                 {%if vendor.positive_feedback_percentage%}
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ '%.1f' % vendor.positive_feedback_percentage }}</td>
@@ -40,15 +98,19 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ '%.1f' % vendor.avg_rating if vendor.avg_rating else 'N/A' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ vendor.updated_at }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <form method="POST" action="{{ url_for('admin.admin_update_vendor_level', vendor_id=vendor.vendor_id) }}" class="inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                        <select name="level" class="border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
-                            {% for lvl in range(1, 6) %}
-                            <option value="{{ lvl }}" {% if lvl == vendor.level %}selected{% endif %}>Level {{ lvl }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="ml-2 text-yellow-400 hover:text-yellow-500">Update</button>
-                    </form>
+                    <div class="flex space-x-2">
+                        <a href="{{ url_for('admin.admin_edit_vendor', vendor_id=vendor.vendor_id) }}" 
+                           class="text-blue-400 hover:text-blue-500">Edit</a>
+                        <form method="POST" action="{{ url_for('admin.admin_update_vendor_level', vendor_id=vendor.vendor_id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <select name="level" class="border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
+                                {% for lvl in range(1, 11) %}
+                                <option value="{{ lvl }}" {% if lvl == (vendor.level or 1) %}selected{% endif %}>Level {{ lvl }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="ml-2 text-yellow-400 hover:text-yellow-500">Update Level</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

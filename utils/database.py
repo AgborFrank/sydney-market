@@ -6,6 +6,8 @@ from flask import g
 from datetime import datetime
 import os
 import logging
+from werkzeug.security import generate_password_hash
+from utils.security import send_pgp_email_over_tor
 
 logger = logging.getLogger(__name__)
 #def get_db_connection():
@@ -209,7 +211,7 @@ def init_db(reset=False):
             )''')
         c.execute('''CREATE TABLE IF NOT EXISTS vendor_levels (
                 vendor_id INTEGER PRIMARY KEY,
-                level INTEGER NOT NULL DEFAULT 1 CHECK(level >= 1 AND level <= 5),
+                level INTEGER NOT NULL DEFAULT 1 CHECK(level >= 1 AND level <= 10),
                 sales_count INTEGER NOT NULL DEFAULT 0,
                 positive_feedback_percentage REAL NOT NULL DEFAULT 0.0,
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -320,6 +322,7 @@ def init_db(reset=False):
                       expires_at TIMESTAMP, 
                       product_limit INTEGER NOT NULL,
                       price_usd REAL NOT NULL,
+                      free INTEGER NOT NULL DEFAULT 0, -- 0 = paid, 1 = free
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
         # Vendor payments table
@@ -550,10 +553,14 @@ def init_db(reset=False):
                   (id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER NOT NULL,
                     amount_usd REAL NOT NULL,
+                    amount_btc REAL NOT NULL,
                     crypto_currency TEXT NOT NULL CHECK(crypto_currency IN ('XMR', 'BTC')),
                     crypto_amount REAL NOT NULL,
                     wallet_address TEXT NOT NULL,
-                    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'processed', 'failed')),
+                    btc_address TEXT,
+                    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'processed', 'failed')),
+                    txid TEXT,
+                    rejection_reason TEXT,
                     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     processed_at TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id))''')
@@ -601,7 +608,15 @@ def init_db(reset=False):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )''')
-        # Insert initial order fee (5%)
+        
+        # Insert default fees if they don't exist
+        c.execute("SELECT COUNT(*) FROM fees")
+        if c.fetchone()[0] == 0:
+            default_fees = [
+                ('order', 5.0, 'Platform fee for completed orders'),
+                ('withdrawal', 2.0, 'Fee for processing vendor withdrawals')
+            ]
+            c.executemany("INSERT INTO fees (fee_type, percentage, description) VALUES (?, ?, ?)", default_fees)
        
         # Insert default settings
         c.execute("SELECT COUNT(*) FROM settings")
@@ -620,9 +635,47 @@ def init_db(reset=False):
                 ('btc_conversion_enabled', '1'),
                 ('min_order_amount_usd', '10.00'),
                 ('support_email', 'support@Sydney.onion'),
-                ('pgp_key', '')
+                ('pgp_key', ''),
+                # New wallet and escrow settings
+                ('btc_escrow_wallet', ''),
+                ('btc_admin_wallet', ''),
+                ('xmr_escrow_wallet', ''),
+                ('xmr_admin_wallet', ''),
+                ('escrow_fee_percent', '2.5'),
+                ('vendor_bond_amount', '0.05'),
+                ('escrow_auto_release_hours', '72'),
+                # Deposit minimums and confirmations
+                ('btc_min_deposit', '0.0001'),
+                ('btc_min_confirmations', '2'),
+                ('xmr_min_deposit', '0.01'),
+                ('xmr_min_confirmations', '10')
             ]
             c.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", defaults)
+
+        c.execute('''CREATE TABLE IF NOT EXISTS security_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            action TEXT NOT NULL,
+            admin TEXT NOT NULL
+        )''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS user_crypto_addresses (
+            user_id INTEGER PRIMARY KEY,
+            btc_address TEXT,
+            xmr_subaddress TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            type TEXT NOT NULL DEFAULT 'info',
+            is_read INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )''')
 
         conn.commit()
 
@@ -914,3 +967,148 @@ def update_rates():
     except (requests.RequestException, ValueError) as e:
         print(f"Error updating rates: {e}")
         return get_rates()  # Return cached rates on failure
+
+def create_test_admin_and_news():
+    """Utility to create a test admin user and a test news article if they do not exist."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        # Create test admin if not exists
+        c.execute("SELECT id FROM users WHERE username = 'testadmin' AND role = 'admin'")
+        admin = c.fetchone()
+        if not admin:
+            c.execute("""
+                INSERT INTO users (username, pusername, pin, password, role)
+                VALUES ('testadmin', 'testadmin', '123456', ?, 'admin')
+            """, (generate_password_hash('testpass'),))
+            admin_id = c.lastrowid
+        else:
+            admin_id = admin['id']
+        # Create test news if not exists
+        c.execute("SELECT id FROM news WHERE title = 'Test News Article'")
+        news = c.fetchone()
+        if not news:
+            c.execute("""
+                INSERT INTO news (title, content, admin_id)
+                VALUES ('Test News Article', 'This is a test news article for debugging.', ?)
+            """, (admin_id,))
+        conn.commit()
+
+# Utility: Check and fix orphaned news articles
+
+def check_and_fix_orphaned_news(delete_orphans=False):
+    """
+    Checks for news articles whose admin_id does not correspond to a valid admin user.
+    If delete_orphans is True, deletes those news articles.
+    Returns a list of orphaned news article IDs.
+    """
+    orphans = []
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            # Find orphaned news articles
+            c.execute('''
+                SELECT n.id, n.title, n.admin_id FROM news n
+                LEFT JOIN users u ON n.admin_id = u.id AND u.role = 'admin'
+                WHERE u.id IS NULL
+            ''')
+            orphans = c.fetchall()
+            orphan_ids = [row['id'] for row in orphans]
+            if delete_orphans and orphan_ids:
+                c.execute(f"DELETE FROM news WHERE id IN ({','.join(['?']*len(orphan_ids))})", orphan_ids)
+                conn.commit()
+            return orphans
+    except Exception as e:
+        print(f"Error checking/fixing orphaned news: {e}")
+        return []
+
+def log_security_audit(action, admin):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("INSERT INTO security_audit (timestamp, action, admin) VALUES (?, ?, ?)", (datetime.utcnow(), action, admin))
+        conn.commit()
+
+def log_wallet_change(admin, wallet_type, old_value, new_value):
+    action = f"Changed {wallet_type} from {old_value} to {new_value}"
+    log_security_audit(action, admin)
+
+def get_bond_amounts():
+    settings = get_settings()
+    try:
+        btc = float(settings.get('vendor_bond_amount', 0.05))
+    except Exception:
+        btc = 0.05
+    try:
+        xmr = float(settings.get('vendor_bond_amount_xmr', btc * 200))  # Fallback: 1 BTC ≈ 200 XMR
+    except Exception:
+        xmr = btc * 200
+    return {
+        'btc': f'{btc:.8f}',
+        'xmr': f'{xmr:.8f}'
+    }
+
+def get_pending_payment(user_id):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT id, crypto_type, address, amount, txid, status FROM vendor_payments WHERE user_id = ? AND status IN ('pending', 'confirmed') ORDER BY created_at DESC LIMIT 1", (user_id,))
+        row = c.fetchone()
+        if row:
+            return {
+                'id': row[0],
+                'crypto_type': row[1],
+                'address': row[2],
+                'amount': row[3],
+                'txid': row[4],
+                'status': row[5],
+                'qr_path': f'qr_codes/{user_id}_{row[1]}.png'
+            }
+        return None
+
+def get_user_notifications(user_id, unread_only=False, limit=10):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        query = "SELECT * FROM notifications WHERE user_id = ?"
+        params = [user_id]
+        if unread_only:
+            query += " AND is_read = 0"
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        c.execute(query, params)
+        return [dict(row) for row in c.fetchall()]
+
+def mark_notification_read(notification_id, user_id):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?", (notification_id, user_id))
+        conn.commit()
+
+def send_notification_with_email(user_id, message, type='info', subject=None):
+    """
+    Create a notification and, if the user has a PGP public key and email, send a PGP-encrypted email over Tor.
+    """
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        # Create notification
+        c.execute("INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)", (user_id, message, type))
+        # Fetch user email and PGP key
+        c.execute("SELECT email, pgp_public_key FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        if user and user['email'] and user['pgp_public_key']:
+            # Get SMTP config from environment
+            smtp_host = os.getenv('SMTP_HOST')
+            smtp_port = int(os.getenv('SMTP_PORT', 587))
+            smtp_user = os.getenv('SMTP_USER')
+            smtp_password = os.getenv('SMTP_PASSWORD')
+            from_email = os.getenv('SMTP_FROM_EMAIL', smtp_user)
+            if smtp_host and smtp_user and smtp_password:
+                send_pgp_email_over_tor(
+                    to_email=user['email'],
+                    subject=subject or 'Marketplace Notification',
+                    message=message,
+                    pgp_public_key=user['pgp_public_key'],
+                    smtp_host=smtp_host,
+                    smtp_port=smtp_port,
+                    smtp_user=smtp_user,
+                    smtp_password=smtp_password,
+                    from_email=from_email
+                )
+        conn.commit()

@@ -1,85 +1,300 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Admin Panel - {{ settings['site_name'] }}{% endblock %}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}Admin Panel - {{ settings['site_name'] }}{% endblock %}
+    </title>
     <!-- Tailwind CSS CDN -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
     <!-- Font Awesome CDN for icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/icon.min.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/icon.min.css') }}"
+    />
     <style>
-        :root {
-            --primary-color: {{ settings['primary_color'] }};
-            --secondary-color: {{ settings['secondary_color'] }};
+      :root {
+          --primary-color: {{ settings['primary_color'] }};
+          --secondary-color: {{ settings['secondary_color'] }};
+      }
+      .container {
+        max-width: 1280px
+      }
+      .bg-primary { background-color: var(--primary-color) !important; }
+        .text-primary { color: var(--primary-color); }
+        .bg-secondary { background-color: var(--secondary-color); }
+        .text-secondary { color: var(--secondary-color); }
+        .focus\:ring-primary:focus {
+            outline: none;
+            ring: 2px solid var(--primary-color);
+            --tw-ring-color: var(--primary-color);
         }
-        .container {
-          max-width: 1280px
+        .hover\:bg-primary-90:hover {
+            background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9);
+        }.\
+      @media (max-width: 767px) {
+        aside#adminSidebar {
+          width: 80vw;
+          max-width: 320px;
+          height: 100vh !important;
+          top: 0 !important;
+          left: 0;
+          z-index: 30;
+          background: var(--primary-color);
+          border-right: 1px solid #2226;
         }
-        .bg-primary { background-color: var(--primary-color) !important; }
-          .text-primary { color: var(--primary-color); }
-          .bg-secondary { background-color: var(--secondary-color); }
-          .text-secondary { color: var(--secondary-color); }
-          .focus\:ring-primary:focus { 
-              outline: none; 
-              ring: 2px solid var(--primary-color); 
-              --tw-ring-color: var(--primary-color); 
-          }
-          .hover\:bg-primary-90:hover { 
-              background-color: rgba(var(--primary-color-rgb, var(--primary-color)), 0.9); 
-          }.\
-  
-      </style>
+        header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 40;
+        }
+        body {
+          padding-top: 4rem;
+        }
+        main {
+          padding-top: 5rem;
+          margin-left: 0 !important;
+        }
+      }
+    </style>
     {% block extra_head %}{% endblock %}
-</head>
-<body class="flex min-h-screen ">
+  </head>
+  <body class="bg-gray-900 min-h-screen">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 bg-primary p-4 flex justify-between items-center z-10">
-        <div>
-            {% if settings['logo_path'] %}
-            <a href="{{ url_for('public.index') }}">
-                <img src="{{ url_for('static', filename=settings['logo_path']) }}" alt="{{ settings['site_name'] }} Logo" class="h-10">
-            </a>
-            {% else %}
-            <span class="text-xl font-bold">{{ settings['site_name'] }}</span>
-            {% endif %}
-        </div>
-        <div class="text-gray-800">
-            Welcome, {{ session['pusername'] if session['pusername'] else 'Admin' }} | 
-            <a href="{{ url_for('admin.admin_logout') }}" class="text-blue-600 hover:underline">Logout</a>
-        </div>
+    <header
+      class="fixed top-0 left-0 right-0 z-30 bg-primary p-4 flex justify-between items-center md:ml-64"
+    >
+      <div class="flex items-center">
+        <button
+          id="sidebarToggle"
+          class="md:hidden mr-4 text-white focus:outline-none"
+        >
+          <i class="fas fa-bars text-2xl"></i>
+        </button>
+        {% if settings['logo_path'] %}
+        <a href="{{ url_for('public.index') }}">
+          <img
+            src="{{ url_for('static', filename=settings['logo_path']) }}"
+            alt="{{ settings['site_name'] }} Logo"
+            class="h-10"
+          />
+        </a>
+        {% else %}
+        <span class="text-xl font-bold">{{ settings['site_name'] }}</span>
+        {% endif %}
+      </div>
+      <div class="text-gray-800 text-sm md:text-base">
+        Welcome, {{ session['pusername'] if session['pusername'] else 'Admin' }}
+        |
+        <a
+          href="{{ url_for('admin.admin_logout') }}"
+          class="text-blue-600 hover:underline"
+          >Logout</a
+        >
+      </div>
     </header>
 
     <!-- Sidebar -->
-    <aside class="fixed top-16 left-0 w-64 bg-primary text-white h-[calc(100vh-4rem)] p-4 overflow-y-auto transition-all duration-300 md:w-64 md:block">
-        <nav>
-            <ul class="space-y-2">
-                <li><a href="{{ url_for('admin.dashboard') }}" class="flex items-center p-2 space-y-3 text-white hover:bg-gray-700 rounded"><i class="fas fa-tachometer-alt w-5 text-center"></i> Dashboard</a></li>
-                <li><a href="{{ url_for('admin.manage_users') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-users w-5 text-center"></i>Manage Users</a></li>
-                <li><a href="{{ url_for('admin.manage_vendors') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-store w-5 text-center"></i>Manage Vendors</a></li>
-                <li><a href="{{ url_for('admin.news') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-store w-5 text-center"></i>News</a></li>
-                <li><a href="{{ url_for('admin.faqs') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-store w-5 text-center"></i>Help Desk</a></li>
-                <li><a href="{{ url_for('admin.manage_products') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-box w-5 text-center"></i> Products</a></li>
-                <li><a href="{{ url_for('admin.manage_categories') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-tags w-5 text-center"></i> Categories</a></li>
-                <li><a href="{{ url_for('admin.admin_orders') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-shopping-cart w-5 text-center"></i>My Orders</a></li>
-                <li><a href="{{ url_for('admin.admin_escrow') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-wallet w-5 text-center"></i> Escrow</a></li>
-                <li><a href="{{ url_for('admin.admin_disputes') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-gavel w-5 text-center"></i> Disputes</a></li>
-                <li><a href="{{ url_for('admin.admin_withdrawals') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-money-check-alt w-5 text-center"></i> Withdrawals</a></li>
-                <li><a href="{{ url_for('admin.admin_fees') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-percentage w-5 text-center"></i> Fees</a></li>
-                <li><a href="{{ url_for('admin.messages') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-envelope w-5 text-center"></i> Messages</a></li>
-                <li><a href="{{ url_for('admin.manage_support') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-ticket-alt w-5 text-center"></i> Support Tickets</a></li>
-                <li><a href="{{ url_for('admin.admin_security') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-shield-alt w-5 text-center"></i> Security</a></li>
-                <li><a href="" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-ban w-5 text-center"></i> Blacklist</a></li>
-                <li><a href="{{ url_for('admin.admin_settings') }}" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-cog w-5 text-center"></i> Market Settings</a></li>
-                <li><a href="" class="flex items-center p-2 text-white hover:bg-gray-700 rounded"><i class="fas fa-file-alt w-5 text-center"></i> Logs</a></li>
-            </ul>
-        </nav>
+    <aside
+      id="adminSidebar"
+      class="fixed top-0 left-0 w-64 h-screen bg-primary text-white p-4 z-40 transform transition-transform duration-300 md:translate-x-0 -translate-x-full md:block"
+    >
+      <nav>
+        <ul class="space-y-2">
+          <li>
+            <a
+              href="{{ url_for('admin.dashboard') }}"
+              class="flex items-center p-2 space-y-3 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-tachometer-alt w-5 text-center"></i>
+              Dashboard</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.manage_users') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-users w-5 text-center"></i>Manage Users</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.manage_vendors') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-store w-5 text-center"></i>Manage Vendors</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_packages') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-box-open w-5 text-center"></i> Manage
+              Packages</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.news') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-store w-5 text-center"></i>News</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.faqs') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-question-circle w-5 text-center"></i>Help
+              Desk</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.manage_products') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-box w-5 text-center"></i> Products</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.manage_categories') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-tags w-5 text-center"></i> Categories</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_orders') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-shopping-cart w-5 text-center"></i>All Orders</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_escrow') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-wallet w-5 text-center"></i> Escrow</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_disputes') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-gavel w-5 text-center"></i> Disputes</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_withdrawals') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-money-check-alt w-5 text-center"></i>
+              Withdrawals</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_fees') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-percentage w-5 text-center"></i> Fees</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.messages') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-envelope w-5 text-center"></i> Messages</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.manage_support') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-ticket-alt w-5 text-center"></i> Support
+              Tickets</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_security') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-shield-alt w-5 text-center"></i> Security</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_ddos_protection') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-shield-virus w-5 text-center"></i> DDoS
+              Protection</a
+            >
+          </li>
+          <li>
+            <a
+              href=""
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-ban w-5 text-center"></i> Blacklist</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_settings') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-cog w-5 text-center"></i> Market Settings</a
+            >
+          </li>
+          <li>
+            <a
+              href=""
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-file-alt w-5 text-center"></i> Logs</a
+            >
+          </li>
+        </ul>
+      </nav>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 mt-16 ml-0 md:ml-64 bg-gray-100">
-        {% block admin_content %}{% endblock %}
+    <main
+      class="pt-20 md:pt-8 md:ml-64 p-4 transition-all duration-300 min-h-screen bg-gray-900"
+    >
+      {% block admin_content %}{% endblock %}
     </main>
-</body>
+
+    <script>
+      // Sidebar toggle for mobile
+      const sidebar = document.getElementById("adminSidebar");
+      const toggleBtn = document.getElementById("sidebarToggle");
+      if (toggleBtn) {
+        toggleBtn.onclick = function () {
+          if (sidebar.classList.contains("-translate-x-full")) {
+            sidebar.classList.remove("-translate-x-full");
+            sidebar.classList.add("translate-x-0");
+          } else {
+            sidebar.classList.add("-translate-x-full");
+            sidebar.classList.remove("translate-x-0");
+          }
+        };
+      }
+      // Close sidebar on click outside (mobile)
+      document.addEventListener("click", function (event) {
+        if (
+          window.innerWidth < 768 &&
+          sidebar &&
+          !sidebar.contains(event.target) &&
+          !toggleBtn.contains(event.target)
+        ) {
+          sidebar.classList.add("-translate-x-full");
+          sidebar.classList.remove("translate-x-0");
+        }
+      });
+    </script>
+  </body>
 </html>

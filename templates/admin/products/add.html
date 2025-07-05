@@ -1,702 +1,793 @@
-{% extends 'admin/admin_base.html' %}
-
-{% block title %}Admin - Products - {{ settings['site_name'] }}{% endblock %}
-
-{% block admin_content %}
+{% extends 'admin/admin_base.html' %} {% block title %}Admin - Products - {{
+settings['site_name'] }}{% endblock %} {% block admin_content %}
 <h2 class="text-2xl font-bold text-gray-900 mb-6">Publish Products</h2>
 
 <!-- Add Product Form -->
-<div class="bg-white p-6 rounded-lg shadow-md mb-8">
-    <form method="POST" action="{{ url_for('admin.admin_products') }}" enctype="multipart/form-data" class="space-y-6">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <!-- Basic Information -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Basic Information</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Enter a clear, descriptive title for the product (e.g., "High-Quality Gadget 2025 Model"). Max 100 characters.</p>
-                    <input 
-                        type="text" 
-                        id="title" 
-                        name="title" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter product title" 
-                        maxlength="100"
-                        required
-                    >
-                </div>
-                <div>
-                    <label for="description" class="block text-gray-700 font-semibold mb-2">Product Description <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Provide detailed information about the product, including features, specifications, and usage. Use markdown for formatting if needed.</p>
-                    <textarea 
-                        id="description" 
-                        name="description" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter detailed product description"
-                        rows="6"
-                        required
-                    ></textarea>
-                </div>
-                <div>
-                    <label for="sku" class="block text-gray-700 font-semibold mb-2">SKU (Stock Keeping Unit)</label>
-                    <p class="text-sm text-gray-500 mb-2">Enter a unique identifier for inventory tracking (e.g., "GAD-2025-001").</p>
-                    <input 
-                        type="text" 
-                        id="sku" 
-                        name="sku" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter SKU"
-                    >
-                </div>
-                <div>
-                    <label for="tags" class="block text-gray-700 font-semibold mb-2">Tags</label>
-                    <p class="text-sm text-gray-500 mb-2">Add comma-separated keywords to improve searchability (e.g., "electronics, gadget, tech").</p>
-                    <input 
-                        type="text" 
-                        id="tags" 
-                        name="tags" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter tags (e.g., electronics, gadget)"
-                    >
-                </div>
-                <div>
-                    <label for="product_type" class="block text-gray-700 font-semibold mb-2">Product Type <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Select whether the product is physical (shipped) or digital (downloaded).</p>
-                    <select 
-                        id="product_type" 
-                        name="product_type" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="physical">Physical</option>
-                        <option value="digital">Digital</option>
-                    </select>
-                </div>
-            </div>
+<div class="bg-white rounded-xl shadow-lg border border-gray-200 mb-8">
+  <div class="px-8 py-6 border-b border-gray-200">
+    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+      <svg
+        class="w-5 h-5 mr-2 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+        ></path>
+      </svg>
+      Add New Product
+    </h2>
+  </div>
+
+  <form
+    method="POST"
+    action="{{ url_for('admin.admin_products') }}"
+    enctype="multipart/form-data"
+    class="p-8 space-y-8"
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <!-- Basic Information -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-blue-600 font-bold text-sm">1</span>
+        </div>
+        Basic Information
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2">
+          <label
+            for="title"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Product Title <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">
+            Enter a clear, descriptive title for the product
+          </p>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="e.g., High-Quality Wireless Headphones 2025"
+            maxlength="100"
+            required
+          />
         </div>
 
-        <!-- Pricing and Inventory -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Pricing and Inventory</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="price_usd" class="block text-gray-700 font-semibold mb-2">Price (USD) <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product price in USD. Use at least 2 decimal places for accuracy (e.g., 10.00).</p>
-                    <input 
-                        type="number" 
-                        id="price_usd" 
-                        name="price_usd" 
-                        step="0.01" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter price in USD"
-                        required
-                    >
-                </div>
-                <div>
-                    <label for="price_btc" class="block text-gray-700 font-semibold mb-2">Price (BTC) <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product price in Bitcoin (auto-calculated if left blank).</p>
-                    <input 
-                        type="number" 
-                        id="price_btc" 
-                        name="price_btc" 
-                        step="0.0001" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter price in BTC"
-                    >
-                </div>
-                <div>
-                    <label for="price_xmr" class="block text-gray-700 font-semibold mb-2">Price (XMR) <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product price in Monero (auto-calculated if left blank).</p>
-                    <input 
-                        type="number" 
-                        id="price_xmr" 
-                        name="price_xmr" 
-                        step="0.0001" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter price in XMR"
-                    >
-                </div>
-                <div>
-                    <label for="stock" class="block text-gray-700 font-semibold mb-2">Stock Quantity <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Specify the number of units available. Set to 0 if out of stock.</p>
-                    <input 
-                        type="number" 
-                        id="stock" 
-                        name="stock" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter stock quantity"
-                        required
-                    >
-                </div>
-            </div>
+        <div>
+          <label for="sku" class="block text-sm font-medium text-gray-700 mb-1"
+            >SKU</label
+          >
+          <p class="text-xs text-gray-500 mb-3">
+            Unique identifier for inventory tracking
+          </p>
+          <input
+            type="text"
+            id="sku"
+            name="sku"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="e.g., WH-2025-001"
+          />
         </div>
 
-        <!-- Shipping Details -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Shipping Details</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="origin_country" class="block text-gray-700 font-semibold mb-2">Origin Country</label>
-                    <p class="text-sm text-gray-500 mb-2">Select the country from which the product will be shipped (e.g., USA, Netherlands).</p>
-                    <select 
-                        id="origin_country" 
-                        name="origin_country" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    >
-                        <option value="">Select origin country</option>
-                        <option value="USA">USA</option>
-                        <option value="Netherlands">Netherlands</option>
-                        <option value="China">China</option>
-                        <option value="Germany">Germany</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="shipping_destinations" class="block text-gray-700 font-semibold mb-2">Destination Countries <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Enter comma-separated countries where you ship (e.g., "Worldwide", "USA, Canada").</p>
-                    <input 
-                        type="text" 
-                        id="shipping_destinations" 
-                        name="shipping_destinations" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter destination countries"
-                        required
-                    >
-                </div>
-                <div>
-                    <label for="shipping_methods" class="block text-gray-700 font-semibold mb-2">Shipping Methods</label>
-                    <p class="text-sm text-gray-500 mb-2">Specify available shipping options and estimated times (e.g., "Standard: 5-7 days, Express: 2-3 days").</p>
-                    <textarea 
-                        id="shipping_methods" 
-                        name="shipping_methods" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter shipping methods"
-                        rows="3"
-                    ></textarea>
-                </div>
-                <div>
-                    <label for="weight_grams" class="block text-gray-700 font-semibold mb-2">Weight (grams)</label>
-                    <p class="text-sm text-gray-500 mb-2">Enter the product weight in grams for shipping calculations (e.g., 100.5).</p>
-                    <input 
-                        type="number" 
-                        id="weight_grams" 
-                        name="weight_grams" 
-                        step="0.1" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter weight in grams"
-                    >
-                </div>
-            </div>
+        <div>
+          <label
+            for="product_type"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Product Type <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">
+            Select product delivery method
+          </p>
+          <select
+            id="product_type"
+            name="product_type"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            required
+          >
+            <option value="physical">Physical (Shipped)</option>
+            <option value="digital">Digital (Download)</option>
+          </select>
         </div>
 
-        <!-- Vendor and Category -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Vendor and Category</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="vendor_id" class="block text-gray-700 font-semibold mb-2">Vendor <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Select the vendor responsible for this product. Ensure the vendor is verified.</p>
-                    <select 
-                        id="vendor_id" 
-                        name="vendor_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="">Select a vendor</option>
-                        {% for vendor in vendors %}
-                        <option value="{{ vendor.id }}">{{ vendor.pusername }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="category_id" class="block text-gray-700 font-semibold mb-2">Category <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Choose the category that best fits the product. Subcategories are indented.</p>
-                    <select 
-                        id="category_id" 
-                        name="category_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="">Select a category</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}">
-                            {{ category.name }}
-                            {% if category.parent_id %}
-                                {% for parent in categories %}
-                                    {% if parent.id == category.parent_id %}
-                                        ({{ parent.name }})
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+        <div class="md:col-span-2">
+          <label for="tags" class="block text-sm font-medium text-gray-700 mb-1"
+            >Tags</label
+          >
+          <p class="text-xs text-gray-500 mb-3">
+            Comma-separated keywords for better searchability
+          </p>
+          <input
+            type="text"
+            id="tags"
+            name="tags"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="e.g., electronics, headphones, wireless, audio"
+          />
         </div>
 
-        <!-- Images -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Images</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="featured_image" class="block text-gray-700 font-semibold mb-2">Featured Image</label>
-                    <p class="text-sm text-gray-500 mb-2">Upload a high-quality image (JPEG/PNG, max 2MB) to represent the product. Recommended size: 600x600px.</p>
-                    <input 
-                        type="file" 
-                        id="featured_image" 
-                        name="featured_image" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        accept="image/jpeg,image/png"
-                    >
-                </div>
-                <div>
-                    <label for="additional_images" class="block text-gray-700 font-semibold mb-2">Additional Images</label>
-                    <p class="text-sm text-gray-500 mb-2">Upload up to 5 additional images to showcase different angles or features (JPEG/PNG, max 2MB each).</p>
-                    <input 
-                        type="file" 
-                        id="additional_images" 
-                        name="additional_images" 
-                        multiple 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        accept="image/jpeg,image/png"
-                    >
-                </div>
-            </div>
+        <div class="md:col-span-2">
+          <label
+            for="description"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Product Description <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">
+            Detailed product information, features, and specifications
+          </p>
+          <textarea
+            id="description"
+            name="description"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="Describe your product in detail..."
+            rows="5"
+            required
+          ></textarea>
         </div>
-
-        <!-- Visibility and Status -->
-        <div class="pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Visibility and Status</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="visibility" class="block text-gray-700 font-semibold mb-2">Visibility</label>
-                    <p class="text-sm text-gray-500 mb-2">Choose whether the product is visible to all users or restricted to specific users.</p>
-                    <select 
-                        id="visibility" 
-                        name="visibility" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    >
-                        <option value="public">Public (Visible to all)</option>
-                        <option value="private">Private (Restricted access)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="status" class="block text-gray-700 font-semibold mb-2">Status <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product status (e.g., Active for listed, Pending for review).</p>
-                    <select 
-                        id="status" 
-                        name="status" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="pending">Pending</option>
-                        <option value="active">Active</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="disabled">Disabled</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="is_featured" class="block text-gray-700 font-semibold mb-2">Featured Product</label>
-                    <p class="text-sm text-gray-500 mb-2">Check to highlight this product on the homepage or category pages.</p>
-                    <input 
-                        type="checkbox" 
-                        id="is_featured" 
-                        name="is_featured" 
-                        class="h-4 w-4 text-yellow-400 focus:ring-yellow-400 border-gray-300 rounded"
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="text-right">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-6 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Add Product
-            </button>
-        </div>
-    </form>
-    {% for message in get_flashed_messages(with_categories=true) %}
-    <p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
-    {% endfor %}
-</div>
-
-<!-- Edit Product Form -->
-{% if edit_product %}
-<div class="bg-white p-6 rounded-lg shadow-md mb-8">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Edit Product: {{ edit_product.title }}</h3>
-    <form method="POST" action="{{ url_for('admin.admin_edit_product', product_id=edit_product.id) }}" enctype="multipart/form-data" class="space-y-6">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <!-- Basic Information -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Basic Information</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Enter a clear, descriptive title for the product (e.g., "High-Quality Gadget 2025 Model"). Max 100 characters.</p>
-                    <input 
-                        type="text" 
-                        id="title" 
-                        name="title" 
-                        value="{{ edit_product.title }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        maxlength="100"
-                        required
-                    >
-                </div>
-                <div>
-                    <label for="description" class="block text-gray-700 font-semibold mb-2">Product Description</label>
-                    <p class="text-sm text-gray-500 mb-2">Provide detailed information about the product, including features, specifications, and usage. Use markdown for formatting if needed.</p>
-                    <textarea 
-                        id="description" 
-                        name="description" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        rows="6"
-                    >{{ edit_product.description or '' }}</textarea>
-                </div>
-                <div>
-                    <label for="sku" class="block text-gray-700 font-semibold mb-2">SKU (Stock Keeping Unit)</label>
-                    <p class="text-sm text-gray-500 mb-2">Enter a unique identifier for inventory tracking (e.g., "GAD-2025-001").</p>
-                    <input 
-                        type="text" 
-                        id="sku" 
-                        name="sku" 
-                        value="{{ edit_product.sku or '' }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter SKU"
-                    >
-                </div>
-                <div>
-                    <label for="tags" class="block text-gray-700 font-semibold mb-2">Tags</label>
-                    <p class="text-sm text-gray-500 mb-2">Add comma-separated keywords to improve searchability (e.g., "electronics, gadget, tech").</p>
-                    <input 
-                        type="text" 
-                        id="tags" 
-                        name="tags" 
-                        value="{{ edit_product.tags or '' }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter tags"
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Pricing and Inventory -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Pricing and Inventory</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="price_btc" class="block text-gray-700 font-semibold mb-2">Price (BTC) <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product price in Bitcoin. Use at least 4 decimal places for accuracy (e.g., 0.0015 BTC).</p>
-                    <input 
-                        type="number" 
-                        id="price_btc" 
-                        name="price_btc" 
-                        value="{{ edit_product.price_btc }}"
-                        step="0.0001" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        required
-                    >
-                </div>
-                <div>
-                    <label for="stock" class="block text-gray-700 font-semibold mb-2">Stock Quantity <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Specify the number of units available. Set to 0 if out of stock.</p>
-                    <input 
-                        type="number" 
-                        id="stock" 
-                        name="stock" 
-                        value="{{ edit_product.stock }}"
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        required
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Shipping Details -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Shipping Details</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="origin_country" class="block text-gray-700 font-semibold mb-2">Origin Country</label>
-                    <p class="text-sm text-gray-500 mb-2">Select the country from which the product will be shipped (e.g., USA, Netherlands).</p>
-                    <select 
-                        id="origin_country" 
-                        name="origin_country" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    >
-                        <option value="">Select origin country</option>
-                        <option value="USA" {% if edit_product.origin_country == 'USA' %}selected{% endif %}>USA</option>
-                        <option value="Netherlands" {% if edit_product.origin_country == 'Netherlands' %}selected{% endif %}>Netherlands</option>
-                        <option value="China" {% if edit_product.origin_country == 'China' %}selected{% endif %}>China</option>
-                        <option value="Germany" {% if edit_product.origin_country == 'Germany' %}selected{% endif %}>Germany</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="shipping_destinations" class="block text-gray-700 font-semibold mb-2">Destination Countries</label>
-                    <p class="text-sm text-gray-500 mb-2">Enter comma-separated countries where you ship (e.g., "Worldwide", "USA, Canada").</p>
-                    <input 
-                        type="text" 
-                        id="shipping_destinations" 
-                        name="shipping_destinations" 
-                        value="{{ edit_product.shipping_destinations or '' }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter destination countries"
-                    >
-                </div>
-                <div>
-                    <label for="shipping_methods" class="block text-gray-700 font-semibold mb-2">Shipping Methods</label>
-                    <p class="text-sm text-gray-500 mb-2">Specify available shipping options and estimated times (e.g., "Standard: 5-7 days, Express: 2-3 days").</p>
-                    <textarea 
-                        id="shipping_methods" 
-                        name="shipping_methods" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        rows="3"
-                    >{{ edit_product.shipping_methods or '' }}</textarea>
-                </div>
-                <div>
-                    <label for="weight_grams" class="block text-gray-700 font-semibold mb-2">Weight (grams)</label>
-                    <p class="text-sm text-gray-500 mb-2">Enter the product weight in grams for shipping calculations (e.g., 100.5).</p>
-                    <input 
-                        type="number" 
-                        id="weight_grams" 
-                        name="weight_grams" 
-                        value="{{ edit_product.weight_grams or '' }}"
-                        step="0.1" 
-                        min="0" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        placeholder="Enter weight in grams"
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Vendor and Category -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Vendor and Category</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="vendor_id" class="block text-gray-700 font-semibold mb-2">Vendor <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Select the vendor responsible for this product. Ensure the vendor is verified.</p>
-                    <select 
-                        id="vendor_id" 
-                        name="vendor_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="">Select a vendor</option>
-                        {% for vendor in vendors %}
-                        <option value="{{ vendor.id }}" {% if vendor.id == edit_product.vendor_id %}selected{% endif %}>
-                            {{ vendor.pusername }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="category_id" class="block text-gray-700 font-semibold mb-2">Category <span class="text-red-500">*</span></label>
-                    <p class="text-sm text-gray-500 mb-2">Choose the category that best fits the product. Subcategories are indented.</p>
-                    <select 
-                        id="category_id" 
-                        name="category_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                        required
-                    >
-                        <option value="">Select a category</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category.id == edit_product.category_id %}selected{% endif %}>
-                            {{ category.name }}
-                            {% if category.parent_id %}
-                                {% for parent in categories %}
-                                    {% if parent.id == category.parent_id %}
-                                        ({{ parent.name }})
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Images -->
-        <div class="border-b pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Images</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="featured_image" class="block text-gray-700 font-semibold mb-2">Featured Image</label>
-                    <p class="text-sm text-gray-500 mb-2">Upload a new image (JPEG/PNG, max 2MB) to replace the current one, or leave blank to keep existing.</p>
-                    <input 
-                        type="file" 
-                        id="featured_image" 
-                        name="featured_image" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        accept="image/jpeg,image/png"
-                    >
-                    {% if edit_product.featured_image %}
-                    <p class="text-gray-600 mt-2">Current: <img src="{{ url_for('static', filename=edit_product.featured_image) }}" alt="Featured Image" class="h-10 w-10 inline-block rounded"></p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="additional_images" class="block text-gray-700 font-semibold mb-2">Additional Images</label>
-                    <p class="text-sm text-gray-500 mb-2">Upload new images (up to 5, JPEG/PNG, max 2MB each) to add or replace existing ones.</p>
-                    <input 
-                        type="file" 
-                        id="additional_images" 
-                        name="additional_images" 
-                        multiple 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                        accept="image/jpeg,image/png"
-                    >
-                    {% if additional_images %}
-                    <p class="text-gray-600 mt-2">Current Images:</p>
-                    <div class="flex space-x-2">
-                        {% for img in additional_images %}
-                        <div class="relative">
-                            <img src="{{ url_for('static', filename=img.image_path) }}" alt="Additional Image" class="h-10 w-10 object-cover rounded">
-                            <a href="{{ url_for('admin.admin_delete_image', image_id=img.id) }}" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center" onclick="return confirm('Delete this image?');">&times;</a>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Visibility and Status -->
-        <div class="pb-4">
-            <h4 class="text-md font-semibold text-gray-700 mb-3">Visibility and Status</h4>
-            <div class="space-y-4">
-                <div>
-                    <label for="visibility" class="block text-gray-700 font-semibold mb-2">Visibility</label>
-                    <p class="text-sm text-gray-500 mb-2">Choose whether the product is visible to all users or restricted to specific users.</p>
-                    <select 
-                        id="visibility" 
-                        name="visibility" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    >
-                        <option value="public" {% if edit_product.visibility == 'public' %}selected{% endif %}>Public (Visible to all)</option>
-                        <option value="private" {% if edit_product.visibility == 'private' %}selected{% endif %}>Private (Restricted access)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="status" class="block text-gray-700 font-semibold mb-2">Status</label>
-                    <p class="text-sm text-gray-500 mb-2">Set the product as Active (listed) or Inactive (hidden, e.g., for review or out of stock).</p>
-                    <select 
-                        id="status" 
-                        name="status" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    >
-                        <option value="active" {% if edit_product.status == 'active' %}selected{% endif %}>Active</option>
-                        <option value="inactive" {% if edit_product.status == 'inactive' %}selected{% endif %}>Inactive</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="is_featured" class="block text-gray-700 font-semibold mb-2">Featured Product</label>
-                    <p class="text-sm text-gray-500 mb-2">Check to highlight this product on the homepage or category pages.</p>
-                    <input 
-                        type="checkbox" 
-                        id="is_featured" 
-                        name="is_featured" 
-                        class="h-4 w-4 text-yellow-400 focus:ring-yellow-400 border-gray-300 rounded"
-                        {% if edit_product.is_featured %}checked{% endif %}
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="text-right space-x-2">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-6 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Save Changes
-            </button>
-            <a href="{{ url_for('admin.admin_products') }}" class="bg-gray-300 text-gray-900 font-semibold py-2 px-6 rounded-md hover:bg-gray-400 transition duration-200">Cancel</a>
-        </div>
-    </form>
-</div>
-{% endif %}
-
-<!-- Products List -->
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Existing Products</h3>
-    {% if products %}
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead>
-                <tr class="border-b">
-                    <th class="py-2 px-4 text-gray-700">ID</th>
-                    <th class="py-2 px-4 text-gray-700">Title</th>
-                    <th class="py-2 px-4 text-gray-700">SKU</th>
-                    <th class="py-2 px-4 text-gray-700">Price (BTC)</th>
-                    <th class="py-2 px-4 text-gray-700">Stock</th>
-                    <th class="py-2 px-4 text-gray-700">Vendor</th>
-                    <th class="py-2 px-4 text-gray-700">Category</th>
-                    <th class="py-2 px-4 text-gray-700">Origin</th>
-                    <th class="py-2 px-4 text-gray-700">Status</th>
-                    <th class="py-2 px-4 text-gray-700">Featured</th>
-                    <th class="py-2 px-4 text-gray-700">Images</th>
-                    <th class="py-2 px-4 text-gray-700">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="py-2 px-4">{{ product.id }}</td>
-                    <td class="py-2 px-4">{{ product.title }}</td>
-                    <td class="py-2 px-4">{{ product.sku or 'N/A' }}</td>
-                    <td class="py-2 px-4">{{ "%.4f"|format(product.price_btc) }}</td>
-                    <td class="py-2 px-4">{{ product.stock }}</td>
-                    <td class="py-2 px-4">
-                        {% for vendor in vendors %}
-                            {% if vendor.id == product.vendor_id %}
-                                {{ vendor.pusername }}
-                            {% endif %}
-                        {% endfor %}
-                    </td>
-                    <td class="py-2 px-4">
-                        {% for category in categories %}
-                            {% if category.id == product.category_id %}
-                                {{ category.name }}
-                            {% endif %}
-                        {% endfor %}
-                    </td>
-                    <td class="py-2 px-4">{{ product.origin_country or 'N/A' }}</td>
-                    <td class="py-2 px-4">{{ product.status | capitalize }}</td>
-                    <td class="py-2 px-4">{{ 'Yes' if product.is_featured else 'No' }}</td>
-                    <td class="py-2 px-4">
-                        {% if product.featured_image %}
-                        <img src="{{ url_for('static', filename=product.featured_image) }}" alt="{{ product.title }}" class="h-16 w-16 object-cover rounded inline-block mr-2">
-                        {% endif %}
-                        {% for img in product_images if img.product_id == product.id %}
-                        <img src="{{ url_for('static', filename=img.image_path) }}" alt="Additional Image" class="h-16 w-16 object-cover rounded inline-block mr-2">
-                        {% endfor %}
-                    </td>
-                    <td class="py-2 px-4 space-x-2">
-                        <a href="{{ url_for('admin.admin_edit_product', product_id=product.id) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">Edit</a>
-                        <form method="POST" action="{{ url_for('admin.admin_delete_product', product_id=product.id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete {{ product.title }}?');">
-                            <button type="submit" class="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600 transition duration-200">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+      </div>
     </div>
-    {% else %}
-    <p class="text-gray-600">No products found.</p>
-    {% endif %}
+
+    <!-- Pricing and Inventory -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-green-600 font-bold text-sm">2</span>
+        </div>
+        Pricing & Inventory
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
+          <label
+            for="price_usd"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Price (USD) <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">Base price in US dollars</p>
+          <div class="relative">
+            <span
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              >$</span
+            >
+            <input
+              type="number"
+              id="price_usd"
+              name="price_usd"
+              step="0.01"
+              min="0"
+              class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="0.00"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="price_btc"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Price (BTC)</label
+          >
+          <p class="text-xs text-gray-500 mb-3">Auto-calculated if empty</p>
+          <div class="relative">
+            <span
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              >₿</span
+            >
+            <input
+              type="number"
+              id="price_btc"
+              name="price_btc"
+              step="0.0001"
+              min="0"
+              class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="0.0000"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="price_xmr"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Price (XMR)</label
+          >
+          <p class="text-xs text-gray-500 mb-3">Auto-calculated if empty</p>
+          <div class="relative">
+            <span
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              >Ɱ</span
+            >
+            <input
+              type="number"
+              id="price_xmr"
+              name="price_xmr"
+              step="0.0001"
+              min="0"
+              class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="0.0000"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="stock"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Stock Quantity <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">Available units</p>
+          <input
+            type="number"
+            id="stock"
+            name="stock"
+            min="0"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="0"
+            required
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Shipping Details -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-purple-600 font-bold text-sm">3</span>
+        </div>
+        Shipping Details
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label
+            for="origin_country"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Origin Country</label
+          >
+          <p class="text-xs text-gray-500 mb-3">Where the product ships from</p>
+          <select
+            id="origin_country"
+            name="origin_country"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+          >
+            <option value="">Select origin country</option>
+            <option value="Afghanistan">🇦🇫 Afghanistan</option>
+            <option value="Albania">🇦🇱 Albania</option>
+            <option value="Algeria">🇩🇿 Algeria</option>
+            <option value="Andorra">🇦🇩 Andorra</option>
+            <option value="Angola">🇦🇴 Angola</option>
+            <option value="Antigua and Barbuda">🇦🇬 Antigua and Barbuda</option>
+            <option value="Argentina">🇦🇷 Argentina</option>
+            <option value="Armenia">🇦🇲 Armenia</option>
+            <option value="Australia">🇦🇺 Australia</option>
+            <option value="Austria">🇦🇹 Austria</option>
+            <option value="Azerbaijan">🇦🇿 Azerbaijan</option>
+            <option value="Bahamas">🇧🇸 Bahamas</option>
+            <option value="Bahrain">🇧🇭 Bahrain</option>
+            <option value="Bangladesh">🇧🇩 Bangladesh</option>
+            <option value="Barbados">🇧🇧 Barbados</option>
+            <option value="Belarus">🇧🇾 Belarus</option>
+            <option value="Belgium">🇧🇪 Belgium</option>
+            <option value="Belize">🇧🇿 Belize</option>
+            <option value="Benin">🇧🇯 Benin</option>
+            <option value="Bhutan">🇧🇹 Bhutan</option>
+            <option value="Bolivia">🇧🇴 Bolivia</option>
+            <option value="Bosnia and Herzegovina">
+              🇧🇦 Bosnia and Herzegovina
+            </option>
+            <option value="Botswana">🇧🇼 Botswana</option>
+            <option value="Brazil">🇧🇷 Brazil</option>
+            <option value="Brunei">🇧🇳 Brunei</option>
+            <option value="Bulgaria">🇧🇬 Bulgaria</option>
+            <option value="Burkina Faso">🇧🇫 Burkina Faso</option>
+            <option value="Burundi">🇧🇮 Burundi</option>
+            <option value="Cabo Verde">🇨🇻 Cabo Verde</option>
+            <option value="Cambodia">🇰🇭 Cambodia</option>
+            <option value="Cameroon">🇨🇲 Cameroon</option>
+            <option value="Canada">🇨🇦 Canada</option>
+            <option value="Central African Republic">
+              🇨🇫 Central African Republic
+            </option>
+            <option value="Chad">🇹🇩 Chad</option>
+            <option value="Chile">🇨🇱 Chile</option>
+            <option value="China">🇨🇳 China</option>
+            <option value="Colombia">🇨🇴 Colombia</option>
+            <option value="Comoros">🇰🇲 Comoros</option>
+            <option value="Congo, Democratic Republic of the">
+              🇨🇩 Congo, Democratic Republic of the
+            </option>
+            <option value="Congo, Republic of the">
+              🇨🇬 Congo, Republic of the
+            </option>
+            <option value="Costa Rica">🇨🇷 Costa Rica</option>
+            <option value="Cote d'Ivoire">🇨🇮 Cote d'Ivoire</option>
+            <option value="Croatia">🇭🇷 Croatia</option>
+            <option value="Cuba">🇨🇺 Cuba</option>
+            <option value="Cyprus">🇨🇾 Cyprus</option>
+            <option value="Czech Republic">🇨🇿 Czech Republic</option>
+            <option value="Denmark">🇩🇰 Denmark</option>
+            <option value="Djibouti">🇩🇯 Djibouti</option>
+            <option value="Dominica">🇩🇲 Dominica</option>
+            <option value="Dominican Republic">🇩🇴 Dominican Republic</option>
+            <option value="Ecuador">🇪🇨 Ecuador</option>
+            <option value="Egypt">🇪🇬 Egypt</option>
+            <option value="El Salvador">🇸🇻 El Salvador</option>
+            <option value="Equatorial Guinea">🇬🇶 Equatorial Guinea</option>
+            <option value="Eritrea">🇪🇷 Eritrea</option>
+            <option value="Estonia">🇪🇪 Estonia</option>
+            <option value="Eswatini">🇸🇿 Eswatini</option>
+            <option value="Ethiopia">🇪🇹 Ethiopia</option>
+            <option value="Fiji">🇫🇯 Fiji</option>
+            <option value="Finland">🇫🇮 Finland</option>
+            <option value="France">🇫🇷 France</option>
+            <option value="Gabon">🇬🇦 Gabon</option>
+            <option value="Gambia">🇬🇲 Gambia</option>
+            <option value="Georgia">🇬🇪 Georgia</option>
+            <option value="Germany">🇩🇪 Germany</option>
+            <option value="Ghana">🇬🇭 Ghana</option>
+            <option value="Greece">��🇷 Greece</option>
+            <option value="Grenada">��🇩 Grenada</option>
+            <option value="Guatemala">🇬🇹 Guatemala</option>
+            <option value="Guinea">🇬🇳 Guinea</option>
+            <option value="Guinea-Bissau">🇬🇼 Guinea-Bissau</option>
+            <option value="Guyana">🇬🇾 Guyana</option>
+            <option value="Haiti">🇭🇹 Haiti</option>
+            <option value="Honduras">🇭🇳 Honduras</option>
+            <option value="Hungary">🇭🇺 Hungary</option>
+            <option value="Iceland">🇮🇸 Iceland</option>
+            <option value="India">🇮🇳 India</option>
+            <option value="Indonesia">🇮🇩 Indonesia</option>
+            <option value="Iran">🇮🇷 Iran</option>
+            <option value="Iraq">🇮🇶 Iraq</option>
+            <option value="Ireland">🇮🇪 Ireland</option>
+            <option value="Israel">🇮🇱 Israel</option>
+            <option value="Italy">🇮🇹 Italy</option>
+            <option value="Jamaica">🇯🇲 Jamaica</option>
+            <option value="Japan">🇯🇵 Japan</option>
+            <option value="Jordan">🇯🇴 Jordan</option>
+            <option value="Kazakhstan">🇰🇿 Kazakhstan</option>
+            <option value="Kenya">🇰🇪 Kenya</option>
+            <option value="Kiribati">🇰🇮 Kiribati</option>
+            <option value="Korea, North">🇰🇵 Korea, North</option>
+            <option value="Korea, South">🇰🇷 Korea, South</option>
+            <option value="Kosovo">🇽🇰 Kosovo</option>
+            <option value="Kuwait">🇰🇼 Kuwait</option>
+            <option value="Kyrgyzstan">🇰🇬 Kyrgyzstan</option>
+            <option value="Laos">🇱🇦 Laos</option>
+            <option value="Latvia">🇱🇻 Latvia</option>
+            <option value="Lebanon">🇱🇧 Lebanon</option>
+            <option value="Lesotho">🇱🇸 Lesotho</option>
+            <option value="Liberia">🇱🇷 Liberia</option>
+            <option value="Libya">🇱🇾 Libya</option>
+            <option value="Liechtenstein">🇱🇮 Liechtenstein</option>
+            <option value="Lithuania">🇱🇹 Lithuania</option>
+            <option value="Luxembourg">🇱🇺 Luxembourg</option>
+            <option value="Madagascar">🇲🇬 Madagascar</option>
+            <option value="Malawi">🇲🇼 Malawi</option>
+            <option value="Malaysia">🇲🇾 Malaysia</option>
+            <option value="Maldives">🇲🇻 Maldives</option>
+            <option value="Mali">🇲🇱 Mali</option>
+            <option value="Malta">🇲🇹 Malta</option>
+            <option value="Marshall Islands">🇲🇭 Marshall Islands</option>
+            <option value="Mauritania">🇲🇷 Mauritania</option>
+            <option value="Mauritius">🇲🇺 Mauritius</option>
+            <option value="Mexico">🇲🇽 Mexico</option>
+            <option value="Micronesia">🇫🇲 Micronesia</option>
+            <option value="Moldova">🇲🇩 Moldova</option>
+            <option value="Monaco">🇲🇨 Monaco</option>
+            <option value="Mongolia">🇲🇳 Mongolia</option>
+            <option value="Montenegro">🇲🇪 Montenegro</option>
+            <option value="Morocco">🇲🇦 Morocco</option>
+            <option value="Mozambique">🇲🇿 Mozambique</option>
+            <option value="Myanmar">🇲🇲 Myanmar</option>
+            <option value="Namibia">🇳🇦 Namibia</option>
+            <option value="Nauru">🇳🇷 Nauru</option>
+            <option value="Nepal">🇳🇵 Nepal</option>
+            <option value="Netherlands">🇳🇱 Netherlands</option>
+            <option value="New Zealand">🇳🇿 New Zealand</option>
+            <option value="Nicaragua">🇳🇮 Nicaragua</option>
+            <option value="Niger">🇳🇪 Niger</option>
+            <option value="Nigeria">🇳🇬 Nigeria</option>
+            <option value="North Macedonia">🇲🇰 North Macedonia</option>
+            <option value="Norway">🇳🇴 Norway</option>
+            <option value="Oman">🇴🇲 Oman</option>
+            <option value="Pakistan">🇵🇰 Pakistan</option>
+            <option value="Palau">🇵🇼 Palau</option>
+            <option value="Palestine">🇵🇸 Palestine</option>
+            <option value="Panama">🇵🇦 Panama</option>
+            <option value="Papua New Guinea">🇵🇬 Papua New Guinea</option>
+            <option value="Paraguay">🇵🇾 Paraguay</option>
+            <option value="Peru">🇵🇪 Peru</option>
+            <option value="Philippines">🇵🇭 Philippines</option>
+            <option value="Poland">🇵🇱 Poland</option>
+            <option value="Portugal">🇵🇹 Portugal</option>
+            <option value="Qatar">🇶🇦 Qatar</option>
+            <option value="Romania">🇷🇴 Romania</option>
+            <option value="Russia">🇷🇺 Russia</option>
+            <option value="Rwanda">🇷🇼 Rwanda</option>
+            <option value="Saint Kitts and Nevis">
+              🇰🇳 Saint Kitts and Nevis
+            </option>
+            <option value="Saint Lucia">🇱🇨 Saint Lucia</option>
+            <option value="Saint Vincent and the Grenadines">
+              🇻🇨 Saint Vincent and the Grenadines
+            </option>
+            <option value="Samoa">🇼🇸 Samoa</option>
+            <option value="San Marino">🇸🇲 San Marino</option>
+            <option value="Sao Tome and Principe">
+              🇸🇹 Sao Tome and Principe
+            </option>
+            <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+            <option value="Senegal">🇸🇳 Senegal</option>
+            <option value="Serbia">🇷🇸 Serbia</option>
+            <option value="Seychelles">🇸🇨 Seychelles</option>
+            <option value="Sierra Leone">🇸🇱 Sierra Leone</option>
+            <option value="Singapore">🇸🇬 Singapore</option>
+            <option value="Slovakia">🇸🇰 Slovakia</option>
+            <option value="Slovenia">🇸🇮 Slovenia</option>
+            <option value="Solomon Islands">🇸🇧 Solomon Islands</option>
+            <option value="Somalia">🇸🇴 Somalia</option>
+            <option value="South Africa">🇿🇦 South Africa</option>
+            <option value="South Sudan">🇸🇸 South Sudan</option>
+            <option value="Spain">🇪🇸 Spain</option>
+            <option value="Sri Lanka">🇱🇰 Sri Lanka</option>
+            <option value="Sudan">🇸🇩 Sudan</option>
+            <option value="Suriname">🇸🇷 Suriname</option>
+            <option value="Sweden">🇸🇪 Sweden</option>
+            <option value="Switzerland">🇨🇭 Switzerland</option>
+            <option value="Syria">🇸🇾 Syria</option>
+            <option value="Taiwan">��🇼 Taiwan</option>
+            <option value="Tajikistan">🇹🇯 Tajikistan</option>
+            <option value="Tanzania">🇹🇿 Tanzania</option>
+            <option value="Thailand">🇹🇭 Thailand</option>
+            <option value="Timor-Leste">🇹🇱 Timor-Leste</option>
+            <option value="Togo">🇹🇬 Togo</option>
+            <option value="Tonga">🇹🇴 Tonga</option>
+            <option value="Trinidad and Tobago">🇹🇹 Trinidad and Tobago</option>
+            <option value="Tunisia">🇹🇳 Tunisia</option>
+            <option value="Turkey">🇹🇷 Turkey</option>
+            <option value="Turkmenistan">🇹🇲 Turkmenistan</option>
+            <option value="Tuvalu">🇹🇻 Tuvalu</option>
+            <option value="Uganda">🇺🇬 Uganda</option>
+            <option value="Ukraine">🇺🇦 Ukraine</option>
+            <option value="United Arab Emirates">
+              🇦🇪 United Arab Emirates
+            </option>
+            <option value="United Kingdom">🇬🇧 United Kingdom</option>
+            <option value="United States">🇺🇸 United States</option>
+            <option value="Uruguay">🇺🇾 Uruguay</option>
+            <option value="Uzbekistan">🇺🇿 Uzbekistan</option>
+            <option value="Vanuatu">🇻🇺 Vanuatu</option>
+            <option value="Vatican City">🇻🇦 Vatican City</option>
+            <option value="Venezuela">🇻🇪 Venezuela</option>
+            <option value="Vietnam">🇻🇳 Vietnam</option>
+            <option value="Yemen">🇾🇪 Yemen</option>
+            <option value="Zambia">🇿🇲 Zambia</option>
+            <option value="Zimbabwe">🇿🇼 Zimbabwe</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            for="weight_grams"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Weight (grams)</label
+          >
+          <p class="text-xs text-gray-500 mb-3">For shipping calculations</p>
+          <div class="relative">
+            <input
+              type="number"
+              id="weight_grams"
+              name="weight_grams"
+              step="0.1"
+              min="0"
+              class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="0.0"
+            />
+            <span
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              >g</span
+            >
+          </div>
+        </div>
+
+        <div class="md:col-span-2">
+          <label
+            for="shipping_destinations"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Destination Countries <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">
+            Comma-separated list of countries you ship to
+          </p>
+          <input
+            type="text"
+            id="shipping_destinations"
+            name="shipping_destinations"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="e.g., Worldwide, USA, Canada, Europe"
+            required
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <label
+            for="shipping_methods"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Shipping Methods</label
+          >
+          <p class="text-xs text-gray-500 mb-3">
+            Available shipping options and delivery times
+          </p>
+          <textarea
+            id="shipping_methods"
+            name="shipping_methods"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            placeholder="e.g., Standard: 5-7 days, Express: 2-3 days"
+            rows="3"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category and Vendor -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-orange-600 font-bold text-sm">4</span>
+        </div>
+        Category & Vendor
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label
+            for="vendor_id"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Vendor <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">Product vendor or supplier</p>
+          <select
+            id="vendor_id"
+            name="vendor_id"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            required
+          >
+            <option value="">Select a vendor</option>
+            {% for vendor in vendors %}
+            <option value="{{ vendor.id }}">{{ vendor.pusername }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label
+            for="category_id"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Category <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">Product category</p>
+          <select
+            id="category_id"
+            name="category_id"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            required
+          >
+            <option value="">Select a category</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}">
+              {{ category.name }} {% if category.parent_id %} {% for parent in
+              categories %} {% if parent.id == category.parent_id %} ({{
+              parent.name }}) {% endif %} {% endfor %} {% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Images -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-pink-600 font-bold text-sm">5</span>
+        </div>
+        Product Images
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label
+            for="featured_image"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Featured Image</label
+          >
+          <p class="text-xs text-gray-500 mb-3">
+            Main product image (JPEG/PNG, max 2MB)
+          </p>
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition duration-200"
+          >
+            <input
+              type="file"
+              id="featured_image"
+              name="featured_image"
+              class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              accept="image/jpeg,image/png"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="additional_images"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Additional Images</label
+          >
+          <p class="text-xs text-gray-500 mb-3">
+            Up to 5 additional images (JPEG/PNG, max 2MB each)
+          </p>
+          <div
+            class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition duration-200"
+          >
+            <input
+              type="file"
+              id="additional_images"
+              name="additional_images"
+              multiple
+              class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              accept="image/jpeg,image/png"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div
+          class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3"
+        >
+          <span class="text-indigo-600 font-bold text-sm">6</span>
+        </div>
+        Visibility & Status
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label
+            for="visibility"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Visibility</label
+          >
+          <p class="text-xs text-gray-500 mb-3">Who can see this product</p>
+          <select
+            id="visibility"
+            name="visibility"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+          >
+            <option value="public">Public (Everyone)</option>
+            <option value="private">Private (Restricted)</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            for="status"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Status <span class="text-red-500">*</span>
+          </label>
+          <p class="text-xs text-gray-500 mb-3">Product status</p>
+          <select
+            id="status"
+            name="status"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+            required
+          >
+            <option value="pending">Pending Review</option>
+            <option value="active">Active</option>
+            <option value="rejected">Rejected</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+
+        <div>
+          <label
+            for="is_featured"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Featured Product</label
+          >
+          <p class="text-xs text-gray-500 mb-3">Highlight on homepage</p>
+          <div class="flex items-center mt-6">
+            <input
+              type="checkbox"
+              id="is_featured"
+              name="is_featured"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            <label
+              for="is_featured"
+              class="ml-2 text-sm font-medium text-gray-700"
+            >
+              Feature this product
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+      <button
+        type="button"
+        class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition duration-200"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition duration-200 shadow-sm"
+      >
+        Add Product
+      </button>
+    </div>
+  </form>
+
+  <!-- Flash Messages -->
+  {% for message in get_flashed_messages(with_categories=true) %}
+  <div
+    class="mx-8 mb-4 p-4 rounded-lg {% if message[0] == 'success' %}bg-green-50 border border-green-200 text-green-800{% else %}bg-red-50 border border-red-200 text-red-800{% endif %}"
+  >
+    <div class="flex items-center">
+      {% if message[0] == 'success' %}
+      <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+          clip-rule="evenodd"
+        ></path>
+      </svg>
+      {% else %}
+      <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+          clip-rule="evenodd"
+        ></path>
+      </svg>
+      {% endif %} {{ message[1] }}
+    </div>
+  </div>
+  {% endfor %}
 </div>
+
 {% endblock %}

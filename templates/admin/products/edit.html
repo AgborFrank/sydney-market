@@ -108,6 +108,213 @@
             >
         </div>
         <div>
+            <label for="origin_country" class="block text-gray-700 font-semibold mb-2">Origin Country</label>
+            <select 
+                id="origin_country" 
+                name="origin_country" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            >
+                <option value="">Select origin country</option>
+                <option value="Afghanistan" {% if product['origin_country'] == 'Afghanistan' %}selected{% endif %}>🇦🇫 Afghanistan</option>
+                <option value="Albania" {% if product['origin_country'] == 'Albania' %}selected{% endif %}>🇦🇱 Albania</option>
+                <option value="Algeria" {% if product['origin_country'] == 'Algeria' %}selected{% endif %}>🇩🇿 Algeria</option>
+                <option value="Andorra" {% if product['origin_country'] == 'Andorra' %}selected{% endif %}>🇦🇩 Andorra</option>
+                <option value="Angola" {% if product['origin_country'] == 'Angola' %}selected{% endif %}>🇦🇴 Angola</option>
+                <option value="Antigua and Barbuda" {% if product['origin_country'] == 'Antigua and Barbuda' %}selected{% endif %}>🇦🇬 Antigua and Barbuda</option>
+                <option value="Argentina" {% if product['origin_country'] == 'Argentina' %}selected{% endif %}>🇦🇷 Argentina</option>
+                <option value="Armenia" {% if product['origin_country'] == 'Armenia' %}selected{% endif %}>🇦🇲 Armenia</option>
+                <option value="Australia" {% if product['origin_country'] == 'Australia' %}selected{% endif %}>🇦🇺 Australia</option>
+                <option value="Austria" {% if product['origin_country'] == 'Austria' %}selected{% endif %}>🇦🇹 Austria</option>
+                <option value="Azerbaijan" {% if product['origin_country'] == 'Azerbaijan' %}selected{% endif %}>🇦🇿 Azerbaijan</option>
+                <option value="Bahamas" {% if product['origin_country'] == 'Bahamas' %}selected{% endif %}>🇧🇸 Bahamas</option>
+                <option value="Bahrain" {% if product['origin_country'] == 'Bahrain' %}selected{% endif %}>🇧🇭 Bahrain</option>
+                <option value="Bangladesh" {% if product['origin_country'] == 'Bangladesh' %}selected{% endif %}>🇧🇩 Bangladesh</option>
+                <option value="Barbados" {% if product['origin_country'] == 'Barbados' %}selected{% endif %}>🇧🇧 Barbados</option>
+                <option value="Belarus" {% if product['origin_country'] == 'Belarus' %}selected{% endif %}>🇧🇾 Belarus</option>
+                <option value="Belgium" {% if product['origin_country'] == 'Belgium' %}selected{% endif %}>🇧🇪 Belgium</option>
+                <option value="Belize" {% if product['origin_country'] == 'Belize' %}selected{% endif %}>🇧🇿 Belize</option>
+                <option value="Benin" {% if product['origin_country'] == 'Benin' %}selected{% endif %}>🇧🇯 Benin</option>
+                <option value="Bhutan" {% if product['origin_country'] == 'Bhutan' %}selected{% endif %}>🇧🇹 Bhutan</option>
+                <option value="Bolivia" {% if product['origin_country'] == 'Bolivia' %}selected{% endif %}>🇧🇴 Bolivia</option>
+                <option value="Bosnia and Herzegovina" {% if product['origin_country'] == 'Bosnia and Herzegovina' %}selected{% endif %}>🇧🇦 Bosnia and Herzegovina</option>
+                <option value="Botswana" {% if product['origin_country'] == 'Botswana' %}selected{% endif %}>🇧�� Botswana</option>
+                <option value="Brazil" {% if product['origin_country'] == 'Brazil' %}selected{% endif %}>🇧🇷 Brazil</option>
+                <option value="Brunei" {% if product['origin_country'] == 'Brunei' %}selected{% endif %}>🇧🇳 Brunei</option>
+                <option value="Bulgaria" {% if product['origin_country'] == 'Bulgaria' %}selected{% endif %}>🇧🇬 Bulgaria</option>
+                <option value="Burkina Faso" {% if product['origin_country'] == 'Burkina Faso' %}selected{% endif %}>🇧🇫 Burkina Faso</option>
+                <option value="Burundi" {% if product['origin_country'] == 'Burundi' %}selected{% endif %}>🇧🇮 Burundi</option>
+                <option value="Cabo Verde" {% if product['origin_country'] == 'Cabo Verde' %}selected{% endif %}>🇨🇻 Cabo Verde</option>
+                <option value="Cambodia" {% if product['origin_country'] == 'Cambodia' %}selected{% endif %}>🇰🇭 Cambodia</option>
+                <option value="Cameroon" {% if product['origin_country'] == 'Cameroon' %}selected{% endif %}>🇨🇲 Cameroon</option>
+                <option value="Canada" {% if product['origin_country'] == 'Canada' %}selected{% endif %}>��🇦 Canada</option>
+                <option value="Central African Republic" {% if product['origin_country'] == 'Central African Republic' %}selected{% endif %}>🇨🇫 Central African Republic</option>
+                <option value="Chad" {% if product['origin_country'] == 'Chad' %}selected{% endif %}>🇹🇩 Chad</option>
+                <option value="Chile" {% if product['origin_country'] == 'Chile' %}selected{% endif %}>🇨🇱 Chile</option>
+                <option value="China" {% if product['origin_country'] == 'China' %}selected{% endif %}>🇨🇳 China</option>
+                <option value="Colombia" {% if product['origin_country'] == 'Colombia' %}selected{% endif %}>🇨�� Colombia</option>
+                <option value="Comoros" {% if product['origin_country'] == 'Comoros' %}selected{% endif %}>🇰🇲 Comoros</option>
+                <option value="Congo, Democratic Republic of the" {% if product['origin_country'] == 'Congo, Democratic Republic of the' %}selected{% endif %}>🇨🇩 Congo, Democratic Republic of the</option>
+                <option value="Congo, Republic of the" {% if product['origin_country'] == 'Congo, Republic of the' %}selected{% endif %}>🇨🇬 Congo, Republic of the</option>
+                <option value="Costa Rica" {% if product['origin_country'] == 'Costa Rica' %}selected{% endif %}>🇨🇷 Costa Rica</option>
+                <option value="Cote d'Ivoire" {% if product['origin_country'] == "Cote d'Ivoire" %}selected{% endif %}>🇨🇮 Cote d'Ivoire</option>
+                <option value="Croatia" {% if product['origin_country'] == 'Croatia' %}selected{% endif %}>🇭🇷 Croatia</option>
+                <option value="Cuba" {% if product['origin_country'] == 'Cuba' %}selected{% endif %}>🇨🇺 Cuba</option>
+                <option value="Cyprus" {% if product['origin_country'] == 'Cyprus' %}selected{% endif %}>🇨🇾 Cyprus</option>
+                <option value="Czech Republic" {% if product['origin_country'] == 'Czech Republic' %}selected{% endif %}>🇨🇿 Czech Republic</option>
+                <option value="Denmark" {% if product['origin_country'] == 'Denmark' %}selected{% endif %}>🇩🇰 Denmark</option>
+                <option value="Djibouti" {% if product['origin_country'] == 'Djibouti' %}selected{% endif %}>🇩🇯 Djibouti</option>
+                <option value="Dominica" {% if product['origin_country'] == 'Dominica' %}selected{% endif %}>🇩🇲 Dominica</option>
+                <option value="Dominican Republic" {% if product['origin_country'] == 'Dominican Republic' %}selected{% endif %}>🇩🇴 Dominican Republic</option>
+                <option value="Ecuador" {% if product['origin_country'] == 'Ecuador' %}selected{% endif %}>🇪🇨 Ecuador</option>
+                <option value="Egypt" {% if product['origin_country'] == 'Egypt' %}selected{% endif %}>🇪🇬 Egypt</option>
+                <option value="El Salvador" {% if product['origin_country'] == 'El Salvador' %}selected{% endif %}>🇸🇻 El Salvador</option>
+                <option value="Equatorial Guinea" {% if product['origin_country'] == 'Equatorial Guinea' %}selected{% endif %}>🇬🇶 Equatorial Guinea</option>
+                <option value="Eritrea" {% if product['origin_country'] == 'Eritrea' %}selected{% endif %}>🇪🇷 Eritrea</option>
+                <option value="Estonia" {% if product['origin_country'] == 'Estonia' %}selected{% endif %}>🇪🇪 Estonia</option>
+                <option value="Eswatini" {% if product['origin_country'] == 'Eswatini' %}selected{% endif %}>🇸🇿 Eswatini</option>
+                <option value="Ethiopia" {% if product['origin_country'] == 'Ethiopia' %}selected{% endif %}>🇪🇹 Ethiopia</option>
+                <option value="Fiji" {% if product['origin_country'] == 'Fiji' %}selected{% endif %}>🇫🇯 Fiji</option>
+                <option value="Finland" {% if product['origin_country'] == 'Finland' %}selected{% endif %}>🇫🇮 Finland</option>
+                <option value="France" {% if product['origin_country'] == 'France' %}selected{% endif %}>��🇷 France</option>
+                <option value="Gabon" {% if product['origin_country'] == 'Gabon' %}selected{% endif %}>🇬🇦 Gabon</option>
+                <option value="Gambia" {% if product['origin_country'] == 'Gambia' %}selected{% endif %}>🇬🇲 Gambia</option>
+                <option value="Georgia" {% if product['origin_country'] == 'Georgia' %}selected{% endif %}>🇬🇪 Georgia</option>
+                <option value="Germany" {% if product['origin_country'] == 'Germany' %}selected{% endif %}>🇩🇪 Germany</option>
+                <option value="Ghana" {% if product['origin_country'] == 'Ghana' %}selected{% endif %}>🇬🇭 Ghana</option>
+                <option value="Greece" {% if product['origin_country'] == 'Greece' %}selected{% endif %}>🇬🇷 Greece</option>
+                <option value="Grenada" {% if product['origin_country'] == 'Grenada' %}selected{% endif %}>🇬🇩 Grenada</option>
+                <option value="Guatemala" {% if product['origin_country'] == 'Guatemala' %}selected{% endif %}>🇬🇹 Guatemala</option>
+                <option value="Guinea" {% if product['origin_country'] == 'Guinea' %}selected{% endif %}>🇬🇳 Guinea</option>
+                <option value="Guinea-Bissau" {% if product['origin_country'] == 'Guinea-Bissau' %}selected{% endif %}>🇬🇼 Guinea-Bissau</option>
+                <option value="Guyana" {% if product['origin_country'] == 'Guyana' %}selected{% endif %}>🇬🇾 Guyana</option>
+                <option value="Haiti" {% if product['origin_country'] == 'Haiti' %}selected{% endif %}>🇭🇹 Haiti</option>
+                <option value="Honduras" {% if product['origin_country'] == 'Honduras' %}selected{% endif %}>🇭🇳 Honduras</option>
+                <option value="Hungary" {% if product['origin_country'] == 'Hungary' %}selected{% endif %}>🇭🇺 Hungary</option>
+                <option value="Iceland" {% if product['origin_country'] == 'Iceland' %}selected{% endif %}>🇮🇸 Iceland</option>
+                <option value="India" {% if product['origin_country'] == 'India' %}selected{% endif %}>🇮🇳 India</option>
+                <option value="Indonesia" {% if product['origin_country'] == 'Indonesia' %}selected{% endif %}>🇮🇩 Indonesia</option>
+                <option value="Iran" {% if product['origin_country'] == 'Iran' %}selected{% endif %}>🇮🇷 Iran</option>
+                <option value="Iraq" {% if product['origin_country'] == 'Iraq' %}selected{% endif %}>🇮🇶 Iraq</option>
+                <option value="Ireland" {% if product['origin_country'] == 'Ireland' %}selected{% endif %}>🇮🇪 Ireland</option>
+                <option value="Israel" {% if product['origin_country'] == 'Israel' %}selected{% endif %}>🇮🇱 Israel</option>
+                <option value="Italy" {% if product['origin_country'] == 'Italy' %}selected{% endif %}>🇮🇹 Italy</option>
+                <option value="Jamaica" {% if product['origin_country'] == 'Jamaica' %}selected{% endif %}>🇯🇲 Jamaica</option>
+                <option value="Japan" {% if product['origin_country'] == 'Japan' %}selected{% endif %}>🇯🇵 Japan</option>
+                <option value="Jordan" {% if product['origin_country'] == 'Jordan' %}selected{% endif %}>🇯🇴 Jordan</option>
+                <option value="Kazakhstan" {% if product['origin_country'] == 'Kazakhstan' %}selected{% endif %}>🇰🇿 Kazakhstan</option>
+                <option value="Kenya" {% if product['origin_country'] == 'Kenya' %}selected{% endif %}>🇰🇪 Kenya</option>
+                <option value="Kiribati" {% if product['origin_country'] == 'Kiribati' %}selected{% endif %}>🇰🇮 Kiribati</option>
+                <option value="Korea, North" {% if product['origin_country'] == 'Korea, North' %}selected{% endif %}>🇰🇵 Korea, North</option>
+                <option value="Korea, South" {% if product['origin_country'] == 'Korea, South' %}selected{% endif %}>🇰🇷 Korea, South</option>
+                <option value="Kosovo" {% if product['origin_country'] == 'Kosovo' %}selected{% endif %}>🇽🇰 Kosovo</option>
+                <option value="Kuwait" {% if product['origin_country'] == 'Kuwait' %}selected{% endif %}>🇰🇼 Kuwait</option>
+                <option value="Kyrgyzstan" {% if product['origin_country'] == 'Kyrgyzstan' %}selected{% endif %}>🇰🇬 Kyrgyzstan</option>
+                <option value="Laos" {% if product['origin_country'] == 'Laos' %}selected{% endif %}>🇱🇦 Laos</option>
+                <option value="Latvia" {% if product['origin_country'] == 'Latvia' %}selected{% endif %}>🇱🇻 Latvia</option>
+                <option value="Lebanon" {% if product['origin_country'] == 'Lebanon' %}selected{% endif %}>🇱🇧 Lebanon</option>
+                <option value="Lesotho" {% if product['origin_country'] == 'Lesotho' %}selected{% endif %}>🇱🇸 Lesotho</option>
+                <option value="Liberia" {% if product['origin_country'] == 'Liberia' %}selected{% endif %}>🇱🇷 Liberia</option>
+                <option value="Libya" {% if product['origin_country'] == 'Libya' %}selected{% endif %}>🇱🇾 Libya</option>
+                <option value="Liechtenstein" {% if product['origin_country'] == 'Liechtenstein' %}selected{% endif %}>🇱🇮 Liechtenstein</option>
+                <option value="Lithuania" {% if product['origin_country'] == 'Lithuania' %}selected{% endif %}>🇱🇹 Lithuania</option>
+                <option value="Luxembourg" {% if product['origin_country'] == 'Luxembourg' %}selected{% endif %}>🇱🇺 Luxembourg</option>
+                <option value="Madagascar" {% if product['origin_country'] == 'Madagascar' %}selected{% endif %}>🇲🇬 Madagascar</option>
+                <option value="Malawi" {% if product['origin_country'] == 'Malawi' %}selected{% endif %}>🇲🇼 Malawi</option>
+                <option value="Malaysia" {% if product['origin_country'] == 'Malaysia' %}selected{% endif %}>🇲�� Malaysia</option>
+                <option value="Maldives" {% if product['origin_country'] == 'Maldives' %}selected{% endif %}>🇲🇻 Maldives</option>
+                <option value="Mali" {% if product['origin_country'] == 'Mali' %}selected{% endif %}>🇲🇱 Mali</option>
+                <option value="Malta" {% if product['origin_country'] == 'Malta' %}selected{% endif %}>🇲🇹 Malta</option>
+                <option value="Marshall Islands" {% if product['origin_country'] == 'Marshall Islands' %}selected{% endif %}>🇲🇭 Marshall Islands</option>
+                <option value="Mauritania" {% if product['origin_country'] == 'Mauritania' %}selected{% endif %}>🇲🇷 Mauritania</option>
+                <option value="Mauritius" {% if product['origin_country'] == 'Mauritius' %}selected{% endif %}>🇲🇺 Mauritius</option>
+                <option value="Mexico" {% if product['origin_country'] == 'Mexico' %}selected{% endif %}>🇲🇽 Mexico</option>
+                <option value="Micronesia" {% if product['origin_country'] == 'Micronesia' %}selected{% endif %}>🇫🇲 Micronesia</option>
+                <option value="Moldova" {% if product['origin_country'] == 'Moldova' %}selected{% endif %}>🇲🇩 Moldova</option>
+                <option value="Monaco" {% if product['origin_country'] == 'Monaco' %}selected{% endif %}>🇲🇨 Monaco</option>
+                <option value="Mongolia" {% if product['origin_country'] == 'Mongolia' %}selected{% endif %}>🇲🇳 Mongolia</option>
+                <option value="Montenegro" {% if product['origin_country'] == 'Montenegro' %}selected{% endif %}>🇲🇪 Montenegro</option>
+                <option value="Morocco" {% if product['origin_country'] == 'Morocco' %}selected{% endif %}>🇲🇦 Morocco</option>
+                <option value="Mozambique" {% if product['origin_country'] == 'Mozambique' %}selected{% endif %}>🇲🇿 Mozambique</option>
+                <option value="Myanmar" {% if product['origin_country'] == 'Myanmar' %}selected{% endif %}>🇲🇲 Myanmar</option>
+                <option value="Namibia" {% if product['origin_country'] == 'Namibia' %}selected{% endif %}>🇳🇦 Namibia</option>
+                <option value="Nauru" {% if product['origin_country'] == 'Nauru' %}selected{% endif %}>🇳🇷 Nauru</option>
+                <option value="Nepal" {% if product['origin_country'] == 'Nepal' %}selected{% endif %}>🇳🇵 Nepal</option>
+                <option value="Netherlands" {% if product['origin_country'] == 'Netherlands' %}selected{% endif %}>🇳🇱 Netherlands</option>
+                <option value="New Zealand" {% if product['origin_country'] == 'New Zealand' %}selected{% endif %}>🇳🇿 New Zealand</option>
+                <option value="Nicaragua" {% if product['origin_country'] == 'Nicaragua' %}selected{% endif %}>🇳🇮 Nicaragua</option>
+                <option value="Niger" {% if product['origin_country'] == 'Niger' %}selected{% endif %}>🇳🇪 Niger</option>
+                <option value="Nigeria" {% if product['origin_country'] == 'Nigeria' %}selected{% endif %}>🇳🇬 Nigeria</option>
+                <option value="North Macedonia" {% if product['origin_country'] == 'North Macedonia' %}selected{% endif %}>🇲🇰 North Macedonia</option>
+                <option value="Norway" {% if product['origin_country'] == 'Norway' %}selected{% endif %}>🇳🇴 Norway</option>
+                <option value="Oman" {% if product['origin_country'] == 'Oman' %}selected{% endif %}>🇴🇲 Oman</option>
+                <option value="Pakistan" {% if product['origin_country'] == 'Pakistan' %}selected{% endif %}>🇵🇰 Pakistan</option>
+                <option value="Palau" {% if product['origin_country'] == 'Palau' %}selected{% endif %}>🇵🇼 Palau</option>
+                <option value="Palestine" {% if product['origin_country'] == 'Palestine' %}selected{% endif %}>🇵🇸 Palestine</option>
+                <option value="Panama" {% if product['origin_country'] == 'Panama' %}selected{% endif %}>🇵🇦 Panama</option>
+                <option value="Papua New Guinea" {% if product['origin_country'] == 'Papua New Guinea' %}selected{% endif %}>🇵🇬 Papua New Guinea</option>
+                <option value="Paraguay" {% if product['origin_country'] == 'Paraguay' %}selected{% endif %}>🇵🇾 Paraguay</option>
+                <option value="Peru" {% if product['origin_country'] == 'Peru' %}selected{% endif %}>🇵🇪 Peru</option>
+                <option value="Philippines" {% if product['origin_country'] == 'Philippines' %}selected{% endif %}>🇵🇭 Philippines</option>
+                <option value="Poland" {% if product['origin_country'] == 'Poland' %}selected{% endif %}>🇵🇱 Poland</option>
+                <option value="Portugal" {% if product['origin_country'] == 'Portugal' %}selected{% endif %}>🇵🇹 Portugal</option>
+                <option value="Qatar" {% if product['origin_country'] == 'Qatar' %}selected{% endif %}>🇶🇦 Qatar</option>
+                <option value="Romania" {% if product['origin_country'] == 'Romania' %}selected{% endif %}>🇷🇴 Romania</option>
+                <option value="Russia" {% if product['origin_country'] == 'Russia' %}selected{% endif %}>🇷🇺 Russia</option>
+                <option value="Rwanda" {% if product['origin_country'] == 'Rwanda' %}selected{% endif %}>🇷🇼 Rwanda</option>
+                <option value="Saint Kitts and Nevis" {% if product['origin_country'] == 'Saint Kitts and Nevis' %}selected{% endif %}>🇰🇳 Saint Kitts and Nevis</option>
+                <option value="Saint Lucia" {% if product['origin_country'] == 'Saint Lucia' %}selected{% endif %}>🇱🇨 Saint Lucia</option>
+                <option value="Saint Vincent and the Grenadines" {% if product['origin_country'] == 'Saint Vincent and the Grenadines' %}selected{% endif %}>🇻🇨 Saint Vincent and the Grenadines</option>
+                <option value="Samoa" {% if product['origin_country'] == 'Samoa' %}selected{% endif %}>🇼🇸 Samoa</option>
+                <option value="San Marino" {% if product['origin_country'] == 'San Marino' %}selected{% endif %}>🇸🇲 San Marino</option>
+                <option value="Sao Tome and Principe" {% if product['origin_country'] == 'Sao Tome and Principe' %}selected{% endif %}>🇸🇹 Sao Tome and Principe</option>
+                <option value="Saudi Arabia" {% if product['origin_country'] == 'Saudi Arabia' %}selected{% endif %}>🇸🇦 Saudi Arabia</option>
+                <option value="Senegal" {% if product['origin_country'] == 'Senegal' %}selected{% endif %}>🇸🇳 Senegal</option>
+                <option value="Serbia" {% if product['origin_country'] == 'Serbia' %}selected{% endif %}>🇷🇸 Serbia</option>
+                <option value="Seychelles" {% if product['origin_country'] == 'Seychelles' %}selected{% endif %}>🇸🇨 Seychelles</option>
+                <option value="Sierra Leone" {% if product['origin_country'] == 'Sierra Leone' %}selected{% endif %}>🇸🇱 Sierra Leone</option>
+                <option value="Singapore" {% if product['origin_country'] == 'Singapore' %}selected{% endif %}>🇸🇬 Singapore</option>
+                <option value="Slovakia" {% if product['origin_country'] == 'Slovakia' %}selected{% endif %}>🇸🇰 Slovakia</option>
+                <option value="Slovenia" {% if product['origin_country'] == 'Slovenia' %}selected{% endif %}>🇸🇮 Slovenia</option>
+                <option value="Solomon Islands" {% if product['origin_country'] == 'Solomon Islands' %}selected{% endif %}>🇸🇧 Solomon Islands</option>
+                <option value="Somalia" {% if product['origin_country'] == 'Somalia' %}selected{% endif %}>🇸🇴 Somalia</option>
+                <option value="South Africa" {% if product['origin_country'] == 'South Africa' %}selected{% endif %}>🇿🇦 South Africa</option>
+                <option value="South Sudan" {% if product['origin_country'] == 'South Sudan' %}selected{% endif %}>🇸🇸 South Sudan</option>
+                <option value="Spain" {% if product['origin_country'] == 'Spain' %}selected{% endif %}>🇪🇸 Spain</option>
+                <option value="Sri Lanka" {% if product['origin_country'] == 'Sri Lanka' %}selected{% endif %}>🇱🇰 Sri Lanka</option>
+                <option value="Sudan" {% if product['origin_country'] == 'Sudan' %}selected{% endif %}>🇸🇩 Sudan</option>
+                <option value="Suriname" {% if product['origin_country'] == 'Suriname' %}selected{% endif %}>🇸🇷 Suriname</option>
+                <option value="Sweden" {% if product['origin_country'] == 'Sweden' %}selected{% endif %}>��🇪 Sweden</option>
+                <option value="Switzerland" {% if product['origin_country'] == 'Switzerland' %}selected{% endif %}>🇨🇭 Switzerland</option>
+                <option value="Syria" {% if product['origin_country'] == 'Syria' %}selected{% endif %}>🇸🇾 Syria</option>
+                <option value="Taiwan" {% if product['origin_country'] == 'Taiwan' %}selected{% endif %}>🇹🇼 Taiwan</option>
+                <option value="Tajikistan" {% if product['origin_country'] == 'Tajikistan' %}selected{% endif %}>🇹🇯 Tajikistan</option>
+                <option value="Tanzania" {% if product['origin_country'] == 'Tanzania' %}selected{% endif %}>🇹🇿 Tanzania</option>
+                <option value="Thailand" {% if product['origin_country'] == 'Thailand' %}selected{% endif %}>🇹🇭 Thailand</option>
+                <option value="Timor-Leste" {% if product['origin_country'] == 'Timor-Leste' %}selected{% endif %}>🇹🇱 Timor-Leste</option>
+                <option value="Togo" {% if product['origin_country'] == 'Togo' %}selected{% endif %}>🇹🇬 Togo</option>
+                <option value="Tonga" {% if product['origin_country'] == 'Tonga' %}selected{% endif %}>🇹🇴 Tonga</option>
+                <option value="Trinidad and Tobago" {% if product['origin_country'] == 'Trinidad and Tobago' %}selected{% endif %}>🇹🇹 Trinidad and Tobago</option>
+                <option value="Tunisia" {% if product['origin_country'] == 'Tunisia' %}selected{% endif %}>🇹🇳 Tunisia</option>
+                <option value="Turkey" {% if product['origin_country'] == 'Turkey' %}selected{% endif %}>🇹🇷 Turkey</option>
+                <option value="Turkmenistan" {% if product['origin_country'] == 'Turkmenistan' %}selected{% endif %}>🇹🇲 Turkmenistan</option>
+                <option value="Tuvalu" {% if product['origin_country'] == 'Tuvalu' %}selected{% endif %}>🇹🇻 Tuvalu</option>
+                <option value="Uganda" {% if product['origin_country'] == 'Uganda' %}selected{% endif %}>🇺🇬 Uganda</option>
+                <option value="Ukraine" {% if product['origin_country'] == 'Ukraine' %}selected{% endif %}>🇺🇦 Ukraine</option>
+                <option value="United Arab Emirates" {% if product['origin_country'] == 'United Arab Emirates' %}selected{% endif %}>🇦🇪 United Arab Emirates</option>
+                <option value="United Kingdom" {% if product['origin_country'] == 'United Kingdom' %}selected{% endif %}>🇬🇧 United Kingdom</option>
+                <option value="United States" {% if product['origin_country'] == 'United States' %}selected{% endif %}>🇺🇸 United States</option>
+                <option value="Uruguay" {% if product['origin_country'] == 'Uruguay' %}selected{% endif %}>🇺🇾 Uruguay</option>
+                <option value="Uzbekistan" {% if product['origin_country'] == 'Uzbekistan' %}selected{% endif %}>🇺🇿 Uzbekistan</option>
+                <option value="Vanuatu" {% if product['origin_country'] == 'Vanuatu' %}selected{% endif %}>🇻🇺 Vanuatu</option>
+                <option value="Vatican City" {% if product['origin_country'] == 'Vatican City' %}selected{% endif %}>🇻🇦 Vatican City</option>
+                <option value="Venezuela" {% if product['origin_country'] == 'Venezuela' %}selected{% endif %}>🇻🇪 Venezuela</option>
+                <option value="Vietnam" {% if product['origin_country'] == 'Vietnam' %}selected{% endif %}>🇻🇳 Vietnam</option>
+                <option value="Yemen" {% if product['origin_country'] == 'Yemen' %}selected{% endif %}>🇾🇪 Yemen</option>
+                <option value="Zambia" {% if product['origin_country'] == 'Zambia' %}selected{% endif %}>🇿🇲 Zambia</option>
+                <option value="Zimbabwe" {% if product['origin_country'] == 'Zimbabwe' %}selected{% endif %}>🇿🇼 Zimbabwe</option>
+            </select>
+        </div>
+        <div>
             <label for="shipping_weight" class="block text-gray-700 font-semibold mb-2">Shipping Weight (lbs)</label>
             <input 
                 type="number" 

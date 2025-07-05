@@ -1,0 +1,46 @@
+{% extends 'admin/admin_base.html' %} {% block title %}Wallet Change Audit Log -
+{{ settings['site_name'] }}{% endblock %} {% block admin_content %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Wallet Change Audit Log</h2>
+<div class="bg-white p-6 rounded-lg shadow-md">
+  <h3 class="text-lg font-semibold text-gray-700 mb-4">
+    Recent Wallet Address Changes
+  </h3>
+  <p class="text-sm text-gray-500 mb-4">
+    This log shows all changes to platform wallet addresses for compliance and
+    security monitoring.
+  </p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b">
+          <th class="py-2 px-4 text-gray-700">Timestamp</th>
+          <th class="py-2 px-4 text-gray-700">Action</th>
+          <th class="py-2 px-4 text-gray-700">Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in wallet_audit_trail %}
+        <tr class="border-b hover:bg-gray-50">
+          <td class="py-2 px-4 text-xs">{{ entry.timestamp }}</td>
+          <td class="py-2 px-4 text-xs">{{ entry.action }}</td>
+          <td class="py-2 px-4 text-xs">{{ entry.admin }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="py-4 px-4 text-center text-gray-500">
+            No wallet changes found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-6">
+    <a
+      href="{{ url_for('admin.admin_security') }}"
+      class="text-blue-600 hover:underline text-sm"
+      >&larr; Back to Security Settings</a
+    >
+  </div>
+</div>
+{% endblock %}

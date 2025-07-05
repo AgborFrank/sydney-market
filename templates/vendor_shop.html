@@ -1,0 +1,225 @@
+{% extends 'base.html' %} {% block title %}{{ vendor.username }}'s Shop -
+Sydney{% endblock %} {% block content %}
+<div class="container mx-auto px-4 py-6">
+  <!-- Vendor Header -->
+  <div class="bg-card rounded-lg p-6 mb-6 border border-border">
+    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+      <img
+        src="{{ vendor.avatar_url }}"
+        alt="{{ vendor.username }}"
+        class="w-24 h-24 rounded-full border-4 border-sydney object-cover"
+      />
+      <div class="flex-1">
+        <h1 class="text-2xl font-bold text-white mb-2">
+          {{ vendor.username }}'s Shop
+        </h1>
+        <div class="flex items-center gap-4 text-sm text-gray-300">
+          <span>Level {{ vendor.level }}</span>
+          <span>{{ vendor.sales_count }} sales</span>
+          <span
+            >{{ "%.1f"|format(vendor.feedback_positive_percentage) }}%
+            positive</span
+          >
+          <span>Trust Level {{ vendor.trust_level }}</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-2">
+          Last active: {{ vendor.last_login.strftime('%b %d, %Y') }}
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <a
+          href="{{ url_for('public.favorite_vendor', vendor_id=vendor.id) }}"
+          class="px-2 py-1 rounded-md text-sm font-medium {% if favorite_status %}bg-red-600{% else %}bg-gray-600{% endif %} text-white hover:opacity-80"
+        >
+          {% if favorite_status %}Remove from Favorites{% else %}Add to
+          Favorites{% endif %}
+        </a>
+        <a
+          href="{{ url_for('public.report_vendor', vendor_id=vendor.id) }}"
+          class="px-2 py-1 rounded-md text-sm font-medium bg-gray-600 text-white hover:opacity-80"
+        >
+          Report Vendor
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-back rounded-lg p-4 border border-border">
+      <div class="flex items-center">
+        <div class="p-2 bg-blue-500 rounded-lg mr-3">📦</div>
+        <div>
+          <p class="text-sm text-gray-400">Total Sales</p>
+          <p class="text-xl font-bold text-white">{{ vendor.sales_count }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-back rounded-lg p-4 border border-border">
+      <div class="flex items-center">
+        <div class="p-2 bg-green-500 rounded-lg mr-3">👍</div>
+        <div>
+          <p class="text-sm text-gray-400">Positive Feedback</p>
+          <p class="text-xl font-bold text-white">
+            {{ "%.1f"|format(vendor.feedback_positive_percentage) }}%
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-back rounded-lg p-4 border border-border">
+      <div class="flex items-center">
+        <div class="p-2 bg-purple-500 rounded-lg mr-3">🛡️</div>
+        <div>
+          <p class="text-sm text-gray-400">Trust Level</p>
+          <p class="text-xl font-bold text-white">
+            {{ vendor.trust_level }}/10
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-back rounded-lg p-4 border border-border">
+      <div class="flex items-center">
+        <div class="p-2 bg-yellow-500 rounded-lg mr-3">📦</div>
+        <div>
+          <p class="text-sm text-gray-400">Products</p>
+          <p class="text-xl font-bold text-white">{{ products|length }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PGP Key -->
+  {% if vendor.pgp_public_key %}
+  <div class="bg-card rounded-lg p-4 mb-6 border border-border">
+    <h3 class="text-lg font-semibold text-white mb-3">PGP Public Key</h3>
+    <div class="bg-back rounded p-3">
+      <p class="text-sm text-gray-300 mb-2">
+        <strong>Fingerprint:</strong> {{ vendor.pgp_fingerprint or 'Not
+        available' }}
+      </p>
+      <details class="text-sm">
+        <summary class="text-sydney cursor-pointer hover:text-sydney2">
+          View Public Key
+        </summary>
+        <pre class="text-xs text-gray-400 mt-2 whitespace-pre-wrap break-all">
+{{ vendor.pgp_public_key }}</pre
+        >
+      </details>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Products -->
+  <div class="bg-card rounded-lg p-6 border border-border">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-white">
+        Products ({{ products|length }})
+      </h2>
+      <div class="flex gap-3">
+        <select
+          id="sortSelect"
+          class="px-3 py-2 bg-back border border-border rounded-md text-white text-sm"
+        >
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+    </div>
+
+    {% if products %}
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    >
+      {% for product in products %}
+      <div
+        class="bg-back rounded-lg border border-border hover:border-sydney transition-all duration-200 overflow-hidden"
+      >
+        <div class="relative h-48 overflow-hidden">
+          {% if product.first_image %}
+          <a
+            href="{{ url_for('public.product_detail', product_id=product.id) }}"
+          >
+            <img
+              src="{{ url_for('static', filename=product.first_image) }}"
+              alt="{{ product.title }}"
+              class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+            />
+          </a>
+          {% else %}
+          <a
+            href="{{ url_for('public.product_detail', product_id=product.id) }}"
+          >
+            <div
+              class="w-full h-full bg-gray-700 flex items-center justify-center"
+            >
+              <span class="text-gray-500 text-4xl">📦</span>
+            </div>
+          </a>
+          {% endif %} {% if product.stock <= 5 and product.stock > 0 %}
+          <div
+            class="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold"
+          >
+            Low Stock
+          </div>
+          {% elif product.stock == 0 %}
+          <div
+            class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold"
+          >
+            Out of Stock
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="p-4">
+          <h3 class="font-semibold text-white mb-2">
+            <a
+              href="{{ url_for('public.product_detail', product_id=product.id) }}"
+              class="hover:text-sydney transition-colors"
+            >
+              {{ product.title }}
+            </a>
+          </h3>
+
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-lg font-bold text-sydney"
+              >${{ "%.2f"|format(product.price_usd) }}</span
+            >
+            {% if product.avg_rating %}
+            <div class="flex items-center text-sm text-gray-300">
+              ⭐ {{ "%.1f"|format(product.avg_rating) }}
+              <span class="text-gray-400 ml-1"
+                >({{ product.reviews_count }})</span
+              >
+            </div>
+            {% endif %}
+          </div>
+
+          <div
+            class="flex items-center justify-between text-xs text-gray-400 mb-3"
+          >
+            <span>Stock: {{ product.stock }}</span>
+            <span>{{ product.created_at.strftime('%b %d') }}</span>
+          </div>
+
+          <a
+            href="{{ url_for('public.product_detail', product_id=product.id) }}"
+            class="w-full bg-sydney hover:bg-sydney2 text-white text-center py-2 px-4 rounded-md transition-colors duration-200 text-sm font-medium block"
+          >
+            View Details
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+      <span class="text-gray-500 text-4xl mb-4 block">📦</span>
+      <p class="text-gray-400">This vendor has no products available.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

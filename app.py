@@ -3,7 +3,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from routes import init_routes
 from utils.crypto import get_exchange_rates
-from utils.database import init_db, get_db_connection, get_settings, get_product_rating, get_profile_data, get_product_count,close_db, get_rates, update_rates, get_user_profile_data
+from utils.database import init_db, get_db_connection, get_settings, get_product_rating, get_profile_data, get_product_count,close_db, get_rates, update_rates, get_user_profile_data, send_notification_with_email
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 #from utils.security import generate_csrf_token
@@ -21,6 +21,9 @@ from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 import os
 from dotenv import load_dotenv
+from utils.ddos_protection import init_ddos_protection, check_ddos_protection, require_recaptcha
+from utils.bitcoin import check_payment
+from utils.monero import check_monero_payment
 
 # Load environment variables from .env file
 load_dotenv()
@@ -35,7 +38,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = redis.Redis(
     host=os.getenv('REDIS_HOST', 'localhost'),
-    port=os.getenv('REDIS_PORT', 6379),
+    port=int(os.getenv('REDIS_PORT', 6379)),
     password=os.getenv('REDIS_PASSWORD', None)
 )
 Session(app)
@@ -53,7 +56,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'user.login'
+login_manager.login_view = 'user.login'  # type: ignore
 # Initialize Bcrypt
 bcrypt = Bcrypt(app)
 # User model
@@ -120,9 +123,11 @@ def load_user(user_id):
    
 @app.after_request
 def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'none'"
+    # Use security headers from config
+    from config import Config
+    config = Config()
+    for header, value in config.SECURITY_HEADERS.items():
+        response.headers[header] = value
     return response
 
 # Add basename filter
@@ -137,9 +142,93 @@ limiter = Limiter(
     storage_uri="memory://",  # Use redis:// in production for persistence
     default_limits=["100 per day", "50 per hour"]  # Increased hourly default
 )
+# Define background jobs before scheduler setup
+
+def monitor_btc_deposits():
+    settings = get_settings()
+    min_btc = float(settings.get('btc_min_deposit', 0.0001))
+    min_conf = int(settings.get('btc_min_confirmations', 2))
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT user_id, btc_address FROM user_crypto_addresses WHERE btc_address IS NOT NULL")
+        for row in c.fetchall():
+            user_id, btc_address = row['user_id'], row['btc_address']
+            # Check for new payment with min confirmations and amount
+            txid = check_payment(btc_address, min_btc, min_conf)
+            if txid:
+                # Check if already credited
+                c.execute("SELECT 1 FROM transactions WHERE tx_id = ? AND type = 'deposit'", (txid,))
+                if not c.fetchone():
+                    # Credit user balance
+                    c.execute("UPDATE users SET btc_balance = btc_balance + ? WHERE id = ?", (min_btc, user_id))
+                    c.execute("INSERT INTO transactions (user_id, currency, type, amount, address, tx_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)", (user_id, 'BTC', 'deposit', min_btc, btc_address, txid, 'completed'))
+                    c.execute("INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)", (user_id, f'BTC deposit of {min_btc} credited to your wallet.', 'success'))
+                    conn.commit()
+
+def monitor_xmr_deposits():
+    settings = get_settings()
+    min_xmr = float(settings.get('xmr_min_deposit', 0.01))
+    min_conf = int(settings.get('xmr_min_confirmations', 10))
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT user_id, xmr_subaddress FROM user_crypto_addresses WHERE xmr_subaddress IS NOT NULL")
+        for row in c.fetchall():
+            user_id, xmr_address = row['user_id'], row['xmr_subaddress']
+            # Check for new payment with min confirmations and amount
+            tx_hash = check_monero_payment(xmr_address, min_xmr, min_conf)
+            if tx_hash:
+                # Check if already credited
+                c.execute("SELECT 1 FROM transactions WHERE tx_id = ? AND type = 'deposit'", (tx_hash,))
+                if not c.fetchone():
+                    # Credit user balance
+                    c.execute("UPDATE users SET xmr_balance = xmr_balance + ? WHERE id = ?", (min_xmr, user_id))
+                    c.execute("INSERT INTO transactions (user_id, currency, type, amount, address, tx_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)", (user_id, 'XMR', 'deposit', min_xmr, xmr_address, tx_hash, 'completed'))
+                    c.execute("INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)", (user_id, f'XMR deposit of {min_xmr} credited to your wallet.', 'success'))
+                    conn.commit()
+
+def monitor_order_payments():
+    from utils.bitcoin import check_payment
+    from utils.monero import check_monero_payment
+    from utils.database import send_notification_with_email
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT o.id, o.user_id, o.product_id, o.crypto_currency, e.multisig_address, e.amount_btc, e.amount_xmr FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.status = 'pending' AND o.escrow_status = 'pending'")
+        for row in c.fetchall():
+            order_id = row['id']
+            user_id = row['user_id']
+            product_id = row['product_id']
+            currency = row['crypto_currency']
+            address = row['multisig_address']
+            if currency == 'BTC':
+                txid = check_payment(address, row['amount_btc'])
+                amount = row['amount_btc']
+            elif currency == 'XMR':
+                txid = check_monero_payment(address, row['amount_xmr'])
+                amount = row['amount_xmr']
+            else:
+                txid = None
+                amount = 0
+            if txid:
+                c.execute("UPDATE orders SET status = 'paid', escrow_status = 'held' WHERE id = ?", (order_id,))
+                c.execute("UPDATE escrow SET status = 'held', txid = ?, created_at = CURRENT_TIMESTAMP WHERE order_id = ?", (txid, order_id))
+                # Notify user
+                send_notification_with_email(user_id, f'Payment of {amount} {currency} received for your order #{order_id}. Order is now in escrow.', 'success', subject='Order Payment Received')
+                # Notify admin (assume admin user_id = 1)
+                send_notification_with_email(1, f'Order #{order_id} payment detected: {amount} {currency}. Escrow held.', 'info', subject='Order Payment Detected')
+                # Optionally, notify vendor as well
+                c.execute("SELECT vendor_id FROM products WHERE id = ?", (product_id,))
+                vendor = c.fetchone()
+                if vendor:
+                    send_notification_with_email(vendor['vendor_id'], f'Order #{order_id} for your product has been paid and is now in escrow.', 'info', subject='Order Paid and Escrowed')
+                conn.commit()
+                print(f"Order {order_id} payment confirmed and escrow held. Notifications sent.")
+
 # Initialize scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_rates, trigger='interval', minutes=10)
+scheduler.add_job(func=monitor_btc_deposits, trigger='interval', minutes=5)
+scheduler.add_job(func=monitor_xmr_deposits, trigger='interval', minutes=5)
+scheduler.add_job(func=monitor_order_payments, trigger='interval', minutes=2)
 scheduler.start()
 
 # Shutdown scheduler on app exit
@@ -153,18 +242,38 @@ logger = logging.getLogger(__name__)
 csrf = CSRFProtect(app)
 logger.debug("CSRFProtect initialized")
 logging.basicConfig(level=logging.INFO, filename='app.log', format='%(asctime)s %(levelname)s: %(message)s')
-# Example error handler
+# Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
+@app.errorhandler(429)
+def rate_limit_exceeded(e):
+    return render_template('429.html'), 429
+
 # Initialize database and routes
 init_db()
 init_routes(app)
+
+# Initialize DDoS protection
+redis_client = redis.Redis(
+    host=os.getenv('REDIS_HOST', 'localhost'),
+    port=int(os.getenv('REDIS_PORT', 6379)),
+    password=os.getenv('REDIS_PASSWORD', None)
+)
+init_ddos_protection(redis_client)
 # Before request: Store rates in g
 @app.before_request
 def before_request():
     g.rates = get_rates()
+    
+    # Apply DDoS protection to all requests
+    from utils.ddos_protection import ddos_protection
+    if ddos_protection:
+        allowed, reason = ddos_protection.check_request()
+        if not allowed:
+            logger.warning(f"Request blocked: {reason}")
+            abort(429, description=f"Rate limit exceeded: {reason}")
     
 # After request: Close database
 @app.teardown_appcontext
@@ -249,6 +358,31 @@ app.jinja_env.globals.update(
     get_product_count=get_product_count
 )
 
+@app.context_processor
+def inject_user_notifications():
+    if 'user_id' in session:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0", (session['user_id'],))
+            unread_count = c.fetchone()[0]
+            c.execute("SELECT message, type, created_at FROM notifications WHERE user_id = ? AND is_read = 0 ORDER BY created_at DESC LIMIT 5", (session['user_id'],))
+            unread_notifications = [dict(row) for row in c.fetchall()]
+            
+            # Get favorites count
+            c.execute("SELECT COUNT(*) as count FROM favorites WHERE user_id = ?", (session['user_id'],))
+            favorite_products_count = c.fetchone()['count']
+            
+            c.execute("SELECT COUNT(*) as count FROM favorite_vendors WHERE user_id = ?", (session['user_id'],))
+            favorite_vendors_count = c.fetchone()['count']
+            
+            total_favorites_count = favorite_products_count + favorite_vendors_count
+            
+        return dict(
+            unread_notifications=unread_notifications, 
+            unread_notification_count=unread_count,
+            favorites_count=total_favorites_count
+        )
+    return dict(unread_notifications=[], unread_notification_count=0, favorites_count=0)
 
 if __name__ == '__main__':
     update_rates()

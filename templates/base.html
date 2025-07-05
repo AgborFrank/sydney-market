@@ -5,26 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="title" content="{{ settings.meta_title }}" />
     <meta name="description" content="{{ settings.meta_description }}" />
-    <link href="{{ url_for('static', filename='images/favicon.png') }}" rel="shortcut icon">
+    <link
+      href="{{ url_for('static', filename='images/favicon.png') }}"
+      rel="shortcut icon"
+    />
     <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
-    
+
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='dist/styles.css') }}"
     />
 
     <link
-      rel="stylesheet"<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}"
-  />
-      href="{{ url_for('static', filename='dist/media.css') }}"
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <link href="{{ url_for('static', filename='dist/media.css') }}" />
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-   
+
     <link href="https://css.gg/css" rel="stylesheet" />
     <style>
       :root {
@@ -64,6 +65,12 @@
     </style>
   </head>
   <body class="flex flex-col min-h-screen">
+    <input
+      type="checkbox"
+      class="absolute hidden"
+      id="theme"
+      checked="checked"
+    />
     <div
       class="min-h-full w-[98%] 2xl:max-w-screen-2xl mx-auto"
       style="position: relative; z-index: 10"
@@ -81,14 +88,13 @@
           <div
             class="2xl:w-[270px] flex flex-col items-center justify-start mx-2"
           >
-          {% if request.endpoint == 'public.product_detail' and vendor and product %}
-            {% include 'components/vendor_profile.html' %}
-          {% endif %}
+            {% if request.endpoint == 'public.product_detail' and vendor and
+            product %} {% include 'components/vendor_profile.html' %} {% endif
+            %}
             <div class="w-full flex flex-col gap-2">
-              
               <!-- Profile Actions -->
               <div
-                class="bg-primary border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
+                class="bg-card border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
               >
                 <h1
                   class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
@@ -145,6 +151,7 @@
                       >Favorites</a
                     >
                   </div>
+                  {#
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
@@ -154,6 +161,7 @@
                       >Shared Access</a
                     >
                   </div>
+                  #}
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
@@ -172,6 +180,7 @@
                       >Feedback</a
                     >
                   </div>
+                  {#
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
@@ -181,6 +190,7 @@
                       >Affiliate Stats</a
                     >
                   </div>
+                  #}
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
@@ -193,17 +203,15 @@
                 </div>
               </div>
               {% if session['role'] == 'vendor' %}
-              
-             
+
               <!-- Exchange Rates -->
               {% import "components/exchange.html" as exchange %} {{
-              exchange.exchange_rates(rates) }}
-              {% endif %}
-              {% include 'components/categories_sidebar.html' %}
+              exchange.exchange_rates(rates) }} {% endif %} {% include
+              'components/categories_sidebar.html' %}
               <!--LATEST NEWS-->
               {% include 'components/news_sidebar.html' %}
-              
-            <!-- END LATEST NEWS -->
+
+              <!-- END LATEST NEWS -->
             </div>
           </div>
           <!-- Main Content -->

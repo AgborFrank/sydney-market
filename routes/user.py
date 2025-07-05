@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, g
-from utils.database import get_db_connection, get_settings
+from utils.database import get_db_connection, get_settings, get_user_profile_data, get_bond_amounts, get_pending_payment, get_user_notifications, mark_notification_read
 from utils.security import regenerate_session, encrypt_message
 from utils.crypto import get_exchange_rates
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from utils.database import get_user_profile_data
 from flask_wtf import FlaskForm
 from flask_login import login_required, current_user, login_user
 from wtforms import StringField, PasswordField, SelectField, TextAreaField, FileField, BooleanField, IntegerField
@@ -23,6 +22,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dataclasses import dataclass
 from datetime import datetime
 import base64
+from utils.ddos_protection import recaptcha
+from utils.bitcoin import generate_btc_address
+from utils.monero import generate_monero_address
+import qrcode
+import io
 #from app import User  # Import User from app.py
 
 # Set up logging
@@ -214,12 +218,21 @@ def inject_profile_data():
 def login():
     from app import User  # Import here to avoid circular import
     logger.debug("Entering /login")
+    next_url = request.args.get('next') or request.form.get('next')
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').encode('utf-8')
+        
+        # Verify reCAPTCHA
+        if recaptcha and recaptcha.config.RECAPTCHA_ENABLED:
+            recaptcha_response = request.form.get('g-recaptcha-response')
+            if not recaptcha.verify_recaptcha(recaptcha_response, request.remote_addr):
+                flash("reCAPTCHA verification failed. Please try again.", 'error')
+                return render_template('login.html', form_data={'username': username, 'next': next_url})
+        
         if not username or not password:
             flash("Username and password are required.", 'error')
-            return render_template('login.html', form_data={'username': username})
+            return render_template('login.html', form_data={'username': username, 'next': next_url})
         
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -252,10 +265,12 @@ def login():
             session['username'] = user['username']
             session['role'] = user['role']
             flash("Logged in successfully.", 'success')
+            if next_url:
+                return redirect(next_url)
             return redirect(url_for('user.dashboard'))
         flash("Invalid username or password.", 'error')
-        return render_template('login.html', form_data={'username': username})
-    return render_template('login.html', form_data={})
+        return render_template('login.html', form_data={'username': username, 'next': next_url})
+    return render_template('login.html', form_data={'next': next_url})
 
 # Two-factor auth route
 @user_bp.route('/two_factor_auth', methods=['GET', 'POST'])
@@ -305,6 +320,13 @@ def register():
         password = request.form.get('password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
         pin = request.form.get('pin', '').strip()
+        
+        # Verify reCAPTCHA
+        if recaptcha and recaptcha.config.RECAPTCHA_ENABLED:
+            recaptcha_response = request.form.get('g-recaptcha-response')
+            if not recaptcha.verify_recaptcha(recaptcha_response, request.remote_addr):
+                flash("reCAPTCHA verification failed. Please try again.", 'error')
+                return render_template('register.html', form_data=request.form.to_dict())
 
         if not all([username, pusername, password, confirm_password, pin]):
             flash("All fields are required.", 'error')
@@ -444,87 +466,274 @@ def feedback():
         flash('Please log in to submit feedback.', 'error')
         return redirect(url_for('user.login'))
     profile_data, error = get_user_profile_data(session['user_id'])
-    rates = get_exchange_rates()
-    if not rates:
-        flash("Unable to fetch exchange rates.", 'error')
-        rates = {"bitcoin": {}, "monero": {}}
+    rates = get_exchange_rates() or {"bitcoin": {}, "monero": {}}
     user = get_user(session['user_id'])
     if not user:
         flash('User not found.', 'error')
         return redirect(url_for('user.login'))
 
-    orders = get_user_orders(session['user_id'])
-    feedback_list = get_recent_feedback()
+    is_vendor = user.get('is_vendor', False)
+    db = get_db_connection()
+    c = db.cursor()
 
-    if request.method == 'POST':
-        order_id = request.form.get('order_id')
-        rating = request.form.get('rating')
-        comment = request.form.get('comment', '').strip()
-
-        if not order_id or not any(o.id == int(order_id) for o in orders):
-            flash('Invalid or ineligible order selected.', 'error')
-            return redirect(url_for('user.feedback'))
-
-        try:
-            rating = int(rating)
-            if rating < 1 or rating > 5:
-                raise ValueError
-        except (ValueError, TypeError):
-            flash('Rating must be between 1 and 5.', 'error')
-            return redirect(url_for('user.feedback'))
-
-        if not comment or len(comment) > 500:
-            flash('Comment is required and must be 500 characters or less.', 'error')
-            return redirect(url_for('user.feedback'))
-        if re.search(r'\bhttp[s]?://|www\.|\.com\b', comment, re.I):
-            flash('Comments cannot contain URLs or promotional content.', 'error')
-            return redirect(url_for('user.feedback'))
-
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("SELECT vendor_id FROM orders WHERE id = ?", (order_id,))
-            vendor_id = c.fetchone()
-            if not vendor_id:
+    if is_vendor:
+        # Vendor: show stats and all feedback about them
+        vendor_id = session['user_id']
+        # Feedback stats
+        c.execute("""
+            SELECT COUNT(*) FROM feedback WHERE vendor_id = ? AND status = 'active'
+        """, (vendor_id,))
+        total_feedback = c.fetchone()[0]
+        c.execute("""
+            SELECT COUNT(*) FROM feedback WHERE vendor_id = ? AND rating >= 4 AND status = 'active'
+        """, (vendor_id,))
+        positive_feedback = c.fetchone()[0]
+        c.execute("""
+            SELECT COUNT(*) FROM feedback WHERE vendor_id = ? AND rating = 3 AND status = 'active'
+        """, (vendor_id,))
+        neutral_feedback = c.fetchone()[0]
+        c.execute("""
+            SELECT COUNT(*) FROM feedback WHERE vendor_id = ? AND rating <= 2 AND status = 'active'
+        """, (vendor_id,))
+        negative_feedback = c.fetchone()[0]
+        c.execute("""
+            SELECT AVG(rating) FROM feedback WHERE vendor_id = ? AND status = 'active'
+        """, (vendor_id,))
+        avg_rating = c.fetchone()[0] or 0.0
+        # All feedback for this vendor
+        c.execute("""
+            SELECT f.id, f.rating, f.comment, f.created_at, u.username as buyer_username, p.title as product_title
+            FROM feedback f
+            JOIN users u ON f.user_id = u.id
+            LEFT JOIN products p ON f.product_id = p.id
+            WHERE f.vendor_id = ? AND f.status = 'active'
+            ORDER BY f.created_at DESC
+        """, (vendor_id,))
+        vendor_feedbacks = c.fetchall()
+        db.close()
+        return render_template(
+            'user/feedback.html',
+            is_vendor=True,
+            stats={
+                'total': total_feedback,
+                'positive': positive_feedback,
+                'neutral': neutral_feedback,
+                'negative': negative_feedback,
+                'avg_rating': round(avg_rating, 2)
+            },
+            feedback_list=vendor_feedbacks,
+            profile_data=profile_data,
+            rates=rates
+        )
+    else:
+        # Buyer: show eligible orders and feedback history
+        orders = get_user_orders(session['user_id'])
+        # Feedbacks left by this user
+        c.execute("""
+            SELECT f.id, f.rating, f.comment, f.created_at, u.username as vendor_username, p.title as product_title
+            FROM feedback f
+            JOIN users u ON f.vendor_id = u.id
+            LEFT JOIN products p ON f.product_id = p.id
+            WHERE f.user_id = ?
+            ORDER BY f.created_at DESC
+        """, (session['user_id'],))
+        feedback_history = c.fetchall()
+        db.close()
+        # Handle feedback submission
+        if request.method == 'POST':
+            order_id = request.form.get('order_id')
+            rating = request.form.get('rating')
+            comment = request.form.get('comment', '').strip()
+            if not order_id or not any(o.id == int(order_id) for o in orders):
+                flash('Invalid or ineligible order selected.', 'error')
+                return redirect(url_for('user.feedback'))
+            try:
+                rating = int(rating)
+                if rating < 1 or rating > 5:
+                    raise ValueError
+            except (ValueError, TypeError):
+                flash('Rating must be between 1 and 5.', 'error')
+                return redirect(url_for('user.feedback'))
+            if not comment or len(comment) > 500:
+                flash('Comment is required and must be 500 characters or less.', 'error')
+                return redirect(url_for('user.feedback'))
+            if re.search(r'\bhttp[s]?://|www\\.|\\.com\b', comment, re.I):
+                flash('Comments cannot contain URLs or promotional content.', 'error')
+                return redirect(url_for('user.feedback'))
+            db = get_db_connection()
+            c = db.cursor()
+            c.execute("SELECT vendor_id, product_id FROM orders WHERE id = ?", (order_id,))
+            row = c.fetchone()
+            if not row:
+                db.close()
                 flash('Order not found.', 'error')
                 return redirect(url_for('user.feedback'))
-            vendor_id = vendor_id[0]
-
+            vendor_id, product_id = row
             c.execute("""
-                INSERT INTO feedback (order_id, user_id, vendor_id, rating, comment)
-                VALUES (?, ?, ?, ?, ?)
-            """, (order_id, session['user_id'], vendor_id, rating, comment))
-            conn.commit()
-
-        flash('Feedback submitted successfully.', 'success')
-        return redirect(url_for('user.feedback'))
-
-    return render_template('user/feedback.html', orders=orders, feedback_list=feedback_list, rates=rates, profile_data=profile_data)
+                INSERT INTO feedback (order_id, user_id, vendor_id, product_id, rating, comment)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (order_id, session['user_id'], vendor_id, product_id, rating, comment))
+            db.commit()
+            db.close()
+            flash('Feedback submitted successfully.', 'success')
+            return redirect(url_for('user.feedback'))
+        return render_template(
+            'user/feedback.html',
+            is_vendor=False,
+            orders=orders,
+            feedback_list=feedback_history,
+            profile_data=profile_data,
+            rates=rates
+        )
 
 @user_bp.route('/dashboard')
 def dashboard():
-    """Render user dashboard with profile, orders, reports, rates, and buyer stats."""
+    """Render user dashboard with profile, orders, reports, rates, and buyer stats. Redirect vendors to vendor dashboard."""
     if 'user_id' not in session:
         flash("Please log in to access your dashboard.", 'error')
         return redirect(url_for('user.login'))
     
-    profile_data, error = get_user_profile_data(session['user_id'])
+    user_id = session['user_id']
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT is_vendor, pusername FROM users WHERE id = ?", (user_id,))
+        user_row = c.fetchone()
+        if not user_row:
+            logger.error(f"No user found for user_id: {user_id}")
+            flash("User not found. Please log in again.", 'error')
+            session.clear()
+            return redirect(url_for('user.login'))
+        is_vendor = bool(user_row['is_vendor'])
+        pusername = user_row['pusername']
+    if is_vendor:
+        # Fetch vendor stats, recent orders, reviews, messages
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT u.pusername, u.level, u.avatar, vs.logo, vs.shipping_location 
+                FROM users u
+                LEFT JOIN vendor_settings vs ON u.id = vs.user_id
+                WHERE u.id = ?
+            """, (user_id,))
+            vendor_data = c.fetchone()
+            if not vendor_data:
+                flash("Vendor profile not found. Please contact support.", "error")
+                return redirect(url_for('user.dashboard'))
+            vendor_name = vendor_data['pusername']
+            level = vendor_data['level']
+            avatar = vendor_data['avatar'] or None
+            logo = vendor_data['logo'] or None
+            shipping_location = vendor_data['shipping_location'] or "Not specified"
+            # Market Stats
+            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ?", (user_id,))
+            total_orders = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'shipped'", (user_id,))
+            total_shipped = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'delivered'", (user_id,))
+            total_sales = c.fetchone()[0]
+            c.execute("SELECT SUM(amount_usd) FROM orders WHERE vendor_id = ? AND status = 'delivered'", (user_id,))
+            revenue = c.fetchone()[0] or 0.0
+            # Feedbacks
+            c.execute("""
+                SELECT COUNT(*) 
+                FROM reviews r
+                JOIN products p ON r.product_id = p.id
+                WHERE p.vendor_id = ? AND r.rating >= 4
+            """, (user_id,))
+            positive_feedbacks = c.fetchone()[0]
+            c.execute("""
+                SELECT COUNT(*) 
+                FROM reviews r
+                JOIN products p ON r.product_id = p.id
+                WHERE p.vendor_id = ? AND r.rating <= 2
+            """, (user_id,))
+            negative_feedbacks = c.fetchone()[0]
+            # Recent Orders
+            c.execute("""
+                SELECT o.id, o.amount_usd, o.status, o.created_at, p.title, u.pusername as buyer_username
+                FROM orders o
+                JOIN products p ON o.product_id = p.id
+                JOIN users u ON o.user_id = u.id
+                WHERE o.vendor_id = ?
+                ORDER BY o.created_at DESC LIMIT 5
+            """, (user_id,))
+            recent_orders = [dict(row) for row in c.fetchall()]
+            # Recent Reviews
+            c.execute("""
+                SELECT r.id, r.rating, r.comment, r.created_at, u.pusername as reviewer, p.title
+                FROM reviews r
+                JOIN products p ON r.product_id = p.id
+                JOIN users u ON r.user_id = u.id
+                WHERE p.vendor_id = ?
+                ORDER BY r.created_at DESC LIMIT 5
+            """, (user_id,))
+            recent_reviews = [dict(row) for row in c.fetchall()]
+            # Recent Messages
+            c.execute("""
+                SELECT m.id, m.subject, m.body, m.sent_at, u.pusername as sender
+                FROM messages m
+                JOIN users u ON m.sender_id = u.id
+                WHERE m.recipient_id = ? AND m.recipient_type = 'vendor'
+                ORDER BY m.sent_at DESC LIMIT 5
+            """, (user_id,))
+            recent_messages = [dict(row) for row in c.fetchall()]
+            # Analytics
+            # Order completion rate
+            completion_rate = 0.0
+            if total_orders > 0:
+                c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'delivered'", (user_id,))
+                completed = c.fetchone()[0]
+                completion_rate = round((completed / total_orders) * 100, 2)
+            # Average rating
+            c.execute("""
+                SELECT AVG(r.rating) as avg_rating
+                FROM reviews r
+                JOIN products p ON r.product_id = p.id
+                WHERE p.vendor_id = ?
+            """, (user_id,))
+            row = c.fetchone()
+            avg_rating = round(row[0], 2) if row and row[0] is not None else None
+            # Revenue (30d)
+            c.execute("""
+                SELECT SUM(amount_usd) FROM orders WHERE vendor_id = ? AND status = 'delivered' AND created_at >= date('now', '-30 day')
+            """, (user_id,))
+            revenue_30d = c.fetchone()[0] or 0.0
+            # Conversion rate (orders/visits) - placeholder, needs tracking
+            conversion_rate = None
+            stats = {
+                'level': level,
+                'avatar': avatar,
+                'logo': logo,
+                'shipping_location': shipping_location,
+                'positive_feedbacks': positive_feedbacks,
+                'negative_feedbacks': negative_feedbacks,
+                'total_orders': total_orders,
+                'total_shipped': total_shipped,
+                'total_sales': total_sales,
+                'revenue': revenue,
+                'completion_rate': completion_rate,
+                'avg_rating': avg_rating,
+                'revenue_30d': revenue_30d,
+                'conversion_rate': conversion_rate
+            }
+        return render_template('user/vendor_dashboard.html',
+                              vendor_name=vendor_name,
+                              stats=stats,
+                              recent_orders=recent_orders,
+                              recent_reviews=recent_reviews,
+                              recent_messages=recent_messages,
+                              title="Vendor Dashboard")
+    # Non-vendor user dashboard (existing logic)
+    profile_data, error = get_user_profile_data(user_id)
     if error:
         flash(error, 'error')
         session.clear()
         return redirect(url_for('user.login'))
-    
     with get_db_connection() as conn:
         c = conn.cursor()
-        # User info
-        c.execute("SELECT username FROM users WHERE id = ?", (session['user_id'],))
+        c.execute("SELECT username FROM users WHERE id = ?", (user_id,))
         user_row = c.fetchone()
-        if not user_row:
-            logger.error(f"No user found for user_id: {session['user_id']}")
-            flash("User not found. Please log in again.", 'error')
-            session.clear()
-            return redirect(url_for('user.login'))
         user = dict(user_row)
-       
         # Recent orders
         c.execute("""
             SELECT o.*, p.title, u.pusername as vendor_username
@@ -533,9 +742,8 @@ def dashboard():
             JOIN users u ON o.vendor_id = u.id
             WHERE o.user_id = ?
             ORDER BY o.created_at DESC LIMIT 5
-        """, (session['user_id'],))
+        """, (user_id,))
         orders = [dict(row) for row in c.fetchall()]
-        
         # Recent reports
         c.execute("""
             SELECT r.*, u.pusername as vendor_username
@@ -543,28 +751,22 @@ def dashboard():
             LEFT JOIN users u ON r.vendor_id = u.id
             WHERE r.user_id = ?
             ORDER BY r.created_at DESC LIMIT 5
-        """, (session['user_id'],))
+        """, (user_id,))
         reports = [dict(row) for row in c.fetchall()]
-        
         # Buyer statistics
         try:
-            # Items bought and paid USD (completed orders)
             c.execute("""
                 SELECT COALESCE(SUM(item_count), 0) as items, COALESCE(SUM(amount_usd), 0.0) as paid
                 FROM orders WHERE user_id = ? AND status = 'completed'
-            """, (session['user_id'],))
+            """, (user_id,))
             result = c.fetchone()
             items_bought = result['items']
             paid_usd = result['paid']
-            
-            # Total purchases (all orders)
             c.execute("""
                 SELECT COALESCE(SUM(amount_usd), 0.0) as total
                 FROM orders WHERE user_id = ?
-            """, (session['user_id'],))
+            """, (user_id,))
             total_purchases_usd = c.fetchone()['total']
-            
-            # In escrow (hardcoded until escrow system is implemented)
             in_escrow_usd = 0.0
         except Exception as e:
             logger.error("Failed to fetch buyer stats: %s", str(e))
@@ -573,13 +775,10 @@ def dashboard():
             paid_usd = 0.0
             in_escrow_usd = 0.0
             total_purchases_usd = 0.0
-    
-    # Exchange rates
     rates = get_exchange_rates()
     if not rates:
         flash("Unable to fetch exchange rates.", 'error')
         rates = {"bitcoin": {}, "monero": {}}
-    
     stats = {
         "items_bought": items_bought,
         "paid_usd": paid_usd,
@@ -587,7 +786,6 @@ def dashboard():
         "total_purchases_usd": total_purchases_usd
     }
     logger.debug("Buyer stats: %s", stats)
-    
     return render_template('user/dashboard.html',
                          user=user,
                          orders=orders,
@@ -698,10 +896,18 @@ def become_vendor():
             flash('You already have a pending payment. Please complete it.', 'error')
             return redirect(url_for('user.become_vendor'))
 
-        # Generate payment address
-        amount = BOND_AMOUNT_BTC if crypto == 'btc' else BOND_AMOUNT_XMR
+        # Use admin wallet for bond payment
+        settings = get_settings()
+        if crypto == 'btc':
+            address = settings.get('btc_admin_wallet', '')
+            amount = float(settings.get('vendor_bond_amount', 0.05))
+        else:
+            address = settings.get('xmr_admin_wallet', '')
+            amount = float(settings.get('vendor_bond_amount', 0.05))
+        if not address:
+            flash('Admin wallet address not configured. Please contact support.', 'error')
+            return redirect(url_for('user.become_vendor'))
         try:
-            address = generate_btc_address(user_id) if crypto == 'btc' else generate_monero_address(user_id)
             qr_path = generate_qr_code(address, crypto, user_id)
         except Exception as e:
             flash(f'Failed to generate payment address: {str(e)}', 'error')
@@ -967,6 +1173,7 @@ def messages():
                           selected_recipient_name=selected_recipient_name)
 
 @user_bp.route('/balance', methods=['GET'])
+@limiter.limit("20 per minute; 200 per hour; 1000 per day", key_func=get_remote_address)
 def balance():
     """Display user balance and deposit address for BTC or XMR."""
     user_id = session.get('user_id')
@@ -1083,17 +1290,42 @@ def favorites():
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
+            
+            # Fetch favorite products
             c.execute("""
-                SELECT p.id, p.title, p.price_usd, p.stock, p.status, u.pusername as vendor_name
+                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.featured_image, u.pusername as vendor_name,
+                       p.created_at, 'product' as type
                 FROM favorites f
                 JOIN products p ON f.product_id = p.id
                 JOIN users u ON p.vendor_id = u.id
                 WHERE f.user_id = ? AND p.status = 'active'
                 ORDER BY f.created_at DESC
             """, (user_id,))
-            favorites = [dict(row) for row in c.fetchall()]
+            favorite_products = [dict(row) for row in c.fetchall()]
+            
+            # Fetch favorite vendors
+            c.execute("""
+                SELECT v.id, v.pusername as username, v.avatar, v.level,
+                       (SELECT COUNT(*) FROM products WHERE vendor_id = v.id AND status = 'active') as products_count,
+                       (SELECT COUNT(*) FROM orders WHERE vendor_id = v.id AND status = 'completed') as sales_count,
+                       fv.created_at, 'vendor' as type
+                FROM favorite_vendors fv
+                JOIN users v ON fv.vendor_id = v.id
+                WHERE fv.user_id = ? AND v.role = 'vendor'
+                ORDER BY fv.created_at DESC
+            """, (user_id,))
+            favorite_vendors = [dict(row) for row in c.fetchall()]
+            
+            # Add avatar URLs for vendors
+            for vendor in favorite_vendors:
+                if vendor.get('avatar'):
+                    vendor['avatar_url'] = url_for('static', filename=f"uploads/avatar/{vendor['avatar']}")
+                else:
+                    vendor['avatar_url'] = url_for('static', filename='avatars/default.png')
         
-        return render_template('user/favorites.html', favorites=favorites)
+        return render_template('user/favorites.html', 
+                             favorite_products=favorite_products, 
+                             favorite_vendors=favorite_vendors)
     except Exception as e:
         logger.error(f"Favorites error: {str(e)}")
         flash("An error occurred while loading favorites.", 'error')
@@ -1158,14 +1390,48 @@ def remove_favorite(product_id):
         flash("An error occurred while removing from favorites.", 'error')
         return redirect(url_for('user.favorites'))
 
+@user_bp.route('/favorites/remove_vendor/<int:vendor_id>', methods=['POST'])
+def remove_favorite_vendor(vendor_id):
+    if 'user_id' not in session:
+        flash("Please log in to remove favorites.", 'error')
+        return redirect(url_for('user.login'))
+    
+    user_id = session['user_id']
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("""
+                DELETE FROM favorite_vendors
+                WHERE user_id = ? AND vendor_id = ?
+            """, (user_id, vendor_id))
+            conn.commit()
+            if c.rowcount > 0:
+                flash("Vendor removed from favorites.", 'success')
+            else:
+                flash("Vendor not found in your favorites.", 'error')
+        
+        return redirect(url_for('user.favorites'))
+    except Exception as e:
+        logger.error(f"Remove favorite vendor error: {str(e)}")
+        flash("An error occurred while removing vendor from favorites.", 'error')
+        return redirect(url_for('user.favorites'))
+
 @user_bp.route('/wallet', methods=['GET', 'POST'])
 def wallet():
     if 'user_id' not in session:
         flash("Please log in to view your profile.", 'error')
-        return redirect(url_for('user.login'))
+        return redirect(url_for('user.login', next=request.url))
     
     user_id = session['user_id']
     withdrawal_fee = 2.47  # USD equivalent for BTC/XMR
+
+    def generate_qr_code(data):
+        img = qrcode.make(data)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        img_b64 = base64.b64encode(buf.read()).decode('utf-8')
+        return img_b64
     
     try:
         with get_db_connection() as conn:
@@ -1180,6 +1446,35 @@ def wallet():
                 flash("User not found.", 'error')
                 return redirect(url_for('user.dashboard'))
             
+            # Fetch or generate BTC deposit address
+            c.execute("SELECT btc_address, xmr_subaddress FROM user_crypto_addresses WHERE user_id = ?", (user_id,))
+            row = c.fetchone()
+            if row and row['btc_address']:
+                btc_deposit_address = row['btc_address']
+            else:
+                btc_deposit_address = generate_btc_address(user_id)
+                c.execute("INSERT OR REPLACE INTO user_crypto_addresses (user_id, btc_address) VALUES (?, ?)", (user_id, btc_deposit_address))
+                conn.commit()
+            # Fetch or generate XMR subaddress
+            if row and row['xmr_subaddress']:
+                xmr_deposit_address = row['xmr_subaddress']
+            else:
+                xmr_deposit_address = generate_monero_address(user_id)
+                if xmr_deposit_address:
+                    c.execute("INSERT OR REPLACE INTO user_crypto_addresses (user_id, xmr_subaddress) VALUES (?, ?)", (user_id, xmr_deposit_address))
+                    conn.commit()
+                else:
+                    xmr_deposit_address = 'Monero wallet unavailable. Please try again later.'
+            
+            # Generate QR codes for deposit addresses
+            btc_qr = generate_qr_code(btc_deposit_address) if btc_deposit_address else None
+            xmr_qr = generate_qr_code(xmr_deposit_address) if xmr_deposit_address and 'unavailable' not in xmr_deposit_address.lower() else None
+
+            print(f"BTC Address: {btc_deposit_address}")
+            print(f"BTC QR (first 100): {btc_qr[:100] if btc_qr else None}")
+            print(f"XMR Address: {xmr_deposit_address}")
+            print(f"XMR QR (first 100): {xmr_qr[:100] if xmr_qr else None}")
+            
             # Fetch transaction history
             c.execute("""
                 SELECT id, currency, type, amount, address, tx_id, status, created_at
@@ -1189,10 +1484,6 @@ def wallet():
                 LIMIT 50
             """, (user_id,))
             transactions = [dict(row) for row in c.fetchall()]
-            
-            # Generate deposit addresses (simplified, use real wallet integration in production)
-            btc_deposit_address = hashlib.sha256(f"BTC_{user_id}_{datetime.now()}".encode()).hexdigest()[:34]
-            xmr_deposit_address = hashlib.sha256(f"XMR_{user_id}_{datetime.now()}".encode()).hexdigest()[:95]
             
             if request.method == 'POST':
                 action = request.form.get('action')
@@ -1240,17 +1531,19 @@ def wallet():
                             """, (user_id, currency, 'withdrawal', amount, address, 'pending'))
                             conn.commit()
                             flash(f"Withdrawal of {amount} {currency} requested. Pending admin approval.", 'success')
-                            return redirect(url_for('main.wallet'))
+                            return redirect(url_for('user.wallet'))
             
-            return render_template('wallet.html', 
+            return render_template('user/wallet.html', 
                                  user=user,
                                  transactions=transactions,
                                  btc_deposit_address=btc_deposit_address,
                                  xmr_deposit_address=xmr_deposit_address,
-                                 withdrawal_fee=withdrawal_fee)
+                                 withdrawal_fee=withdrawal_fee,
+                                 btc_qr=btc_qr,
+                                 xmr_qr=xmr_qr)
     except Exception as e:
         logger.error(f"Wallet error: {str(e)}")
-        flash("An error occurred. Please try again.", 'error')
+        flash(f"An error occurred: {str(e)}", 'error')
         return redirect(url_for('user.dashboard'))
 
 @user_bp.route('/support', methods=['GET', 'POST'])
@@ -1424,7 +1717,7 @@ def view_tickets(ticket_id):
         c.execute("SELECT * FROM tickets WHERE id = ? AND user_id = ?", (ticket_id, session['user_id']))
         ticket = c.fetchone()
         if not ticket:
-            flash("Ticket not found or you don’t have access.", 'error')
+            flash("Ticket not found or you don't have access.", 'error')
             return redirect(url_for('user.support'))
         
         c.execute("SELECT * FROM ticket_responses WHERE ticket_id = ? ORDER BY created_at", (ticket_id,))
@@ -1559,3 +1852,176 @@ def faq():
         popular_faqs = faqs[:5]
         
         return render_template('user/faq.html', popular_faqs=popular_faqs, categories=categories)
+
+@user_bp.route('/messages/conversations')
+@login_required
+def messages_conversations():
+    user_id = session['user_id']
+    gpg = gnupg.GPG()
+    key_info = get_user_private_key_and_passphrase(user_id)
+    if not key_info.get('has_private_key'):
+        return render_template('user/messages.html', active_tab='conversations', has_private_key=False)
+    gpg.import_keys(key_info['private_key'])
+    data = fetch_conversations(user_id, gpg, key_info['passphrase'])
+    return render_template('user/messages.html', active_tab='conversations', has_private_key=True, **data)
+
+@user_bp.route('/messages/order_messages')
+@login_required
+def messages_order_messages():
+    user_id = session['user_id']
+    gpg = gnupg.GPG()
+    key_info = get_user_private_key_and_passphrase(user_id)
+    if not key_info.get('has_private_key'):
+        return render_template('user/messages.html', active_tab='order_messages', has_private_key=False)
+    gpg.import_keys(key_info['private_key'])
+    data = fetch_order_messages(user_id, gpg, key_info['passphrase'])
+    return render_template('user/messages.html', active_tab='order_messages', has_private_key=True, **data)
+
+@user_bp.route('/messages/trash')
+@login_required
+def messages_trash():
+    user_id = session['user_id']
+    gpg = gnupg.GPG()
+    key_info = get_user_private_key_and_passphrase(user_id)
+    if not key_info.get('has_private_key'):
+        return render_template('user/messages.html', active_tab='trash', has_private_key=False)
+    gpg.import_keys(key_info['private_key'])
+    data = fetch_trash(user_id, gpg, key_info['passphrase'])
+    return render_template('user/messages.html', active_tab='trash', has_private_key=True, **data)
+
+@user_bp.route('/messages/invitations')
+@login_required
+def messages_invitations():
+    user_id = session['user_id']
+    # Invitations may not require PGP
+    data = fetch_invitations(user_id)
+    return render_template('user/messages.html', active_tab='invitations', has_private_key=True, **data)
+
+@user_bp.route('/messages/trash/<int:message_id>', methods=['POST'])
+@login_required
+def move_message_to_trash(message_id):
+    user_id = session['user_id']
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        # Only allow if user is sender or recipient
+        c.execute("SELECT * FROM messages WHERE id = ? AND (? = sender_id OR ? = recipient_id)", (message_id, user_id, user_id))
+        msg = c.fetchone()
+        if not msg:
+            flash("Message not found or access denied.", 'error')
+            return redirect(url_for('user.trash'))
+        c.execute("UPDATE messages SET trashed = 1 WHERE id = ?", (message_id,))
+        conn.commit()
+        flash("Message moved to trash.", 'success')
+    return redirect(url_for('user.trash'))
+
+@user_bp.route('/messages/restore/<int:message_id>', methods=['POST'])
+@login_required
+def restore_message(message_id):
+    user_id = session['user_id']
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM messages WHERE id = ? AND (? = sender_id OR ? = recipient_id)", (message_id, user_id, user_id))
+        msg = c.fetchone()
+        if not msg:
+            flash("Message not found or access denied.", 'error')
+            return redirect(url_for('user.trash'))
+        c.execute("UPDATE messages SET trashed = 0 WHERE id = ?", (message_id,))
+        conn.commit()
+        flash("Message restored.", 'success')
+    return redirect(url_for('user.trash'))
+
+# --- Message Helpers ---
+def get_user_private_key_and_passphrase(user_id):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT pgp_private_key FROM users WHERE id = ?", (user_id,))
+        private_key_encrypted = c.fetchone()['pgp_private_key']
+        if not private_key_encrypted:
+            return {'has_private_key': False}
+        decrypted_data = cipher.decrypt(private_key_encrypted).decode().split('||')
+        return {'has_private_key': True, 'private_key': decrypted_data[0], 'passphrase': decrypted_data[1]}
+
+def fetch_conversations(user_id, gpg, passphrase):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT 
+                CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END as recipient_id,
+                CASE WHEN sender_id = ? THEN r.pusername ELSE s.pusername END as recipient_name,
+                MAX(created_at) as last_message_time,
+                (SELECT content FROM messages m2 
+                 WHERE (m2.sender_id = m.sender_id AND m2.recipient_id = m.recipient_id) 
+                    OR (m2.sender_id = m.recipient_id AND m2.recipient_id = m.sender_id)
+                 ORDER BY m2.created_at DESC LIMIT 1) as last_message_encrypted
+            FROM messages m
+            LEFT JOIN users s ON s.id = m.sender_id
+            LEFT JOIN users r ON r.id = m.recipient_id
+            WHERE ? IN (m.sender_id, m.recipient_id)
+            GROUP BY recipient_id, recipient_name
+            ORDER BY last_message_time DESC
+        """, (user_id, user_id, user_id))
+        conversations_raw = [dict(row) for row in c.fetchall()]
+        conversations = []
+        for convo in conversations_raw:
+            decrypted = gpg.decrypt(convo['last_message_encrypted'], passphrase=passphrase) if convo['last_message_encrypted'] else None
+            convo['last_message'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            conversations.append(convo)
+        return {'conversations': conversations}
+
+def fetch_order_messages(user_id, gpg, passphrase):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT m.*, s.pusername as sender_name, r.pusername as recipient_name, o.id as order_id
+            FROM messages m
+            LEFT JOIN users s ON s.id = m.sender_id
+            LEFT JOIN users r ON r.id = m.recipient_id
+            JOIN orders o ON (m.sender_id = o.user_id OR m.recipient_id = o.user_id)
+            WHERE ? IN (m.sender_id, m.recipient_id)
+            ORDER BY m.created_at DESC
+        """, (user_id,))
+        messages_raw = [dict(row) for row in c.fetchall()]
+        messages = []
+        for msg in messages_raw:
+            decrypted = gpg.decrypt(msg['content'], passphrase=passphrase) if msg.get('content') else None
+            msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            messages.append(msg)
+        return {'order_messages': messages}
+
+def fetch_trash(user_id, gpg, passphrase):
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT m.*, s.pusername as sender_name, r.pusername as recipient_name
+            FROM messages m
+            LEFT JOIN users s ON s.id = m.sender_id
+            LEFT JOIN users r ON r.id = m.recipient_id
+            WHERE (m.sender_id = ? OR m.recipient_id = ?) AND m.trashed = 1
+            ORDER BY m.created_at DESC
+        """, (user_id, user_id))
+        messages_raw = [dict(row) for row in c.fetchall()]
+        messages = []
+        for msg in messages_raw:
+            decrypted = gpg.decrypt(msg['content'], passphrase=passphrase) if msg.get('content') else None
+            msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            messages.append(msg)
+        return {'trash': messages}
+
+def fetch_invitations(user_id):
+    # Placeholder: implement invitation logic as needed
+    return {'invitations': []}
+
+@user_bp.route('/notifications')
+@login_required
+def notifications():
+    user_id = session['user_id']
+    notifications = get_user_notifications(user_id, unread_only=False, limit=20)
+    return render_template('user/notifications.html', notifications=notifications)
+
+@user_bp.route('/notifications/read/<int:notification_id>', methods=['POST'])
+@login_required
+def mark_notification(notification_id):
+    user_id = session['user_id']
+    mark_notification_read(notification_id, user_id)
+    return ('', 204)
+

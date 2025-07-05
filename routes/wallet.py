@@ -97,7 +97,7 @@ def wallet():
             c.execute("""
                 SELECT id, amount_usd, crypto_currency, crypto_amount, wallet_address, status, requested_at
                 FROM withdrawals 
-                WHERE vendor_id = ? 
+                WHERE user_id = ? 
                 ORDER BY requested_at DESC 
                 LIMIT 5
             """, (session['user_id'],))
@@ -149,10 +149,14 @@ def withdraw():
                 return redirect(url_for('wallet.wallet'))
             crypto_amount = amount_usd / crypto_price
 
+            # Calculate BTC amount for admin interface compatibility
+            btc_price = get_crypto_price("BTC")
+            amount_btc = amount_usd / btc_price if btc_price else 0.0
+            
             c.execute("""
-                INSERT INTO withdrawals (vendor_id, amount_usd, crypto_currency, crypto_amount, wallet_address)
-                VALUES (?, ?, ?, ?, ?)
-            """, (session['user_id'], amount_usd, crypto_currency, crypto_amount, wallet_address))
+                INSERT INTO withdrawals (user_id, amount_usd, amount_btc, crypto_currency, crypto_amount, wallet_address, btc_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (session['user_id'], amount_usd, amount_btc, crypto_currency, crypto_amount, wallet_address, wallet_address))
             c.execute("""
                 INSERT INTO vendor_wallets (vendor_id, balance_usd) 
                 VALUES (?, ?) 
@@ -233,10 +237,10 @@ def admin_withdrawals():
                 flash(f"Withdrawal {status} successfully!", 'success')
 
             c.execute("""
-                SELECT w.id, w.amount_usd, w.crypto_currency, w.crypto_amount, w.wallet_address, w.requested_at, u.username
+                SELECT w.id, w.amount_usd, w.crypto_currency, w.crypto_amount, w.wallet_address, w.requested_at, u.pusername as username
                 FROM withdrawals w
-                JOIN users u ON w.vendor_id = u.id
-                WHERE w.status = 'pending'
+                JOIN users u ON w.user_id = u.id
+                WHERE w.status = 'pending' AND u.role = 'vendor'
                 ORDER BY w.requested_at ASC
             """)
             withdrawals = [dict(row) for row in c.fetchall()]

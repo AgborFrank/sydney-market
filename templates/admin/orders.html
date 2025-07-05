@@ -1,18 +1,66 @@
 {% extends 'admin/admin_base.html' %}
 
-{% block title %}Admin - My Orders - {{ settings['site_name'] }}{% endblock %}
+{% block title %}Admin - All Orders - {{ settings.get('site_name', 'Marketplace') }}{% endblock %}
 
 {% block admin_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage My Orders</h2>
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage All Platform Orders</h2>
+
+<!-- Order Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="p-2 bg-blue-100 rounded-lg">
+                <i class="fas fa-shopping-cart text-blue-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500">Total Orders</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_all_orders or 0 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="p-2 bg-yellow-100 rounded-lg">
+                <i class="fas fa-clock text-yellow-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500">Pending Orders</p>
+                <p class="text-2xl font-bold text-gray-900">{{ pending_orders or 0 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="p-2 bg-red-100 rounded-lg">
+                <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500">Open Disputes</p>
+                <p class="text-2xl font-bold text-gray-900">{{ disputed_orders or 0 }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="p-2 bg-green-100 rounded-lg">
+                <i class="fas fa-dollar-sign text-green-600"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500">Total Sales</p>
+                <p class="text-2xl font-bold text-gray-900">${{ "%.2f"|format(total_sales or 0.0) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Filter and Search -->
 <div class="bg-white p-6 rounded-lg shadow-md mb-6">
     <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Orders</h3>
     <form method="GET" action="{{ url_for('admin.admin_orders') }}" class="flex flex-col md:flex-row gap-4">
         <div class="flex-1">
-            <label for="search" class="block text-sm font-medium text-gray-700">Search by Order ID or Buyer Username</label>
-            <p class="text-sm text-gray-500 mb-2">Enter an order ID or buyer's username to find specific orders.</p>
-            <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 py-2 bg-gray-100 px-6 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" placeholder="Enter order ID or username">
+            <label for="search" class="block text-sm font-medium text-gray-700">Search Orders</label>
+            <p class="text-sm text-gray-500 mb-2">Search by order ID, buyer username, vendor username, or product title.</p>
+            <input type="text" name="search" id="search" value="{{ request.args.get('search', '') }}" class="mt-1 py-2 bg-gray-100 px-6 block w-full border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm" placeholder="Enter order ID, username, or product title">
         </div>
         <div>
             <label for="status" class="block text-sm font-medium text-gray-700">Order Status</label>
@@ -33,31 +81,93 @@
     </form>
 </div>
 
+<!-- Quick Actions -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
+    <div class="flex flex-wrap gap-4">
+        <a href="{{ url_for('admin.admin_orders', status='pending') }}" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">
+            <i class="fas fa-clock mr-2"></i>View Pending Orders
+        </a>
+        <a href="{{ url_for('admin.admin_orders', status='disputed') }}" class="bg-red-400 text-white py-2 px-4 rounded-md hover:bg-red-500 transition duration-200">
+            <i class="fas fa-exclamation-triangle mr-2"></i>View Disputed Orders
+        </a>
+        <a href="{{ url_for('admin.admin_escrow') }}" class="bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-500 transition duration-200">
+            <i class="fas fa-wallet mr-2"></i>Manage Escrow
+        </a>
+        <a href="{{ url_for('admin.admin_disputes') }}" class="bg-orange-400 text-white py-2 px-4 rounded-md hover:bg-orange-500 transition duration-200">
+            <i class="fas fa-gavel mr-2"></i>Resolve Disputes
+        </a>
+    </div>
+</div>
+
 <!-- Orders Table -->
 <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Order List</h3>
-    <p class="text-sm text-gray-500 mb-4">Below are the orders for products you have sold as a vendor.</p>
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">
+        {% if user %}
+            Orders for User: {{ user }}
+        {% elif vendor %}
+            Orders for Vendor: {{ vendor }}
+        {% else %}
+            All Platform Orders
+        {% endif %}
+    </h3>
+    <p class="text-sm text-gray-500 mb-4">
+        {% if user %}
+            Below are all orders placed by this user that you can manage as an administrator.
+        {% elif vendor %}
+            Below are all orders sold by this vendor that you can manage as an administrator.
+        {% else %}
+            Below are all orders across the platform that you can manage as an administrator.
+        {% endif %}
+    </p>
     {% if orders %}
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead>
-                <tr class="border-b">
-                    <th class="py-2 px-4 text-gray-700">Order ID</th>
-                    <th class="py-2 px-4 text-gray-700">Buyer</th>
-                    <th class="py-2 px-4 text-gray-700">Product</th>
-                    <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
-                    <th class="py-2 px-4 text-gray-700">Status</th>
-                    <th class="py-2 px-4 text-gray-700">Date</th>
-                    <th class="py-2 px-4 text-gray-700">Actions</th>
-                </tr>
-            </thead>
+    <form method="POST" action="{{ url_for('admin.admin_bulk_update_orders') }}" id="bulkForm">
+        <div class="mb-4 flex items-center gap-4">
+            <select name="status" class="border-gray-300 rounded-md text-sm" required>
+                <option value="">Select Status</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <button type="submit" class="bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 transition duration-200" onclick="return confirm('Are you sure you want to update the selected orders?')">
+                <i class="fas fa-check mr-1"></i>Bulk Update
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-2 px-4 text-gray-700">
+                            <input type="checkbox" id="selectAll" class="rounded">
+                        </th>
+                        <th class="py-2 px-4 text-gray-700">Order ID</th>
+                        <th class="py-2 px-4 text-gray-700">Buyer</th>
+                        <th class="py-2 px-4 text-gray-700">Vendor</th>
+                        <th class="py-2 px-4 text-gray-700">Product</th>
+                        <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                        <th class="py-2 px-4 text-gray-700">Amount (USD)</th>
+                        <th class="py-2 px-4 text-gray-700">Status</th>
+                        <th class="py-2 px-4 text-gray-700">Dispute</th>
+                        <th class="py-2 px-4 text-gray-700">Date</th>
+                        <th class="py-2 px-4 text-gray-700">Actions</th>
+                    </tr>
+                </thead>
             <tbody>
                 {% for order in orders %}
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="py-2 px-4">{{ order.id }}</td>
-                    <td class="py-2 px-4">{{ order.buyer_username }}</td>
-                    <td class="py-2 px-4">{{ order.product_title }}</td>
-                    <td class="py-2 px-4">{{ "%.4f"|format(order.amount_btc) }}</td>
+                    <td class="py-2 px-4">
+                        {% if order.status not in ['completed', 'cancelled', 'disputed'] %}
+                        <input type="checkbox" name="order_ids" value="{{ order.id }}" class="order-checkbox rounded">
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4">{{ order.id or 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ order.buyer_username or 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ order.vendor_username or 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ order.product_title or 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ "%.4f"|format(order.amount_btc or 0.0) }}</td>
+                    <td class="py-2 px-4">${{ "%.2f"|format(order.amount_usd or 0.0) }}</td>
                     <td class="py-2 px-4">
                         {% if order.status == 'pending' %}
                         <span class="text-yellow-600">Pending</span>
@@ -71,6 +181,15 @@
                         <span class="text-red-600">Cancelled</span>
                         {% elif order.status == 'disputed' %}
                         <span class="text-red-800">Disputed</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-2 px-4">
+                        {% if order.dispute_status == 'open' %}
+                        <span class="text-red-600 font-semibold">Open</span>
+                        {% elif order.dispute_status == 'resolved' %}
+                        <span class="text-green-600">Resolved</span>
+                        {% else %}
+                        <span class="text-gray-500">None</span>
                         {% endif %}
                     </td>
                     <td class="py-2 px-4">{{ order.created_at }}</td>
@@ -94,8 +213,26 @@
             </tbody>
         </table>
     </div>
+    </form>
+    
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.order-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
     {% else %}
-    <p class="text-gray-600">No orders found for your products.</p>
+    <p class="text-gray-600">No orders found.</p>
+    {% endif %}
+
+    {% if user or vendor %}
+    <div class="mt-4">
+        <a href="{{ url_for('admin.admin_orders') }}" class="bg-gray-300 text-gray-900 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200">
+            <i class="fas fa-arrow-left mr-2"></i>Back to All Orders
+        </a>
+    </div>
     {% endif %}
 
     <!-- Pagination -->

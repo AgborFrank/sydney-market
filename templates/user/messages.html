@@ -2,17 +2,182 @@
 {% extends 'user/user_base.html' %} {% block title %}Messages - {{
 settings['site_name'] }}{% endblock %} {% block user_content %}
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-4xl font-bold mb-8 border-b-2 border-yellow-400 pb-2">
+  <h1 class="text-xl font-bold mb-8 border-b-2 border-gray-400 pb-2 text-white">
     Secure Messages
   </h1>
 
+  <!-- Message Section Tabs -->
+  <div class="flex justify-center mb-6">
+    <a
+      href="{{ url_for('user.messages_conversations') }}"
+      class="px-4 py-2 mx-1 rounded-t-md font-semibold {% if active_tab == 'conversations' %}bg-sydney text-white{% else %}bg-gray-800 text-gray-300 hover:bg-sydney2{% endif %}"
+      >Conversations</a
+    >
+    <a
+      href="{{ url_for('user.messages_order_messages') }}"
+      class="px-4 py-2 mx-1 rounded-t-md font-semibold {% if active_tab == 'order_messages' %}bg-sydney text-white{% else %}bg-gray-800 text-gray-300 hover:bg-sydney2{% endif %}"
+      >Order Messages</a
+    >
+    <a
+      href="{{ url_for('user.messages_trash') }}"
+      class="px-4 py-2 mx-1 rounded-t-md font-semibold {% if active_tab == 'trash' %}bg-sydney text-white{% else %}bg-gray-800 text-gray-300 hover:bg-sydney2{% endif %}"
+      >Trash</a
+    >
+    <a
+      href="{{ url_for('user.messages_invitations') }}"
+      class="px-4 py-2 mx-1 rounded-t-md font-semibold {% if active_tab == 'invitations' %}bg-sydney text-white{% else %}bg-gray-800 text-gray-300 hover:bg-sydney2{% endif %}"
+      >Invitations</a
+    >
+  </div>
+
+  <div class="bg-card rounded-md p-6 shadow">
+    {% if active_tab == 'conversations' %}
+    <h2 class="text-xl font-bold mb-4 text-sydney">Conversations</h2>
+    {% if conversations %}
+    <ul class="divide-y divide-gray-100">
+      {% for convo in conversations %}
+      <li class="py-3 flex justify-between items-center">
+        <div>
+          <span class="font-semibold text-white"
+            >{{ convo['recipient_name'] }}</span
+          >
+          <span class="ml-2 text-gray-400 text-xs"
+            >{{ convo['last_message_time'] or 'No messages' }}</span
+          >
+          <div class="text-gray-400 text-sm truncate">
+            {{ convo['last_message'] or 'Start a conversation' }}
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <a
+            href="{{ url_for('user.messages', recipient_id=convo['recipient_id']) }}"
+            class="bg-sydney2 text-white px-3 py-1 rounded hover:bg-sydney"
+            >Open</a
+          >
+          {% if convo['id'] and not convo.get('trashed', 0) %}
+          <form
+            method="POST"
+            action="{{ url_for('user.move_message_to_trash', message_id=convo['id']) }}"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button
+              type="submit"
+              class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+            >
+              Move to Trash
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400">No conversations yet.</p>
+    {% endif %} {% elif active_tab == 'order_messages' %}
+    <h2 class="text-xl font-bold mb-4 text-sydney">Order Messages</h2>
+    {% if order_messages %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm text-left text-gray-400">
+        <thead class="bg-gray-800 text-gray-300">
+          <tr>
+            <th class="py-2 px-4">Order ID</th>
+            <th class="py-2 px-4">From</th>
+            <th class="py-2 px-4">To</th>
+            <th class="py-2 px-4">Message</th>
+            <th class="py-2 px-4">Date</th>
+            <th class="py-2 px-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for msg in order_messages %}
+          <tr class="border-b border-gray-100">
+            <td class="py-2 px-4">{{ msg['order_id'] }}</td>
+            <td class="py-2 px-4">{{ msg['sender_name'] }}</td>
+            <td class="py-2 px-4">{{ msg['recipient_name'] }}</td>
+            <td class="py-2 px-4">{{ msg['content'] }}</td>
+            <td class="py-2 px-4">{{ msg['created_at'] }}</td>
+            <td class="py-2 px-4">
+              {% if msg['id'] and not msg.get('trashed', 0) %}
+              <form
+                method="POST"
+                action="{{ url_for('user.move_message_to_trash', message_id=msg['id']) }}"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <button
+                  type="submit"
+                  class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                >
+                  Move to Trash
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-gray-400">No order messages found.</p>
+    {% endif %} {% elif active_tab == 'trash' %}
+    <h2 class="text-xl font-bold mb-4 text-sydney">Trash</h2>
+    {% if trash %}
+    <ul class="divide-y divide-gray-100">
+      {% for msg in trash %}
+      <li class="py-3 flex justify-between items-center">
+        <div>
+          <span class="font-semibold text-white">{{ msg['sender_name'] }}</span>
+          <span class="ml-2 text-gray-400 text-xs"
+            >{{ msg['created_at'] }}</span
+          >
+          <div class="text-gray-400 text-sm">{{ msg['content'] }}</div>
+        </div>
+        <form
+          method="POST"
+          action="{{ url_for('user.restore_message', message_id=msg['id']) }}"
+        >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button
+            type="submit"
+            class="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
+          >
+            Restore
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400">Trash is empty.</p>
+    {% endif %} {% elif active_tab == 'invitations' %}
+    <h2 class="text-xl font-bold mb-4 text-sydney">Invitations</h2>
+    <p class="text-gray-300">Your invitations will appear here.</p>
+    {% if invitations and invitations|length > 0 %}
+    <ul class="divide-y divide-gray-100">
+      {% for invite in invitations %}
+      <li class="py-3">{{ invite }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400">No invitations found.</p>
+    {% endif %} {% else %}
+    <h2 class="text-xl font-bold mb-4 text-sydney">Messages</h2>
+    <p class="text-gray-300">Select a tab to view messages.</p>
+    {% endif %}
+  </div>
+
   <!-- Private Key Upload (if not set) -->
   {% if not has_private_key %}
-  <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-gary-100">
-    <h2 class="text-md font-semibold text-gray-800 mb-1">
+  <div class="bg-card p-6 rounded-lg shadow-md mb-8 border border-gary-100">
+    <h2 class="text-md font-semibold text-gray-100 mb-1">
       Upload PGP Private Key
     </h2>
-    <p class="text-gray-600 mb-4">
+    <p class="text-gray-200 mb-4">
       You must upload your PGP private key to decrypt and view messages. This
       will be encrypted with your passphrase.
     </p>
@@ -24,22 +189,22 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <input type="hidden" name="action" value="upload_private_key" />
       <div>
-        <label class="block text-gray-600 font-semibold mb-2"
+        <label class="block text-gray-100 font-semibold mb-2"
           >PGP Private Key</label
         >
         <textarea
           name="private_key"
-          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-100 border border-gray-100 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           rows="6"
           required
         ></textarea>
       </div>
       <div>
-        <label class="block text-gray-600 font-semibold mb-2">Passphrase</label>
+        <label class="block text-gray-100 font-semibold mb-2">Passphrase</label>
         <input
           type="password"
           name="passphrase"
-          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-700 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+          class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-100 border border-gray-100 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           required
         />
       </div>
@@ -65,7 +230,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <li>
           <a
             href="{{ url_for('user.messages', recipient_id=convo['recipient_id']) }}"
-            class="block p-4 rounded-md hover:bg-gray-700 {% if selected_recipient_id == convo['recipient_id'] %}bg-yellow-600{% endif %}"
+            class="block p-4 rounded-md hover:bg-gray-100 {% if selected_recipient_id == convo['recipient_id'] %}bg-yellow-600{% endif %}"
           >
             <div class="flex justify-between items-center">
               <span class="text-gray-100 font-semibold"
@@ -96,7 +261,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
       <!-- Messages Display -->
       <div
-        class="h-96 overflow-y-auto border border-gray-600 rounded-md p-4 mb-4 bg-gray-900"
+        class="h-96 overflow-y-auto border border-gray-100 rounded-md p-4 mb-4 bg-gray-900"
       >
         {% if messages %} {% for msg in messages %}
         <div
@@ -107,7 +272,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
             <span class="text-gray-500 text-sm">({{ msg['created_at'] }})</span>
           </p>
           <p
-            class="bg-gray-700 p-3 rounded-md inline-block max-w-md text-gray-100 {% if msg['sender_id'] == session['user_id'] %}bg-yellow-600{% endif %}"
+            class="bg-gray-100 p-3 rounded-md inline-block max-w-md text-gray-100 {% if msg['sender_id'] == session['user_id'] %}bg-yellow-600{% endif %}"
           >
             {{ msg['content'] }}
           </p>
@@ -129,7 +294,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <div class="flex gap-4">
           <textarea
             name="message"
-            class="w-full py-2 px-4 rounded-md bg-gray-700 text-gray-100 border border-gray-600 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+            class="w-full py-2 px-4 rounded-md bg-gray-100 text-gray-100 border border-gray-100 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
             rows="3"
             placeholder="Type your message (PGP encrypted)..."
             required

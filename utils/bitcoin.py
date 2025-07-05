@@ -4,6 +4,7 @@ from bitcoinlib.transactions import Transaction
 from bitcoinlib.services.services import Service
 import requests
 from config import Config
+from utils.database import get_settings
 
 # Global Bitcoin service and escrow key
 SERVICE = Service(network='testnet')
@@ -51,8 +52,11 @@ def send_btc(from_key, to_address, amount_btc):
 
 def generate_btc_address(vendor_id):
     url = f"{Config.BLOCKCYPHER_API}/addrs?token={Config.BLOCKCYPHER_TOKEN}"
+    print(f"[DEBUG] BlockCypher API URL: {url}")
     try:
         response = requests.post(url)
+        print(f"[DEBUG] Response status: {response.status_code}")
+        print(f"[DEBUG] Response text: {response.text}")
         response.raise_for_status()
         address_data = response.json()
         btc_address = address_data['address']
@@ -69,6 +73,7 @@ def generate_btc_address(vendor_id):
             print(f"Webhook creation failed: {webhook_response.text}")
         return btc_address
     except requests.RequestException as e:
+        print(f"[DEBUG] Exception: {str(e)}")
         raise Exception(f"Failed to generate BTC address: {str(e)}")
 
 def check_payment(multisig_address, expected_amount_btc):
@@ -85,7 +90,7 @@ def get_usd_to_btc_rate():
         return response.json()["bitcoin"]["usd"]
     except:
         return 50000  # Fallback USD/BTC rate
-# utils/bitcoin.py
+
 def send_multisig_tx(multisig_address, to_address, amount_btc, *keys):
     # Placeholder for multisig transaction
     utxos = SERVICE.getutxos(multisig_address)
@@ -105,10 +110,20 @@ def send_multisig_tx(multisig_address, to_address, amount_btc, *keys):
     return SERVICE.sendrawtransaction(tx.raw_hex())
 
 def create_multisig(buyer_address, vendor_address):
-    public_keys = [
-        Key(buyer_address, network='testnet').public_hex,
-        Key(vendor_address, network='testnet').public_hex,
-        ESCROW_KEY.public_hex
-    ]
+    settings = get_settings()
+    # Use the platform's escrow public key from settings if available, else fallback
+    escrow_pubkey = settings.get('btc_escrow_wallet', None)
+    if escrow_pubkey:
+        public_keys = [
+            Key(buyer_address, network='testnet').public_hex,
+            Key(vendor_address, network='testnet').public_hex,
+            escrow_pubkey
+        ]
+    else:
+        public_keys = [
+            Key(buyer_address, network='testnet').public_hex,
+            Key(vendor_address, network='testnet').public_hex,
+            ESCROW_KEY.public_hex
+        ]
     script = Script.multisig(2, public_keys)
     return script.address()

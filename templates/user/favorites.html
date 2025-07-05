@@ -1,59 +1,137 @@
 {% extends 'user/user_base.html' %}
 {% block title %}Favorites - {{ settings['site_name'] }}{% endblock %}
+
 {% block user_content %}
-<div class="container mx-auto p-6">
-  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Favorites</h1>
-  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
-    View and manage your favorite products.
-  </h3>
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Page Heading -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-white mb-1">Your Favorites</h1>
+    <p class="text-blue-300 text-sm">
+      View and manage your favorite products and vendors.
+    </p>
+  </div>
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mt-4 max-w-3xl mx-auto">
-        {% for category, message in messages %}
-          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  {% if messages %}
+  <div class="mb-6">
+    {% for category, message in messages %}
+    <div class="px-4 py-2 rounded-md text-sm font-medium text-white {{ 'bg-green-700' if category == 'success' else 'bg-red-600' }}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% endwith %}
 
-  <!-- Favorites List -->
-  <div class="mt-8 max-w-5xl mx-auto">
-    {% if favorites %}
-      <table class="w-full text-white border-collapse">
-        <thead>
-          <tr class="bg-sydney bg-opacity-20">
-            <th class="p-2 text-left font-bold">Product</th>
-            <th class="p-2 text-left font-bold">Price (USD)</th>
-            <th class="p-2 text-left font-bold">Stock</th>
-            <th class="p-2 text-left font-bold">Vendor</th>
-            <th class="p-2 text-left font-bold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for favorite in favorites %}
-            <tr class="border-b border-sydney border-opacity-50">
-              <td class="p-2">
-                <a href="{{ url_for('main.product', product_id=favorite.id) }}" class="text-sydney">{{ favorite.title }}</a>
-              </td>
-              <td class="p-2">${{ favorite.price_usd|round(2) }}</td>
-              <td class="p-2">{{ favorite.stock }}</td>
-              <td class="p-2">{{ favorite.vendor_name }}</td>
-              <td class="p-2">
-                <form method="post" action="{{ url_for('user.remove_favorite', product_id=favorite.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="bg-red-600 px-2 py-1 text-sm rounded text-white">Remove</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Favorite Products -->
+  <div class="mb-12">
+    <h2 class="text-xl font-bold text-white mb-4">Favorite Products ({{ favorite_products|length }})</h2>
+    {% if favorite_products %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {% for product in favorite_products %}
+      <div class="bg-[#10222b] border border-[#1e3a4c] rounded-lg overflow-hidden">
+        <!-- Product Image -->
+        <div class="relative h-44 overflow-hidden">
+          <a href="{{ url_for('public.product_detail', product_id=product.id) }}">
+            <img src="/static/uploads/products/{{ product.featured_image|basename if product.featured_image else 'product-placeholder.png' }}"
+              alt="{{ product.title }}"
+              class="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
+          </a>
+          {% if product.stock <= 5 and product.stock > 0 %}
+          <span class="absolute top-2 right-2 bg-yellow-400 text-black text-xs px-2 py-1 rounded-full font-bold">Low Stock</span>
+          {% elif product.stock == 0 %}
+          <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">Out of Stock</span>
+          {% endif %}
+        </div>
+
+        <!-- Product Details -->
+        <div class="p-4 space-y-2">
+          <h3 class="text-white font-semibold text-sm leading-snug">
+            <a href="{{ url_for('public.product_detail', product_id=product.id) }}"
+              class="hover:text-sydney transition-colors">{{ product.title }}</a>
+          </h3>
+          <div class="flex justify-between text-sm text-blue-300">
+            <span class="font-semibold text-sydney">${{ '%.2f'|format(product.price_usd) }}</span>
+            <span>Stock: {{ product.stock }}</span>
+          </div>
+          <div class="text-xs text-gray-400">Vendor: {{ product.vendor_name }}</div>
+
+          <div class="flex gap-2 mt-3">
+            <a href="{{ url_for('public.product_detail', product_id=product.id) }}"
+              class="flex-1 text-center bg-sydney hover:bg-sydney2 text-white text-xs font-medium px-3 py-2 rounded">
+              View
+            </a>
+            <form method="post" action="{{ url_for('user.remove_favorite', product_id=product.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit"
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-medium">
+                Remove
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <p class="text-white">You have no favorite products. <a href="{{ url_for('main.index') }}" class="text-sydney">Browse products</a>.</p>
+    <div class="text-center py-10 bg-[#10222b] border border-[#1e3a4c] rounded-lg">
+      <div class="text-4xl mb-2">📦</div>
+      <p class="text-gray-400 mb-2">You have no favorite products yet.</p>
+      <a href="{{ url_for('public.index') }}" class="text-sydney hover:text-sydney2">Browse Products</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Favorite Vendors -->
+  <div>
+    <h2 class="text-xl font-bold text-white mb-4">Favorite Vendors ({{ favorite_vendors|length }})</h2>
+    {% if favorite_vendors %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for vendor in favorite_vendors %}
+      <div class="bg-[#10222b] border border-[#1e3a4c] rounded-lg overflow-hidden">
+        <div class="p-6">
+          <div class="flex items-center gap-4 mb-4">
+            <img src="{{ vendor.avatar_url }}" alt="{{ vendor.username }}"
+              class="w-14 h-14 rounded-full border-2 border-sydney object-cover" />
+            <div>
+              <h3 class="text-white font-semibold">{{ vendor.username }}</h3>
+              <p class="text-xs text-gray-400">Level {{ vendor.level }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm text-blue-300 mb-4">
+            <div class="text-center">
+              <p>Products</p>
+              <p class="text-white font-bold">{{ vendor.products_count }}</p>
+            </div>
+            <div class="text-center">
+              <p>Sales</p>
+              <p class="text-white font-bold">{{ vendor.sales_count }}</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ url_for('public.vendor_shop', vendor_id=vendor.id) }}"
+              class="flex-1 text-center bg-sydney hover:bg-sydney2 text-white text-xs font-medium px-3 py-2 rounded">
+              View Shop
+            </a>
+            <form method="post" action="{{ url_for('user.remove_favorite_vendor', vendor_id=vendor.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit"
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-medium">
+                Remove
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-10 bg-[#10222b] border border-[#1e3a4c] rounded-lg">
+      <div class="text-4xl mb-2">👤</div>
+      <p class="text-gray-400 mb-2">You have no favorite vendors yet.</p>
+      <a href="{{ url_for('public.index') }}" class="text-sydney hover:text-sydney2">Browse Vendors</a>
+    </div>
     {% endif %}
   </div>
 </div>

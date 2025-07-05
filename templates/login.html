@@ -16,10 +16,10 @@
     {% else %}
     <span class="text-xl font-bold">
       <img
-      src="{{ url_for('static', filename='images/logo.png') }}"
-      alt="{{ settings['site_name'] }} Logo"
-      class="h-10 hidden xl:block"
-    /> 
+        src="{{ url_for('static', filename='images/logo.png') }}"
+        alt="{{ settings['site_name'] }} Logo"
+        class="h-10 hidden xl:block"
+      />
     </span>
     {% endif %}
   </div>
@@ -70,6 +70,7 @@
           required
         />
       </div>
+      {% include 'components/recaptcha.html' %}
       <button
         type="submit"
         class="w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"

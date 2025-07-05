@@ -1,0 +1,302 @@
+{% extends 'admin/admin_base.html' %} {% block title %}DDoS Protection - Admin{%
+endblock %} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="bg-card p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold text-white mb-6">
+      DDoS Protection Management
+    </h1>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-yellow-400">Blocked IPs</h3>
+        <p class="text-2xl font-bold text-white">
+          {{ stats.blocked_ips_count }}
+        </p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-yellow-400">Whitelisted IPs</h3>
+        <p class="text-2xl font-bold text-white">
+          {{ stats.whitelisted_ips_count }}
+        </p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-yellow-400">
+          Total Requests Today
+        </h3>
+        <p class="text-2xl font-bold text-white">
+          {{ stats.total_requests_today }}
+        </p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-yellow-400">
+          Blocked Requests Today
+        </h3>
+        <p class="text-2xl font-bold text-white">
+          {{ stats.blocked_requests_today }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Configuration Form -->
+    <form method="POST" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- DDoS Protection Settings -->
+      <div class="bg-gray-800 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold text-white mb-4">
+          DDoS Protection Settings
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2">
+              <input
+                type="checkbox"
+                name="ddos_enabled"
+                value="1"
+                {%
+                if
+                settings.ddos_enabled
+                %}checked{%
+                endif
+                %}
+                class="mr-2"
+              />
+              Enable DDoS Protection
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2">
+              <input
+                type="checkbox"
+                name="block_suspicious_user_agents"
+                value="1"
+                {%
+                if
+                settings.block_suspicious_user_agents
+                %}checked{%
+                endif
+                %}
+                class="mr-2"
+              />
+              Block Suspicious User Agents
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2">
+              <input
+                type="checkbox"
+                name="enable_ip_reputation"
+                value="1"
+                {%
+                if
+                settings.enable_ip_reputation
+                %}checked{%
+                endif
+                %}
+                class="mr-2"
+              />
+              Enable IP Reputation Check
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2">
+              <input
+                type="checkbox"
+                name="recaptcha_enabled"
+                value="1"
+                {%
+                if
+                settings.recaptcha_enabled
+                %}checked{%
+                endif
+                %}
+                class="mr-2"
+              />
+              Enable reCAPTCHA
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Max Requests per Minute</label
+            >
+            <input
+              type="number"
+              name="ddos_max_requests_per_minute"
+              value="{{ settings.ddos_max_requests_per_minute }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Max Requests per Hour</label
+            >
+            <input
+              type="number"
+              name="ddos_max_requests_per_hour"
+              value="{{ settings.ddos_max_requests_per_hour }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Max Requests per Day</label
+            >
+            <input
+              type="number"
+              name="ddos_max_requests_per_day"
+              value="{{ settings.ddos_max_requests_per_day }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Burst Limit</label
+            >
+            <input
+              type="number"
+              name="ddos_burst_limit"
+              value="{{ settings.ddos_burst_limit }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Burst Window (seconds)</label
+            >
+            <input
+              type="number"
+              name="ddos_burst_window"
+              value="{{ settings.ddos_burst_window }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >Block Duration (seconds)</label
+            >
+            <input
+              type="number"
+              name="ddos_block_duration"
+              value="{{ settings.ddos_block_duration }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- reCAPTCHA Settings -->
+      <div class="bg-gray-800 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold text-white mb-4">
+          reCAPTCHA Settings
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >reCAPTCHA Site Key</label
+            >
+            <input
+              type="text"
+              name="recaptcha_site_key"
+              value="{{ settings.recaptcha_site_key }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+              placeholder="Enter your reCAPTCHA site key"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-2"
+              >reCAPTCHA Secret Key</label
+            >
+            <input
+              type="password"
+              name="recaptcha_secret_key"
+              value="{{ settings.recaptcha_secret_key }}"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+              placeholder="Enter your reCAPTCHA secret key"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- IP Whitelist -->
+      <div class="bg-gray-800 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold text-white mb-4">IP Whitelist</h2>
+
+        <div>
+          <label class="block text-gray-300 font-semibold mb-2"
+            >Whitelisted IPs (comma-separated)</label
+          >
+          <textarea
+            name="ddos_whitelist_ips"
+            rows="3"
+            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            placeholder="192.168.1.1, 10.0.0.1"
+          >
+{{ settings.ddos_whitelist_ips|join(', ') }}</textarea
+          >
+          <p class="text-gray-400 text-sm mt-1">
+            Enter IP addresses separated by commas
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="bg-yellow-400 text-gray-900 font-semibold py-2 px-6 rounded-md hover:bg-yellow-500 transition duration-200"
+      >
+        Save Settings
+      </button>
+    </form>
+
+    <!-- Recent Blocks -->
+    {% if stats.recent_blocks %}
+    <div class="mt-8 bg-gray-800 p-6 rounded-lg">
+      <h2 class="text-xl font-semibold text-white mb-4">
+        Recent Blocked Requests
+      </h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-600">
+              <th class="text-left py-2 text-gray-300">IP Address</th>
+              <th class="text-left py-2 text-gray-300">Reason</th>
+              <th class="text-left py-2 text-gray-300">User Agent</th>
+              <th class="text-left py-2 text-gray-300">Path</th>
+              <th class="text-left py-2 text-gray-300">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for block in stats.recent_blocks %}
+            <tr class="border-b border-gray-700">
+              <td class="py-2 text-white">{{ block.ip }}</td>
+              <td class="py-2 text-red-400">{{ block.reason }}</td>
+              <td class="py-2 text-gray-400 text-xs">
+                {{ block.user_agent[:50] }}...
+              </td>
+              <td class="py-2 text-gray-400">{{ block.path }}</td>
+              <td class="py-2 text-gray-400">{{ block.timestamp }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,37 +1,46 @@
 <!-- templates/report_vendor.html -->
-{% extends 'base.html' %} {% block title %}Report a Vendor - Sydney{% endblock
-%} {% block content %}
+{% extends 'base.html' %} {% block title %}Report Vendor - {{
+settings['site_name'] }}{% endblock %} {% block content %}
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-lg font-semibold text-gray-100 mb-6">Report a Vendor</h1>
-  <div class="bg-transparent p-6">
-    <p class="text-gray-200 mb-6">
+  <h1 class="text-2xl font-bold text-white mb-6">Report a Vendor</h1>
+
+  {% if vendor %}
+  <!-- Vendor Info -->
+  <div class="bg-card rounded-lg p-6 mb-6 border border-border">
+    <div class="flex items-center gap-4">
+      <img
+        src="{{ vendor.avatar_url }}"
+        alt="{{ vendor.username }}"
+        class="w-16 h-16 rounded-full border-2 border-sydney object-cover"
+      />
+      <div>
+        <h2 class="text-xl font-semibold text-white">{{ vendor.username }}</h2>
+        <p class="text-gray-400">Vendor ID: {{ vendor.id }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="bg-card rounded-lg p-6 border border-border">
+    <p class="text-gray-300 mb-6">
       Use this form to report a vendor to the admin for issues such as fraud,
       non-delivery, or rule violations. Provide as much detail as possible to
       assist in the review process.
     </p>
 
-    <!-- Report Form -->
-    <form
-      method="POST"
-      action="{{ url_for('public.old_report_vendor') }}"
-      class="space-y-6"
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white mb-4 {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
     >
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-      <div>
-        <label
-          for="vendor_username"
-          class="block text-gray-300 font-semibold mb-2"
-          >Vendor Username</label
-        >
-        <input
-          type="text"
-          id="vendor_username"
-          name="vendor_username"
-          class="w-full py-2 px-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400"
-          placeholder="Enter the vendor's username"
-          required
-        />
-      </div>
+      {{ message }}
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <!-- Report Form -->
+    <form method="POST" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
       <div>
         <label for="reason" class="block text-gray-300 font-semibold mb-2"
@@ -40,7 +49,7 @@
         <select
           id="reason"
           name="reason"
-          class="w-full py-2 px-4 rounded-md border bg-dark border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400"
+          class="w-full py-2 px-4 rounded-md border border-border bg-back text-white focus:outline-none focus:ring-2 focus:ring-red-400"
           required
         >
           <option value="" disabled selected>Select a reason</option>
@@ -51,46 +60,66 @@
           <option value="rule_violation">
             Other Marketplace Rule Violation
           </option>
+          <option value="fake_products">Fake or Counterfeit Products</option>
+          <option value="communication_issues">Communication Issues</option>
+          <option value="other">Other</option>
         </select>
       </div>
 
       <div>
         <label for="evidence" class="block text-gray-300 font-semibold mb-2"
-          >Evidence (Optional)</label
+          >Evidence & Details</label
         >
         <textarea
           id="evidence"
           name="evidence"
-          class="w-full py-2 px-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400"
+          class="w-full py-2 px-4 rounded-md border border-border bg-back text-white focus:outline-none focus:ring-2 focus:ring-red-400"
           rows="5"
-          placeholder="Provide details, order IDs, or encrypted message excerpts to support your report"
+          placeholder="Provide details, order IDs, screenshots, or encrypted message excerpts to support your report. Be as specific as possible."
+          required
         ></textarea>
       </div>
 
-      <button
-        type="submit"
-        class="bg-red-700 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-500 transition duration-200"
-      >
-        Submit Report
-      </button>
-    </form>
+      <div class="flex gap-4">
+        <button
+          type="submit"
+          class="bg-red-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-red-700 transition duration-200"
+        >
+          Submit Report
+        </button>
 
-    <!-- Success/Error Messages -->
-    {% if success %}
-    <p class="mt-4 text-green-600">{{ success }}</p>
-    {% endif %} {% if error %}
-    <p class="mt-4 text-red-600">{{ error }}</p>
-    {% endif %}
+        {% if vendor %}
+        <a
+          href="{{ url_for('public.vendor_shop', vendor_id=vendor.id) }}"
+          class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200"
+        >
+          Cancel
+        </a>
+        {% else %}
+        <a
+          href="{{ url_for('public.index') }}"
+          class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200"
+        >
+          Cancel
+        </a>
+        {% endif %}
+      </div>
+    </form>
   </div>
 
-  <!-- Back to Orders -->
-  <div class="mt-6">
-    <a
-      href="{{ url_for('user.orders') }}"
-      class="inline-block bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200"
-    >
-      Back to Orders
-    </a>
+  <!-- Important Notes -->
+  <div
+    class="mt-6 bg-yellow-900 bg-opacity-20 border border-yellow-600 rounded-lg p-4"
+  >
+    <h3 class="text-yellow-400 font-semibold mb-2">Important Notes:</h3>
+    <ul class="text-gray-300 text-sm space-y-1">
+      <li>• False reports may result in account suspension</li>
+      <li>• Provide specific evidence to help our review process</li>
+      <li>• Reports are reviewed by our admin team within 24-48 hours</li>
+      <li>
+        • You will be notified of the outcome via your account notifications
+      </li>
+    </ul>
   </div>
 </div>
 {% endblock %}

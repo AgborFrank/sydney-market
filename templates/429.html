@@ -1,0 +1,76 @@
+{% extends 'base.html' %} {% block title %}Rate Limit Exceeded - Sydney Market{%
+endblock %} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-md mx-auto bg-card p-8 rounded-lg shadow-md text-center">
+    <div class="mb-6">
+      <svg
+        class="mx-auto h-16 w-16 text-red-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+        />
+      </svg>
+    </div>
+
+    <h1 class="text-2xl font-bold text-white mb-4">Rate Limit Exceeded</h1>
+
+    <p class="text-gray-400 mb-6">
+      You have made too many requests in a short period of time. This is a
+      security measure to protect our marketplace from abuse.
+    </p>
+
+    <div class="bg-gray-800 p-4 rounded-lg mb-6">
+      <h3 class="text-lg font-semibold text-yellow-400 mb-2">What happened?</h3>
+      <p class="text-gray-300 text-sm">
+        Your IP address has been temporarily blocked due to excessive requests.
+        This could be due to:
+      </p>
+      <ul class="text-gray-400 text-sm mt-2 list-disc list-inside">
+        <li>Too many login attempts</li>
+        <li>Rapid page refreshing</li>
+        <li>Automated requests or bots</li>
+        <li>Network issues causing repeated requests</li>
+      </ul>
+    </div>
+
+    <div class="bg-gray-800 p-4 rounded-lg mb-6">
+      <h3 class="text-lg font-semibold text-yellow-400 mb-2">
+        What can you do?
+      </h3>
+      <ul class="text-gray-300 text-sm space-y-1">
+        <li>• Wait a few minutes before trying again</li>
+        <li>• Clear your browser cache and cookies</li>
+        <li>• Try using a different network connection</li>
+        <li>• Contact support if the issue persists</li>
+      </ul>
+    </div>
+
+    <div class="space-y-3">
+      <a
+        href="{{ url_for('public.index') }}"
+        class="block w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
+      >
+        Return to Homepage
+      </a>
+
+      <a
+        href="{{ url_for('user.login') }}"
+        class="block w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200"
+      >
+        Try Login Again
+      </a>
+    </div>
+
+    <p class="text-gray-500 text-xs mt-6">
+      If you believe this is an error, please contact our support team with your
+      IP address and the time this occurred.
+    </p>
+  </div>
+</div>
+{% endblock %}

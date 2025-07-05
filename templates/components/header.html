@@ -283,7 +283,7 @@
               <a
                 href="{{ url_for('user.balance') }}"
                 class="bg-sydney hover:bg-sydney2 text-white rounded px-0.5 font-bold text-sm"
-                >00000000</a
+                >{{ '%.8f' % profile_data.btc_balance }}</a
               >
             </div>
             <div
@@ -299,7 +299,7 @@
               <a
                 href="{{ url_for('user.balance', crypto='xmr') }}"
                 class="bg-sydney hover:bg-sydney2 text-white rounded px-0.5 font-bold text-sm"
-                >00000000</a
+                >{{ '%.8f' % profile_data.xmr_balance }}</a
               >
             </div>
           </div>
@@ -307,6 +307,15 @@
       </div>
       <span class="block 2xl:hidden w-full h-[1px] bg-white"></span>
       {% endif %}
+      <!-- Navigation Links -->
+      <a
+        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        href="/"
+      >
+        <div class="grid grid-cols-[30px,auto] gap-1 items-center">
+          <i class="gg-home justify-self-center"></i>Shop
+        </div>
+      </a>
 
       <!-- Navigation Links -->
       <a
@@ -359,25 +368,28 @@
         >
           <a
             class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
-            href=""
+            href="{{ url_for('user.messages_conversations') }}"
           >
-            Conversations (0)
+            Conversations
           </a>
           <a
             class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
-            href=""
-            >Orders</a
+            href="{{ url_for('user.messages_order_messages') }}"
           >
+            Order Messages
+          </a>
           <a
             class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
-            href=""
-            >Trash</a
+            href="{{ url_for('user.messages_trash') }}"
           >
+            Trash
+          </a>
           <a
             class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
-            href=""
-            >Invitations</a
+            href="{{ url_for('user.messages_invitations') }}"
           >
+            Invitations
+          </a>
         </div>
       </div>
 
@@ -386,7 +398,14 @@
         href="{{ url_for('user.favorites') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
-          <i class="gg-collage justify-self-center"></i> Favorites
+          <i class="gg-collage justify-self-center"></i> Favorites {% if
+          favorites_count > 0 %}
+          <span
+            class="relative -right-24 -top-8 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1"
+          >
+            {{ favorites_count }}
+          </span>
+          {% endif %}
         </div>
       </a>
 
@@ -420,7 +439,7 @@
           >
           <a
             class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
-            href="{{ url_for('user.edit_profile') }}"
+            href="{{ url_for('vendor.products_edit', product_id=1) }}"
             >Edit Product</a
           >
         </div>
@@ -440,7 +459,7 @@
         href="{{ url_for('user.become_vendor') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
-          <i class="gg-link justify-self-center"></i> Start Selling
+          <i class="gg-link justify-self-center"></i> Sell
         </div>
       </a>
 
@@ -460,7 +479,7 @@
         >
           <a
             class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
-            href="{{ url_for('user.edit_profile') }}"
+            href="{{ url_for('user.profile') }}"
             >View Feedback & Profile</a
           >
           <a
@@ -495,11 +514,11 @@
             href="{{ url_for('user.my_tickets') }}"
             >My Tickets</a
           >
-          <a
+          <!-- <a
             class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href=""
             >View contact details</a
-          >
+          > -->
         </div>
       </div>
 
@@ -522,6 +541,41 @@
         </div>
       </a>
       {% endif %}
+
+      <li class="relative">
+        <a href="{{ url_for('user.notifications') }}" class="relative">
+          <i class="gg-bell text-xl"></i>
+          {% set unread_count = unread_notification_count %} {% if unread_count
+          > 0 %}
+          <span
+            class="absolute top-0 right-0 inline-block w-4 h-4 bg-red-600 text-white text-xs rounded-full text-center"
+            >{{ unread_count }}</span
+          >
+          {% endif %}
+        </a>
+        <div
+          class="absolute right-0 mt-2 w-80 bg-white rounded shadow-lg z-50 hidden group-hover:block"
+        >
+          <div class="p-2 border-b font-bold">Notifications</div>
+          {% for n in unread_notifications %}
+          <div
+            class="p-2 border-b text-sm {% if n['type']=='success' %}text-green-700{% elif n['type']=='error' %}text-red-700{% else %}text-blue-700{% endif %}"
+          >
+            {{ n['message'] }}
+            <span class="ml-2 text-xs text-gray-500">(new)</span>
+          </div>
+          {% else %}
+          <div class="p-2 text-gray-500">No notifications</div>
+          {% endfor %}
+          <div class="p-2 text-right">
+            <a
+              href="{{ url_for('user.notifications') }}"
+              class="text-blue-600 text-xs"
+              >View all</a
+            >
+          </div>
+        </div>
+      </li>
     </div>
   </div>
 </header>

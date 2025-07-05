@@ -1,40 +1,118 @@
-{% extends 'admin/admin_base.html' %}
-{% block title %}Vendor Profile - {{ settings['site_name'] }}{% endblock %}
-{% block admin_content %}
+{% extends 'admin/admin_base.html' %} {% block title %}Vendor Profile - {{
+settings['site_name'] }}{% endblock %} {% block admin_content %}
 <div class="container mx-auto p-6">
-  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Vendor Profile: {{ vendor.pusername }}</h1>
-  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
+  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">
+    Vendor Profile: {{ vendor.pusername }}
+  </h1>
+  <h3
+    class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold"
+  >
     View vendor details and their products.
   </h3>
 
   <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mt-4 max-w-3xl mx-auto">
-        {% for category, message in messages %}
-          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mt-4 max-w-3xl mx-auto">
+    {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
 
   <!-- Vendor Details -->
   <div class="mt-8 max-w-3xl mx-auto bg-sydney bg-opacity-10 p-4 rounded-md">
     <h2 class="text-xl font-bold text-white">Details</h2>
     <div class="mt-4 space-y-2">
-      <p><span class="font-bold text-white">Public Username:</span> {{ vendor.pusername }}</p>
-      <p><span class="font-bold text-white">Bitcoin Address:</span> {{ vendor.btc_address or 'Not set' }}</p>
-      <p><span class="font-bold text-white">PGP Public Key:</span> {{ vendor.pgp_public_key or 'Not set' }}</p>
-      <p><span class="font-bold text-white">Role:</span> {{ vendor.role|capitalize }}</p>
-      <p><span class="font-bold text-white">Vendor Status:</span> {{ vendor.vendor_status or 'N/A' }}</p>
-      <p><span class="font-bold text-white">Level:</span> {{ vendor.level }}</p>
+      <p>
+        <span class="font-bold text-white">Public Username:</span> {{
+        vendor.pusername }}
+      </p>
+      <p>
+        <span class="font-bold text-white">Bitcoin Address:</span> {{
+        vendor.btc_address or 'Not set' }}
+      </p>
+      <p>
+        <span class="font-bold text-white">PGP Public Key:</span> {{
+        vendor.pgp_public_key or 'Not set' }}
+      </p>
+      <p>
+        <span class="font-bold text-white">Role:</span> {{
+        vendor.role|capitalize }}
+      </p>
+      <p>
+        <span class="font-bold text-white">Vendor Status:</span> {{
+        vendor.vendor_status or 'N/A' }}
+      </p>
+      <p>
+        <span class="font-bold text-white">Level:</span>
+        {% if vendor.vendor_level or vendor.level %}
+        <span
+          class="px-2 py-1 rounded text-white text-xs font-bold bg-lvl{{ vendor.vendor_level or vendor.level }}"
+        >
+          Level {{ vendor.vendor_level or vendor.level }}
+        </span>
+        {% else %}
+        <span
+          class="px-2 py-1 rounded text-white text-xs font-bold bg-gray-500"
+        >
+          N/A
+        </span>
+        {% endif %}
+      </p>
+      <p>
+        <span class="font-bold text-white">Sales Count:</span>
+        <span class="text-white">{{ vendor.sales_count or 0 }}</span>
+      </p>
+      <p>
+        <span class="font-bold text-white">Positive Feedback:</span>
+        <span class="text-white"
+          >{{ '%.1f' % vendor.positive_feedback_percentage if
+          vendor.positive_feedback_percentage else 0 }}%</span
+        >
+      </p>
+      <p>
+        <span class="font-bold text-white">Average Rating:</span>
+        <span class="text-white"
+          >{{ '%.1f' % vendor.avg_rating if vendor.avg_rating else 'N/A'
+          }}/5</span
+        >
+      </p>
+      <p>
+        <span class="font-bold text-white">Joined:</span>
+        <span class="text-white">{{ vendor.joined_at or 'N/A' }}</span>
+      </p>
+      <p>
+        <span class="font-bold text-white">Last Updated:</span>
+        <span class="text-white">{{ vendor.updated_at or 'N/A' }}</span>
+      </p>
     </div>
-    <div class="mt-4">
-      <a href="{{ url_for('admin.edit_user', user_id=vendor.id) }}" class="bstd px-4 py-2">Edit Vendor</a>
+    <div class="mt-4 flex space-x-4">
+      <a
+        href="{{ url_for('admin.admin_edit_vendor', vendor_id=vendor.id) }}"
+        class="bstd px-4 py-2"
+        >Edit Vendor Profile & Stats</a
+      >
+      <a
+        href="{{ url_for('admin.admin_vendor_level_history', vendor_id=vendor.id) }}"
+        class="bstd px-4 py-2"
+        >View Level History</a
+      >
+      <a
+        href="{{ url_for('admin.edit_user', user_id=vendor.id) }}"
+        class="bstd px-4 py-2"
+        >Edit User Account</a
+      >
       {% if 'admin_vendor_disputes' in url_for %}
-        <a href="{{ url_for('admin.admin_vendor_disputes', vendor_id=vendor.id) }}" class="bstd px-4 py-2">View Disputes</a>
+      <a
+        href="{{ url_for('admin.admin_vendor_disputes', vendor_id=vendor.id) }}"
+        class="bstd px-4 py-2"
+        >View Disputes</a
+      >
       {% endif %}
     </div>
   </div>
@@ -43,38 +121,74 @@
   <div class="mt-8 max-w-5xl mx-auto">
     <h2 class="text-xl font-bold text-white">Products</h2>
     {% if products %}
-      <table class="w-full text-white border-collapse">
-        <thead>
-          <tr class="bg-sydney bg-opacity-20">
-            <th class="p-2 text-left font-bold">Title</th>
-            <th class="p-2 text-left font-bold">Price (USD)</th>
-            <th class="p-2 text-left font-bold">Stock</th>
-            <th class="p-2 text-left font-bold">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for product in products %}
-            <tr class="border-b border-sydney border-opacity-50">
-              <td class="p-2">{{ product.title }}</td>
-              <td class="p-2">${{ product.price_usd|round(2) }}</td>
-              <td class="p-2">{{ product.stock }}</td>
-              <td class="p-2">
-                <span class="px-2 py-1 rounded text-sm {{
+    <table class="w-full text-white border-collapse">
+      <thead>
+        <tr class="bg-sydney bg-opacity-20">
+          <th class="p-2 text-left font-bold">Title</th>
+          <th class="p-2 text-left font-bold">Price (USD)</th>
+          <th class="p-2 text-left font-bold">Stock</th>
+          <th class="p-2 text-left font-bold">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr class="border-b border-sydney border-opacity-50">
+          <td class="p-2">{{ product.title }}</td>
+          <td class="p-2">${{ product.price_usd|round(2) }}</td>
+          <td class="p-2">{{ product.stock }}</td>
+          <td class="p-2">
+            <span
+              class="px-2 py-1 rounded text-sm {{
                   'bg-yellow-600' if product.status == 'pending' else
                   'bg-green-600' if product.status == 'active' else
                   'bg-red-600' if product.status == 'rejected' else
                   'bg-gray-600'
-                }}">
-                  {{ product.status|capitalize }}
-                </span>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                }}"
+            >
+              {{ product.status|capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
-      <p class="text-white">No products found for this vendor.</p>
+    <p class="text-white">No products found for this vendor.</p>
     {% endif %}
   </div>
 </div>
+
+<style>
+  /* Vendor level colors */
+  .bg-lvl1 {
+    background-color: #6b7280;
+  }
+  .bg-lvl2 {
+    background-color: #10b981;
+  }
+  .bg-lvl3 {
+    background-color: #3b82f6;
+  }
+  .bg-lvl4 {
+    background-color: #8b5cf6;
+  }
+  .bg-lvl5 {
+    background-color: #f59e0b;
+  }
+  .bg-lvl6 {
+    background-color: #ef4444;
+  }
+  .bg-lvl7 {
+    background-color: #ec4899;
+  }
+  .bg-lvl8 {
+    background-color: #8b5cf6;
+  }
+  .bg-lvl9 {
+    background-color: #f59e0b;
+  }
+  .bg-lvl10 {
+    background-color: #ef4444;
+  }
+</style>
 {% endblock %}

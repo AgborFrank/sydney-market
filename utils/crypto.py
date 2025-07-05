@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def get_exchange_rates():
-    """Fetch BTC and XMR exchange rates for USD, CAD, EUR, AUD, GBP."""
+    """Fetch BTC and XMR exchange rates for USD, CAD, EUR, AUD, GBP, and return as flat dict."""
     url = "https://api.coingecko.com/api/v3/simple/price"
     params = {
         "ids": "bitcoin,monero",
@@ -18,24 +18,20 @@ def get_exchange_rates():
         response = requests.get(url, params=params, timeout=15, proxies=proxies)
         response.raise_for_status()
         data = response.json()
-        rates = {
-            "bitcoin": {
-                "USD": data["bitcoin"]["usd"],
-                "CAD": data["bitcoin"]["cad"],
-                "EUR": data["bitcoin"]["eur"],
-                "AUD": data["bitcoin"]["aud"],
-                "GBP": data["bitcoin"]["gbp"]
-            },
-            "monero": {
-                "USD": data["monero"]["usd"],
-                "CAD": data["monero"]["cad"],
-                "EUR": data["monero"]["eur"],
-                "AUD": data["monero"]["aud"],
-                "GBP": data["monero"]["gbp"]
-            }
-        }
-        logger.debug("Fetched exchange rates: %s", rates)
+        rates = {}
+        # BTC
+        for code in ["USD", "CAD", "EUR", "AUD", "GBP"]:
+            key = f"BTC/{code}"
+            value = data.get("bitcoin", {}).get(code.lower(), 0)
+            rates[key] = {"rate": value}
+        # XMR
+        for code in ["USD", "CAD", "EUR", "AUD", "GBP"]:
+            key = f"XMR/{code}"
+            value = data.get("monero", {}).get(code.lower(), 0)
+            rates[key] = {"rate": value}
+        logger.debug("Fetched exchange rates (flat): %s", rates)
         return rates
     except Exception as e:
         logger.error("Failed to fetch exchange rates: %s", str(e))
-        return {"bitcoin": {}, "monero": {}}
+        # Return empty rates in expected flat format
+        return {f"BTC/{code}": {"rate": 0} for code in ["USD", "CAD", "EUR", "AUD", "GBP"]} | {f"XMR/{code}": {"rate": 0} for code in ["USD", "CAD", "EUR", "AUD", "GBP"]}

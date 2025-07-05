@@ -1,0 +1,7 @@
+{% if config.RECAPTCHA_ENABLED and config.RECAPTCHA_SITE_KEY %}
+<div
+  class="g-recaptcha mb-4"
+  data-sitekey="{{ config.RECAPTCHA_SITE_KEY }}"
+></div>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endif %}

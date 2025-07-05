@@ -6,6 +6,10 @@
 .menu nav a:hover, footer ul li a:hover{
     color: var(--primary-color) !important;
 }
+
+ul li,  ol li {
+    color: #b1b7bb; 
+}
 footer ul li a{
    font-size: 14px !important;
    color: #b1b7bb;
@@ -76,5 +80,5 @@ body {
     background-color: #080d1e;
 }
 .bg-card {
-    background-color: #0b1127;
+    background-color: #101730 !important;
 }

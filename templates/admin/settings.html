@@ -4,7 +4,7 @@ settings['site_name'] }}{% endblock %} {% block admin_content %}
 <h1 class="text-3xl font-bold text-gray-900 mb-6">Site Settings</h1>
 <div class="bg-white p-6 rounded-lg shadow-md">
   <p class="text-gray-700 mb-6">
-    Customize your marketplace’s appearance, security, and functionality.
+    Customize your marketplace's appearance, security, and functionality.
     Changes take effect immediately.
   </p>
 
@@ -251,6 +251,134 @@ settings['site_name'] }}{% endblock %} {% block admin_content %}
             name="support_email"
             value="{{ settings['support_email'] }}"
             class="w-full py-2 px-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          />
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Cryptocurrency Wallets -->
+    <fieldset class="border-t border-gray-200 pt-4">
+      <legend class="text-lg font-semibold text-gray-700 mb-4">Wallets</legend>
+      <div class="space-y-4">
+        <div>
+          <label
+            for="btc_escrow_wallet"
+            class="block text-gray-700 font-semibold mb-2"
+            >BTC Escrow Wallet</label
+          >
+          <input
+            type="text"
+            id="btc_escrow_wallet"
+            name="btc_escrow_wallet"
+            value="{{ settings['btc_escrow_wallet'] }}"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+        <div>
+          <label
+            for="btc_admin_wallet"
+            class="block text-gray-700 font-semibold mb-2"
+            >BTC Admin Wallet</label
+          >
+          <input
+            type="text"
+            id="btc_admin_wallet"
+            name="btc_admin_wallet"
+            value="{{ settings['btc_admin_wallet'] }}"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+        <div>
+          <label
+            for="xmr_escrow_wallet"
+            class="block text-gray-700 font-semibold mb-2"
+            >XMR Escrow Wallet</label
+          >
+          <input
+            type="text"
+            id="xmr_escrow_wallet"
+            name="xmr_escrow_wallet"
+            value="{{ settings['xmr_escrow_wallet'] }}"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+        <div>
+          <label
+            for="xmr_admin_wallet"
+            class="block text-gray-700 font-semibold mb-2"
+            >XMR Admin Wallet</label
+          >
+          <input
+            type="text"
+            id="xmr_admin_wallet"
+            name="xmr_admin_wallet"
+            value="{{ settings['xmr_admin_wallet'] }}"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Escrow/Transaction Settings -->
+    <fieldset class="border-t border-gray-200 pt-4">
+      <legend class="text-lg font-semibold text-gray-700 mb-4">
+        Escrow & Transaction
+      </legend>
+      <div class="space-y-4">
+        <div>
+          <label
+            for="escrow_fee_percent"
+            class="block text-gray-700 font-semibold mb-2"
+            >Escrow Fee (%)</label
+          >
+          <input
+            type="number"
+            id="escrow_fee_percent"
+            name="escrow_fee_percent"
+            value="{{ settings['escrow_fee_percent'] }}"
+            min="0"
+            max="100"
+            step="0.01"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+        <div>
+          <label
+            for="vendor_bond_amount"
+            class="block text-gray-700 font-semibold mb-2"
+            >Vendor Bond Amount (BTC)</label
+          >
+          <input
+            type="number"
+            id="vendor_bond_amount"
+            name="vendor_bond_amount"
+            value="{{ settings['vendor_bond_amount'] }}"
+            min="0"
+            step="0.0001"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
+          />
+        </div>
+        <div>
+          <label
+            for="escrow_auto_release_hours"
+            class="block text-gray-700 font-semibold mb-2"
+            >Escrow Auto-Release (hours)</label
+          >
+          <input
+            type="number"
+            id="escrow_auto_release_hours"
+            name="escrow_auto_release_hours"
+            value="{{ settings['escrow_auto_release_hours'] }}"
+            min="1"
+            step="1"
+            class="w-full py-2 px-4 rounded-md border border-gray-300"
+            required
           />
         </div>
       </div>

@@ -7,7 +7,18 @@
 
 <!-- Filter and Search -->
 <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Filter Escrow Transactions</h3>
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-700">Filter Escrow Transactions</h3>
+            <p class="text-sm text-gray-500">Enter an order ID or username to find specific escrow transactions.</p>
+        </div>
+        <form method="POST" action="{{ url_for('admin.admin_auto_finalize_trusted_orders') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">
+                Auto-Finalize Trusted Vendors
+            </button>
+        </form>
+    </div>
     <form method="GET" action="{{ url_for('admin.admin_escrow') }}" class="flex flex-col md:flex-row gap-4">
         <div class="flex-1">
             <label for="search" class="block text-sm font-medium text-gray-700">Search by Order ID or Buyer Username</label>
@@ -21,6 +32,7 @@
                 <option value="">All Statuses</option>
                 <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="held" {% if request.args.get('status') == 'held' %}selected{% endif %}>Held</option>
+                <option value="pending_release" {% if request.args.get('status') == 'pending_release' %}selected{% endif %}>Pending Release</option>
                 <option value="released" {% if request.args.get('status') == 'released' %}selected{% endif %}>Released</option>
                 <option value="refunded" {% if request.args.get('status') == 'refunded' %}selected{% endif %}>Refunded</option>
                 <option value="disputed" {% if request.args.get('status') == 'disputed' %}selected{% endif %}>Disputed</option>
@@ -35,7 +47,7 @@
 <!-- Escrow Table -->
 <div class="bg-white p-6 rounded-lg shadow-md">
     <h3 class="text-lg font-semibold text-gray-700 mb-4">Escrow Transactions</h3>
-    <p class="text-sm text-gray-500 mb-4">Below are the escrow transactions for orders where you are the vendor.</p>
+    <p class="text-sm text-gray-500 mb-4">Manage all escrow transactions across the marketplace. Trusted vendors (Level 8+ with 97%+ feedback) get automatic finalization.</p>
     {% if escrows %}
     <div class="overflow-x-auto">
         <table class="w-full text-left">
@@ -43,8 +55,10 @@
                 <tr class="border-b">
                     <th class="py-2 px-4 text-gray-700">Order ID</th>
                     <th class="py-2 px-4 text-gray-700">Buyer</th>
+                    <th class="py-2 px-4 text-gray-700">Vendor</th>
                     <th class="py-2 px-4 text-gray-700">Product</th>
                     <th class="py-2 px-4 text-gray-700">Amount (BTC)</th>
+                    <th class="py-2 px-4 text-gray-700">Vendor Level</th>
                     <th class="py-2 px-4 text-gray-700">Escrow Status</th>
                     <th class="py-2 px-4 text-gray-700">Order Status</th>
                     <th class="py-2 px-4 text-gray-700">Date</th>
@@ -56,13 +70,25 @@
                 <tr class="border-b hover:bg-gray-50">
                     <td class="py-2 px-4">{{ escrow.order_id }}</td>
                     <td class="py-2 px-4">{{ escrow.buyer_username }}</td>
+                    <td class="py-2 px-4">{{ escrow.vendor_username }}</td>
                     <td class="py-2 px-4">{{ escrow.product_title }}</td>
                     <td class="py-2 px-4">{{ "%.4f"|format(escrow.amount_btc) }}</td>
+                    <td class="py-2 px-4">
+                        {% if escrow.vendor_level %}
+                            <span class="px-2 py-1 rounded text-white text-xs font-bold bg-lvl{{ escrow.vendor_level }}">
+                                Level {{ escrow.vendor_level }}
+                            </span>
+                        {% else %}
+                            <span class="text-gray-500">N/A</span>
+                        {% endif %}
+                    </td>
                     <td class="py-2 px-4">
                         {% if escrow.status == 'pending' %}
                         <span class="text-yellow-600">Pending</span>
                         {% elif escrow.status == 'held' %}
                         <span class="text-blue-600">Held</span>
+                        {% elif escrow.status == 'pending_release' %}
+                        <span class="text-orange-600">Pending Release</span>
                         {% elif escrow.status == 'released' %}
                         <span class="text-green-600">Released</span>
                         {% elif escrow.status == 'refunded' %}
@@ -75,7 +101,7 @@
                     <td class="py-2 px-4">{{ escrow.created_at }}</td>
                     <td class="py-2 px-4 space-x-2">
                         <a href="{{ url_for('admin.admin_escrow_details', order_id=escrow.order_id) }}" class="bg-blue-500 text-white py-1 px-2 rounded-md hover:bg-blue-600 transition duration-200">View Details</a>
-                        {% if escrow.status in ['pending', 'held'] %}
+                        {% if escrow.status in ['pending', 'held', 'pending_release'] %}
                         <form method="POST" action="{{ url_for('admin.admin_update_escrow', order_id=escrow.order_id) }}" class="inline">
                             <select name="action" class="border-gray-300 rounded-md text-sm" onchange="this.form.submit()">
                                 <option value="">Select Action</option>
