@@ -1,0 +1,30 @@
+[Unit]
+Description=GitHub Webhook Handler for Marketplace Auto-Deployment
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/marketplace
+Environment=PATH=/var/www/marketplace/venv/bin
+Environment=WEBHOOK_SECRET=your-webhook-secret-here
+Environment=MANUAL_DEPLOY_KEY=your-manual-deploy-key
+ExecStart=/var/www/marketplace/venv/bin/python webhook_handler.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webhook-handler
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/marketplace /var/log
+
+[Install]
+WantedBy=multi-user.target 
