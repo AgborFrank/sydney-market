@@ -1,0 +1,291 @@
+{% extends 'admin/admin_base.html' %} {% block title %}Ads Analytics - {{
+settings['site_name'] }}{% endblock %} {% block admin_content %}
+<div class="container mx-auto p-6 mt-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-white">Advertising Analytics</h1>
+    <a
+      href="{{ url_for('admin.admin_ads') }}"
+      class="text-gray-400 hover:text-white"
+    >
+      ← Back to Ads
+    </a>
+  </div>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mb-6">
+    {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+
+  <!-- Overall Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-blue-400 mb-2">{{ total_ads }}</div>
+        <div class="text-gray-400">Total Campaigns</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-green-400 mb-2">
+          {{ active_ads }}
+        </div>
+        <div class="text-gray-400">Active Campaigns</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-yellow-400 mb-2">
+          ${{ "%.2f"|format(total_spend * btc_price) }}
+        </div>
+        <div class="text-gray-400">Total Revenue</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-purple-400 mb-2">
+          {{ total_impressions }}
+        </div>
+        <div class="text-gray-400">Total Impressions</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-indigo-400 mb-2">
+          {{ "%.2f"|format(ctr) }}%
+        </div>
+        <div class="text-gray-400">Overall CTR</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Performance Chart -->
+  {% if daily_performance %}
+  <div class="bg-card rounded-lg p-6 border border-border mb-8">
+    <h2 class="text-xl font-bold text-white mb-6">
+      Daily Performance (Last 30 Days)
+    </h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-border">
+            <th class="py-3 px-4 text-gray-400 font-semibold">Date</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Impressions</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Clicks</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">CTR</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for day in daily_performance %}
+          <tr class="border-b border-border hover:bg-gray-800">
+            <td class="py-3 px-4 text-white">{{ day.date }}</td>
+            <td class="py-3 px-4 text-white">{{ day.impressions }}</td>
+            <td class="py-3 px-4 text-white">{{ day.clicks }}</td>
+            <td class="py-3 px-4 text-white">
+              {% set day_ctr = (day.clicks / day.impressions * 100) if
+              day.impressions > 0 else 0 %} {{ "%.2f"|format(day_ctr) }}%
+            </td>
+            <td class="py-3 px-4 text-white">
+              ${{ "%.2f"|format(day.spend * btc_price) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Top Performing Ads -->
+  {% if top_ads %}
+  <div class="bg-card rounded-lg p-6 border border-border mb-8">
+    <h2 class="text-xl font-bold text-white mb-6">
+      Top Performing Ads (By Clicks)
+    </h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-border">
+            <th class="py-3 px-4 text-gray-400 font-semibold">Rank</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Product</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Vendor</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Bid</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Impressions</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Clicks</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">CTR</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Revenue</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ad in top_ads %}
+          <tr class="border-b border-border hover:bg-gray-800">
+            <td class="py-3 px-4 text-white font-bold">{{ loop.index }}</td>
+            <td class="py-3 px-4 text-white">{{ ad.product_title }}</td>
+            <td class="py-3 px-4 text-white">{{ ad.vendor_name }}</td>
+            <td class="py-3 px-4 text-white">
+              {{ "%.6f"|format(ad.bid_amount) }} BTC
+            </td>
+            <td class="py-3 px-4 text-white">{{ ad.impressions or 0 }}</td>
+            <td class="py-3 px-4 text-white">{{ ad.clicks or 0 }}</td>
+            <td class="py-3 px-4 text-white">
+              {% set ad_ctr = ((ad.clicks or 0) / (ad.impressions or 1) * 100)
+              %} {{ "%.2f"|format(ad_ctr) }}%
+            </td>
+            <td class="py-3 px-4 text-white">
+              ${{ "%.2f"|format((ad.spend or 0) * btc_price) }}
+            </td>
+            <td class="py-3 px-4">
+              <a
+                href="{{ url_for('admin.admin_ad_details', ad_id=ad.id) }}"
+                class="text-blue-400 hover:text-blue-300 text-sm"
+                >View</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Top Spending Vendors -->
+  {% if top_vendors %}
+  <div class="bg-card rounded-lg p-6 border border-border mb-8">
+    <h2 class="text-xl font-bold text-white mb-6">Top Spending Vendors</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-border">
+            <th class="py-3 px-4 text-gray-400 font-semibold">Rank</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Vendor</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Total Ads</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Total Spend</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vendor in top_vendors %}
+          <tr class="border-b border-border hover:bg-gray-800">
+            <td class="py-3 px-4 text-white font-bold">{{ loop.index }}</td>
+            <td class="py-3 px-4 text-white">{{ vendor.vendor_name }}</td>
+            <td class="py-3 px-4 text-white">{{ vendor.total_ads }}</td>
+            <td class="py-3 px-4 text-white">
+              ${{ "%.2f"|format((vendor.total_spend or 0) * btc_price) }}
+            </td>
+            <td class="py-3 px-4">
+              <a
+                href="{{ url_for('admin.admin_vendor_ads', vendor_id=vendor.vendor_id) }}"
+                class="text-blue-400 hover:text-blue-300 text-sm"
+                >View Ads</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Performance Insights -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h3 class="text-lg font-bold text-white mb-4">Performance Insights</h3>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Average CTR</span>
+          <span class="text-white font-semibold"
+            >{{ "%.2f"|format(ctr) }}%</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Average Cost Per Click</span>
+          <span class="text-white font-semibold"
+            >${{ "%.2f"|format((total_spend / total_clicks * btc_price) if
+            total_clicks > 0 else 0) }}</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Average Cost Per Impression</span>
+          <span class="text-white font-semibold"
+            >${{ "%.4f"|format((total_spend / total_impressions * btc_price) if
+            total_impressions > 0 else 0) }}</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Active Campaign Rate</span>
+          <span class="text-white font-semibold"
+            >{{ "%.1f"|format((active_ads / total_ads * 100) if total_ads > 0
+            else 0) }}%</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h3 class="text-lg font-bold text-white mb-4">Revenue Summary</h3>
+      <div class="space-y-4">
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Total Revenue (USD)</span>
+          <span class="text-white font-semibold"
+            >${{ "%.2f"|format(total_spend * btc_price) }}</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Total Revenue (BTC)</span>
+          <span class="text-white font-semibold"
+            >{{ "%.6f"|format(total_spend) }} BTC</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Average Daily Revenue</span>
+          <span class="text-white font-semibold"
+            >${{ "%.2f"|format((total_spend * btc_price) / 30) }}</span
+          >
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-300">Revenue per Campaign</span>
+          <span class="text-white font-semibold"
+            >${{ "%.2f"|format((total_spend * btc_price) / total_ads if
+            total_ads > 0 else 0) }}</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex justify-between items-center">
+    <div class="flex gap-4">
+      <a
+        href="{{ url_for('admin.admin_ads') }}"
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 transition"
+      >
+        View All Ads
+      </a>
+      <a
+        href="{{ url_for('admin.dashboard') }}"
+        class="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition"
+      >
+        Back to Dashboard
+      </a>
+    </div>
+
+    <div class="text-right">
+      <p class="text-gray-400 text-sm">Last Updated</p>
+      <p class="text-white font-semibold">Now</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

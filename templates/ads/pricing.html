@@ -1,0 +1,408 @@
+{% extends 'base.html' %} {% block title %}Advertising Pricing - {{
+settings['site_name'] }}{% endblock %} {% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+  <!-- Header -->
+  <div class="text-center mb-12">
+    <h1 class="text-4xl font-bold text-white mb-4">Advertising Pricing</h1>
+    <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+      Promote your products with our privacy-focused advertising system. Pay
+      with Bitcoin or Monero for maximum anonymity.
+    </p>
+  </div>
+
+  <!-- Current Rates Banner -->
+  <div class="bg-card border border-gray-700 rounded-lg p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+      <div>
+        <p class="text-gray-400 text-sm">Current BTC Price</p>
+        <p class="text-white font-bold text-xl">
+          ${{ "{:,.2f}".format(btc_price) }}
+        </p>
+      </div>
+      <div>
+        <p class="text-gray-400 text-sm">Current XMR Price</p>
+        <p class="text-white font-bold text-xl">
+          ${{ "{:,.2f}".format(xmr_price) }}
+        </p>
+      </div>
+      <div>
+        <p class="text-gray-400 text-sm">Last Updated</p>
+        <p class="text-white font-bold text-xl">Live</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    {% for placement_key, placement in ad_placements.items() %}
+    <div
+      class="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition"
+    >
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-center">
+        <h3 class="text-white font-bold text-lg mb-2">{{ placement.name }}</h3>
+        <p class="text-blue-200 text-sm">{{ placement.description }}</p>
+      </div>
+
+      <!-- Pricing -->
+      <div class="p-6">
+        <div class="text-center mb-6">
+          <div class="flex justify-center items-baseline mb-2">
+            <span class="text-3xl font-bold text-white"
+              >{{ "%.6f"|format(placement.base_cost_btc) }}</span
+            >
+            <span class="text-gray-400 ml-1">BTC</span>
+          </div>
+          <p class="text-gray-400 text-sm">
+            ≈ ${{ "{:.2f}".format(placement.base_cost_btc * btc_price) }} USD
+          </p>
+
+          <div class="flex justify-center items-baseline mt-4">
+            <span class="text-2xl font-bold text-white"
+              >{{ "%.4f"|format(placement.base_cost_xmr) }}</span
+            >
+            <span class="text-gray-400 ml-1">XMR</span>
+          </div>
+          <p class="text-gray-400 text-sm">
+            ≈ ${{ "{:.2f}".format(placement.base_cost_xmr * xmr_price) }} USD
+          </p>
+        </div>
+
+        <!-- Features -->
+        <ul class="space-y-3 mb-6">
+          <li class="flex items-center text-gray-300">
+            <svg
+              class="w-4 h-4 text-green-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            Max {{ placement.max_duration_days }} days
+          </li>
+          <li class="flex items-center text-gray-300">
+            <svg
+              class="w-4 h-4 text-green-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            Priority {{ placement.priority }}
+          </li>
+          <li class="flex items-center text-gray-300">
+            <svg
+              class="w-4 h-4 text-green-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            Real-time analytics
+          </li>
+          <li class="flex items-center text-gray-300">
+            <svg
+              class="w-4 h-4 text-green-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            Pause anytime
+          </li>
+        </ul>
+
+        <!-- CTA Button -->
+        {% if session.get('user_id') %}
+        <a
+          href="{{ url_for('ads.create_ad') }}"
+          class="block w-full bg-yellow-600 text-gray-900 text-center py-3 rounded-lg font-semibold hover:bg-yellow-500 transition"
+        >
+          Create Campaign
+        </a>
+        {% else %}
+        <a
+          href="{{ url_for('user.login') }}"
+          class="block w-full bg-gray-700 text-white text-center py-3 rounded-lg font-semibold hover:bg-gray-600 transition"
+        >
+          Login to Advertise
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- How It Works -->
+  <div class="bg-card border border-border rounded-lg p-8 mb-8">
+    <h2 class="text-2xl font-bold text-white mb-6 text-center">
+      How Our Advertising Works
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="text-center">
+        <div
+          class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <span class="text-white font-bold text-xl">1</span>
+        </div>
+        <h3 class="text-white font-semibold mb-2">Choose Your Product</h3>
+        <p class="text-gray-400 text-sm">
+          Select from your active products with stock. Only quality products are
+          eligible for advertising.
+        </p>
+      </div>
+
+      <div class="text-center">
+        <div
+          class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <span class="text-white font-bold text-xl">2</span>
+        </div>
+        <h3 class="text-white font-semibold mb-2">Set Your Budget</h3>
+        <p class="text-gray-400 text-sm">
+          Choose your bid amount and daily budget. Pay with Bitcoin or Monero
+          for maximum privacy.
+        </p>
+      </div>
+
+      <div class="text-center">
+        <div
+          class="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4"
+        >
+          <span class="text-white font-bold text-xl">3</span>
+        </div>
+        <h3 class="text-white font-semibold mb-2">Track Performance</h3>
+        <p class="text-gray-400 text-sm">
+          Monitor impressions, clicks, and conversions in real-time. Pause or
+          adjust campaigns anytime.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features & Benefits -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Privacy Features -->
+    <div class="bg-card border border-border rounded-lg p-6">
+      <h3 class="text-xl font-bold text-white mb-4">
+        Privacy-First Advertising
+      </h3>
+      <ul class="space-y-3">
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-green-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">No IP tracking or user profiling</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-green-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">Cryptocurrency payments only</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-green-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">No third-party tracking scripts</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-green-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300"
+            >Data automatically deleted after campaign ends</span
+          >
+        </li>
+      </ul>
+    </div>
+
+    <!-- Platform Benefits -->
+    <div class="bg-card border border-border rounded-lg p-6">
+      <h3 class="text-xl font-bold text-white mb-4">Platform Benefits</h3>
+      <ul class="space-y-3">
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-blue-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">Targeted marketplace audience</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-blue-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">Real-time performance tracking</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-blue-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">Flexible campaign management</span>
+        </li>
+        <li class="flex items-start">
+          <svg
+            class="w-5 h-5 text-blue-400 mr-3 mt-0.5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300">Competitive bidding system</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="bg-card border border-border rounded-lg p-8">
+    <h2 class="text-2xl font-bold text-white mb-6 text-center">
+      Frequently Asked Questions
+    </h2>
+
+    <div class="space-y-6">
+      <div>
+        <h3 class="text-white font-semibold mb-2">
+          How does the bidding system work?
+        </h3>
+        <p class="text-gray-400 text-sm">
+          Ads are displayed based on bid amount and placement priority. Higher
+          bids get better visibility. You only pay for actual impressions, and
+          unused budget is refunded.
+        </p>
+      </div>
+
+      <div>
+        <h3 class="text-white font-semibold mb-2">Can I pause my campaign?</h3>
+        <p class="text-gray-400 text-sm">
+          Yes, you can pause, resume, or end your campaign at any time. Paused
+          campaigns don't incur charges.
+        </p>
+      </div>
+
+      <div>
+        <h3 class="text-white font-semibold mb-2">
+          What happens to unused budget?
+        </h3>
+        <p class="text-gray-400 text-sm">
+          Any unused budget is automatically refunded to your wallet when the
+          campaign ends or is cancelled.
+        </p>
+      </div>
+
+      <div>
+        <h3 class="text-white font-semibold mb-2">
+          How do I track performance?
+        </h3>
+        <p class="text-gray-400 text-sm">
+          Real-time analytics show impressions, clicks, click-through rates, and
+          costs. Data is available in your ads dashboard.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="text-center mt-12">
+    {% if session.get('user_id') %}
+    <a
+      href="{{ url_for('ads.ads_dashboard') }}"
+      class="inline-block bg-yellow-600 text-gray-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-500 transition"
+    >
+      Start Advertising Now
+    </a>
+    {% else %}
+    <div class="space-y-4">
+      <a
+        href="{{ url_for('user.register') }}"
+        class="inline-block bg-yellow-600 text-gray-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-500 transition mr-4"
+      >
+        Create Account
+      </a>
+      <a
+        href="{{ url_for('user.login') }}"
+        class="inline-block bg-gray-700 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-600 transition"
+      >
+        Login to Start
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

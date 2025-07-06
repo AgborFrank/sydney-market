@@ -1,0 +1,163 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}Edit Ad - {{ settings['site_name'] }}{% endblock %}
+
+{% block admin_content %}
+<div class="container mx-auto p-6 max-w-4xl">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-white">Edit Ad Campaign</h1>
+    <a href="{{ url_for('admin.admin_ad_details', ad_id=ad.id) }}" class="text-gray-400 hover:text-white">
+      ← Back to Ad Details
+    </a>
+  </div>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-6">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" class="space-y-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <!-- Campaign Information -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">Campaign Information</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Vendor</label>
+          <input type="text" value="{{ ad.vendor_name }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+        
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Product</label>
+          <input type="text" value="{{ ad.product_title }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+        
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Campaign ID</label>
+          <input type="text" value="{{ ad.id }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+        
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Created</label>
+          <input type="text" value="{{ ad.created_at }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+      </div>
+    </div>
+
+    <!-- Campaign Settings -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">Campaign Settings</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="bid_amount" class="block text-gray-300 text-sm font-medium mb-2">
+            Bid Amount ({{ ad.crypto_currency }})
+          </label>
+          <input type="number" id="bid_amount" name="bid_amount" 
+                 value="{{ "%.6f"|format(ad.bid_amount) }}" step="0.000001" min="0.000001"
+                 class="w-full bg-gray-800 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                 required>
+          <p class="text-sm text-gray-400 mt-1">Amount paid per click</p>
+        </div>
+        
+        <div>
+          <label for="daily_budget" class="block text-gray-300 text-sm font-medium mb-2">
+            Daily Budget ({{ ad.crypto_currency }})
+          </label>
+          <input type="number" id="daily_budget" name="daily_budget" 
+                 value="{{ "%.6f"|format(ad.daily_budget) }}" step="0.000001" min="0.000001"
+                 class="w-full bg-gray-800 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                 required>
+          <p class="text-sm text-gray-400 mt-1">Maximum daily spend</p>
+        </div>
+        
+        <div>
+          <label for="placement_type" class="block text-gray-300 text-sm font-medium mb-2">
+            Placement Type
+          </label>
+          <select id="placement_type" name="placement_type" 
+                  class="w-full bg-gray-800 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  required>
+            <option value="featured" {{ 'selected' if ad.placement_type == 'featured' }}>Featured Products</option>
+            <option value="category" {{ 'selected' if ad.placement_type == 'category' }}>Category Pages</option>
+            <option value="search" {{ 'selected' if ad.placement_type == 'search' }}>Search Results</option>
+            <option value="homepage" {{ 'selected' if ad.placement_type == 'homepage' }}>Homepage</option>
+          </select>
+          <p class="text-sm text-gray-400 mt-1">Where the ad will appear</p>
+        </div>
+        
+        <div>
+          <label for="status" class="block text-gray-300 text-sm font-medium mb-2">
+            Status
+          </label>
+          <select id="status" name="status" 
+                  class="w-full bg-gray-800 text-white px-3 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  required>
+            <option value="active" {{ 'selected' if ad.status == 'active' }}>Active</option>
+            <option value="paused" {{ 'selected' if ad.status == 'paused' }}>Paused</option>
+            <option value="ended" {{ 'selected' if ad.status == 'ended' }}>Ended</option>
+          </select>
+          <p class="text-sm text-gray-400 mt-1">Campaign status</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Campaign Details -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">Campaign Details</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Currency</label>
+          <input type="text" value="{{ ad.crypto_currency }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+        
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Duration</label>
+          <input type="text" value="{{ ad.duration_days }} days" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+        
+        <div>
+          <label class="block text-gray-300 text-sm font-medium mb-2">Total Budget</label>
+          <input type="text" value="{{ "%.6f"|format(ad.daily_budget * ad.duration_days) }} {{ ad.crypto_currency }}" disabled 
+                 class="w-full bg-gray-700 text-gray-300 px-3 py-2 rounded-lg border border-gray-600">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-between items-center">
+      <div class="flex gap-4">
+        <button type="submit" 
+                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 transition">
+          Update Campaign
+        </button>
+        <a href="{{ url_for('admin.admin_ad_details', ad_id=ad.id) }}"
+           class="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition">
+          Cancel
+        </a>
+      </div>
+      
+      <a href="{{ url_for('admin.admin_ads') }}"
+         class="text-gray-400 hover:text-white">
+        Back to All Ads
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %} 

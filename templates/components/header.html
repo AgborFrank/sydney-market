@@ -53,7 +53,7 @@
           type="text"
           name="q"
           placeholder="Search products, vendors, categories and more..."
-          class="w-full md:px-4 px-3 border rounded-l text-white ring-0 focus:right-0"
+          class="w-full md:px-4 px-3 border bg-card rounded-l text-white ring-0 focus:right-0"
         />
         <button
           type="submit"
@@ -543,8 +543,8 @@
       {% endif %}
 
       <li class="relative">
-        <a href="{{ url_for('user.notifications') }}" class="relative">
-          <i class="gg-bell text-xl"></i>
+        <a href="{{ url_for('user.notifications') }}" class="relative -mt-3">
+          <i class="gg-bell text-xl -mt-3 -mr-3 bg-primary rounded-full p-1"></i>
           {% set unread_count = unread_notification_count %} {% if unread_count
           > 0 %}
           <span

@@ -5,6 +5,7 @@ from flask_limiter import Limiter
 from flask_session import Session
 from flask_limiter.util import get_remote_address
 from utils.database import get_db_connection, get_settings, create_test_admin_and_news, log_wallet_change  # Absolute import from utils.database
+from utils.crypto import get_btc_price, get_xmr_price
 import os
 import logging
 import re
@@ -3821,4 +3822,411 @@ def admin_deposits():
         c.execute(query, params)
         deposits = [dict(row) for row in c.fetchall()]
     return render_template('admin/deposits.html', deposits=deposits)
+
+@admin_bp.route('/ads')
+@require_admin_role
+def admin_ads():
+    """Admin dashboard to view and manage all user ads"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get all ads with vendor and product information
+            c.execute("""
+                SELECT sa.*, p.title as product_title, p.featured_image, p.price_usd,
+                       u.pusername as vendor_name,
+                       (SELECT SUM(impression_count) FROM ad_impressions WHERE ad_id = sa.id) as total_impressions,
+                       (SELECT SUM(click_count) FROM ad_impressions WHERE ad_id = sa.id) as total_clicks,
+                       (SELECT SUM(cost) FROM ad_impressions WHERE ad_id = sa.id) as total_cost
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                ORDER BY sa.created_at DESC
+            """)
+            all_ads = [dict(row) for row in c.fetchall()]
+            
+            # Calculate summary statistics
+            total_ads = len(all_ads)
+            active_ads = len([ad for ad in all_ads if ad['status'] == 'active'])
+            total_spend = sum(ad['total_cost'] or 0 for ad in all_ads)
+            total_impressions = sum(ad['total_impressions'] or 0 for ad in all_ads)
+            total_clicks = sum(ad['total_clicks'] or 0 for ad in all_ads)
+            
+            # Get recent ad performance (last 7 days)
+            c.execute("""
+                SELECT ai.*, sa.bid_amount, p.title as product_title, u.pusername as vendor_name
+                FROM ad_impressions ai
+                JOIN sponsored_ads sa ON ai.ad_id = sa.id
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE ai.date >= date('now', '-7 days')
+                ORDER BY ai.date DESC
+            """)
+            recent_performance = [dict(row) for row in c.fetchall()]
+            
+            # Get crypto prices for USD conversion
+            btc_price = get_btc_price()
+            xmr_price = get_xmr_price()
+            
+        return render_template('admin/ads.html',
+                             all_ads=all_ads,
+                             total_ads=total_ads,
+                             active_ads=active_ads,
+                             total_spend=total_spend,
+                             total_impressions=total_impressions,
+                             total_clicks=total_clicks,
+                             recent_performance=recent_performance,
+                             btc_price=btc_price,
+                             xmr_price=xmr_price)
+                             
+    except Exception as e:
+        print(f"DEBUG: Error in admin_ads route: {str(e)}")  # Debug print
+        flash(f"Error loading ads dashboard: {str(e)}", 'error')
+        return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/ads/<int:ad_id>')
+@require_admin_role
+def admin_ad_details(ad_id):
+    """View detailed information about a specific ad"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get ad details with vendor and product information
+            c.execute("""
+                SELECT sa.*, p.title as product_title, p.description, p.featured_image, p.price_usd,
+                       u.pusername as vendor_name, u.created_at as vendor_joined
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE sa.id = ?
+            """, (ad_id,))
+            ad = c.fetchone()
+            
+            if not ad:
+                flash("Ad not found.", 'error')
+                return redirect(url_for('admin.admin_ads'))
+            
+            ad = dict(ad)
+            
+            # Get daily performance data
+            c.execute("""
+                SELECT date, impression_count, click_count, cost
+                FROM ad_impressions
+                WHERE ad_id = ?
+                ORDER BY date DESC
+                LIMIT 30
+            """, (ad_id,))
+            daily_data = [dict(row) for row in c.fetchall()]
+            
+            # Calculate totals
+            total_impressions = sum(row['impression_count'] for row in daily_data)
+            total_clicks = sum(row['click_count'] for row in daily_data)
+            total_cost = sum(row['cost'] for row in daily_data)
+            ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+            
+            # Get vendor's other ads
+            c.execute("""
+                SELECT sa.*, p.title as product_title
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                WHERE sa.vendor_id = ? AND sa.id != ?
+                ORDER BY sa.created_at DESC
+                LIMIT 5
+            """, (ad['vendor_id'], ad_id))
+            vendor_other_ads = [dict(row) for row in c.fetchall()]
+            
+            return render_template('admin/ad_details.html',
+                                 ad=ad,
+                                 daily_data=daily_data,
+                                 total_impressions=total_impressions,
+                                 total_clicks=total_clicks,
+                                 total_cost=total_cost,
+                                 ctr=ctr,
+                                 vendor_other_ads=vendor_other_ads)
+                                 
+    except Exception as e:
+        flash(f"Error loading ad details: {str(e)}", 'error')
+        return redirect(url_for('admin.admin_ads'))
+
+@admin_bp.route('/ads/<int:ad_id>/edit', methods=['GET', 'POST'])
+@require_admin_role
+def admin_edit_ad(ad_id):
+    """Edit an ad campaign (admin can edit any ad)"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get ad details
+            c.execute("""
+                SELECT sa.*, p.title as product_title, u.pusername as vendor_name
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE sa.id = ?
+            """, (ad_id,))
+            ad = c.fetchone()
+            
+            if not ad:
+                flash("Ad not found.", 'error')
+                return redirect(url_for('admin.admin_ads'))
+            
+            ad = dict(ad)
+            
+            if request.method == 'POST':
+                # Get form data
+                bid_amount = request.form.get('bid_amount', type=float)
+                daily_budget = request.form.get('daily_budget', type=float)
+                status = request.form.get('status')
+                placement_type = request.form.get('placement_type')
+                
+                # Validation
+                if not all([bid_amount, daily_budget, status, placement_type]):
+                    flash("All fields are required.", 'error')
+                    return redirect(url_for('admin.admin_edit_ad', ad_id=ad_id))
+                
+                if status not in ['active', 'paused', 'ended']:
+                    flash("Invalid status.", 'error')
+                    return redirect(url_for('admin.admin_edit_ad', ad_id=ad_id))
+                
+                # Update ad
+                c.execute("""
+                    UPDATE sponsored_ads 
+                    SET bid_amount = ?, daily_budget = ?, status = ?, placement_type = ?
+                    WHERE id = ?
+                """, (bid_amount, daily_budget, status, placement_type, ad_id))
+                
+                conn.commit()
+                
+                # Log admin action
+                log_admin_action_encrypted(
+                    f"Admin edited ad {ad_id} for vendor {ad['vendor_name']}. "
+                    f"Changes: bid={bid_amount}, budget={daily_budget}, status={status}",
+                    session.get('username', 'admin'),
+                    None
+                )
+                
+                flash("Ad updated successfully!", 'success')
+                return redirect(url_for('admin.admin_ad_details', ad_id=ad_id))
+            
+            # GET request - show edit form
+            return render_template('admin/edit_ad.html', ad=ad)
+                                 
+    except Exception as e:
+        flash(f"Error editing ad: {str(e)}", 'error')
+        return redirect(url_for('admin.admin_ads'))
+
+@admin_bp.route('/ads/<int:ad_id>/delete', methods=['POST'])
+@require_admin_role
+def admin_delete_ad(ad_id):
+    """Delete an ad campaign (admin can delete any ad)"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get ad details for logging
+            c.execute("""
+                SELECT sa.*, u.pusername as vendor_name
+                FROM sponsored_ads sa
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE sa.id = ?
+            """, (ad_id,))
+            ad = c.fetchone()
+            
+            if not ad:
+                flash("Ad not found.", 'error')
+                return redirect(url_for('admin.admin_ads'))
+            
+            ad = dict(ad)
+            
+            # Calculate refund amount (unused budget)
+            total_spent = 0
+            c.execute("SELECT SUM(cost) FROM ad_impressions WHERE ad_id = ?", (ad_id,))
+            spent_result = c.fetchone()
+            if spent_result and spent_result[0]:
+                total_spent = spent_result[0]
+            
+            total_budget = ad['daily_budget'] * ad['duration_days']
+            refund_amount = total_budget - total_spent
+            
+            if refund_amount > 0:
+                # Refund unused budget to vendor
+                if ad['crypto_currency'] == 'BTC':
+                    c.execute("""
+                        UPDATE users SET balance_btc = balance_btc + ? WHERE id = ?
+                    """, (refund_amount, ad['vendor_id']))
+                else:
+                    c.execute("""
+                        UPDATE users SET balance_xmr = balance_xmr + ? WHERE id = ?
+                    """, (refund_amount, ad['vendor_id']))
+            
+            # Delete ad impressions
+            c.execute("DELETE FROM ad_impressions WHERE ad_id = ?", (ad_id,))
+            
+            # Delete the ad
+            c.execute("DELETE FROM sponsored_ads WHERE id = ?", (ad_id,))
+            
+            conn.commit()
+            
+            # Log admin action
+            log_admin_action_encrypted(
+                f"Admin deleted ad {ad_id} for vendor {ad['vendor_name']}. "
+                f"Refunded: {refund_amount} {ad['crypto_currency']}",
+                session.get('username', 'admin'),
+                None
+            )
+            
+            flash(f"Ad deleted successfully! Refunded {refund_amount:.6f} {ad['crypto_currency']} to vendor.", 'success')
+            
+    except Exception as e:
+        flash(f"Error deleting ad: {str(e)}", 'error')
+    
+    return redirect(url_for('admin.admin_ads'))
+
+@admin_bp.route('/ads/vendor/<int:vendor_id>')
+@require_admin_role
+def admin_vendor_ads(vendor_id):
+    """View all ads for a specific vendor"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get vendor information
+            c.execute("SELECT id, pusername, email, created_at FROM users WHERE id = ?", (vendor_id,))
+            vendor = c.fetchone()
+            
+            if not vendor:
+                flash("Vendor not found.", 'error')
+                return redirect(url_for('admin.admin_ads'))
+            
+            vendor = dict(vendor)
+            
+            # Get all ads for this vendor
+            c.execute("""
+                SELECT sa.*, p.title as product_title, p.featured_image, p.price_usd,
+                       (SELECT SUM(impression_count) FROM ad_impressions WHERE ad_id = sa.id) as total_impressions,
+                       (SELECT SUM(click_count) FROM ad_impressions WHERE ad_id = sa.id) as total_clicks,
+                       (SELECT SUM(cost) FROM ad_impressions WHERE ad_id = sa.id) as total_cost
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                WHERE sa.vendor_id = ?
+                ORDER BY sa.created_at DESC
+            """, (vendor_id,))
+            vendor_ads = [dict(row) for row in c.fetchall()]
+            
+            # Calculate vendor's ad statistics
+            total_ads = len(vendor_ads)
+            active_ads = len([ad for ad in vendor_ads if ad['status'] == 'active'])
+            total_spend = sum(ad['total_cost'] or 0 for ad in vendor_ads)
+            total_impressions = sum(ad['total_impressions'] or 0 for ad in vendor_ads)
+            total_clicks = sum(ad['total_clicks'] or 0 for ad in vendor_ads)
+            
+            # Get crypto prices
+            btc_price = get_btc_price()
+            xmr_price = get_xmr_price()
+            
+            return render_template('admin/vendor_ads.html',
+                                 vendor=vendor,
+                                 vendor_ads=vendor_ads,
+                                 total_ads=total_ads,
+                                 active_ads=active_ads,
+                                 total_spend=total_spend,
+                                 total_impressions=total_impressions,
+                                 total_clicks=total_clicks,
+                                 btc_price=btc_price,
+                                 xmr_price=xmr_price)
+                                 
+    except Exception as e:
+        flash(f"Error loading vendor ads: {str(e)}", 'error')
+        return redirect(url_for('admin.admin_ads'))
+
+@admin_bp.route('/ads/analytics')
+@require_admin_role
+def admin_ads_analytics():
+    """Overall ads analytics and reporting"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Get overall statistics
+            c.execute("SELECT COUNT(*) as total FROM sponsored_ads")
+            total_ads = c.fetchone()['total']
+            
+            c.execute("SELECT COUNT(*) as active FROM sponsored_ads WHERE status = 'active'")
+            active_ads = c.fetchone()['active']
+            
+            c.execute("SELECT SUM(cost) as total_spend FROM ad_impressions")
+            total_spend = c.fetchone()['total_spend'] or 0
+            
+            c.execute("SELECT SUM(impression_count) as total_impressions FROM ad_impressions")
+            total_impressions = c.fetchone()['total_impressions'] or 0
+            
+            c.execute("SELECT SUM(click_count) as total_clicks FROM ad_impressions")
+            total_clicks = c.fetchone()['total_clicks'] or 0
+            
+            # Calculate CTR
+            ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+            
+            # Get daily performance for last 30 days
+            c.execute("""
+                SELECT date, 
+                       SUM(impression_count) as impressions,
+                       SUM(click_count) as clicks,
+                       SUM(cost) as spend
+                FROM ad_impressions
+                WHERE date >= date('now', '-30 days')
+                GROUP BY date
+                ORDER BY date DESC
+            """)
+            daily_performance = [dict(row) for row in c.fetchall()]
+            
+            # Get top performing ads
+            c.execute("""
+                SELECT sa.id, sa.bid_amount, p.title as product_title, u.pusername as vendor_name,
+                       (SELECT SUM(impression_count) FROM ad_impressions WHERE ad_id = sa.id) as impressions,
+                       (SELECT SUM(click_count) FROM ad_impressions WHERE ad_id = sa.id) as clicks,
+                       (SELECT SUM(cost) FROM ad_impressions WHERE ad_id = sa.id) as spend
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE sa.status = 'active'
+                ORDER BY (SELECT SUM(click_count) FROM ad_impressions WHERE ad_id = sa.id) DESC
+                LIMIT 10
+            """)
+            top_ads = [dict(row) for row in c.fetchall()]
+            
+            # Get top spending vendors
+            c.execute("""
+                SELECT u.pusername as vendor_name,
+                       COUNT(sa.id) as total_ads,
+                       SUM(ai.cost) as total_spend
+                FROM sponsored_ads sa
+                JOIN users u ON sa.vendor_id = u.id
+                LEFT JOIN ad_impressions ai ON sa.id = ai.ad_id
+                GROUP BY sa.vendor_id, u.pusername
+                ORDER BY total_spend DESC
+                LIMIT 10
+            """)
+            top_vendors = [dict(row) for row in c.fetchall()]
+            
+            # Get crypto prices
+            btc_price = get_btc_price()
+            xmr_price = get_xmr_price()
+            
+            return render_template('admin/ads_analytics.html',
+                                 total_ads=total_ads,
+                                 active_ads=active_ads,
+                                 total_spend=total_spend,
+                                 total_impressions=total_impressions,
+                                 total_clicks=total_clicks,
+                                 ctr=ctr,
+                                 daily_performance=daily_performance,
+                                 top_ads=top_ads,
+                                 top_vendors=top_vendors,
+                                 btc_price=btc_price,
+                                 xmr_price=xmr_price)
+                                 
+    except Exception as e:
+        flash(f"Error loading analytics: {str(e)}", 'error')
+        return redirect(url_for('admin.admin_ads'))
 

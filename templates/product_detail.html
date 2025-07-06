@@ -108,12 +108,12 @@ product.get('category_id') else None}, {'label': product.title} ] %} {% include
           USD {{ '%.2f'|format(product.price_usd) }}</span
         >
         <span
-          class="bg-yellow-700 text-yellow-200 px-3 py-1 rounded-full font-semibold text-base flex items-center gap-1"
+          class="bg-yellow-700 text-yellow-200 px-3 py-1 rounded-full font-semibold text-sm flex items-center gap-1"
           ><img src="/static/images/btc.webp" class="w-5 h-5 inline-block" />
           BITCOIN {{ product.dynamic_price_btc|round(8) }}</span
         >
         <span
-          class="bg-gray-700 text-gray-200 px-3 py-1 rounded-full font-semibold text-base flex items-center gap-1"
+          class="bg-gray-700 text-gray-200 px-3 py-1 rounded-full font-semibold text-sm flex items-center gap-1"
           ><img src="/static/images/xmr.png" class="w-5 h-5 inline-block" />
           MONERO {{ product.dynamic_price_xmr|round(8) }}</span
         >

@@ -138,27 +138,16 @@ Sydney{% endblock %} {% block content %}
         class="bg-back rounded-lg border border-border hover:border-sydney transition-all duration-200 overflow-hidden"
       >
         <div class="relative h-48 overflow-hidden">
-          {% if product.first_image %}
           <a
             href="{{ url_for('public.product_detail', product_id=product.id) }}"
           >
             <img
-              src="{{ url_for('static', filename=product.first_image) }}"
+              src="/static/uploads/products/{{ product.featured_image|basename if product.featured_image else 'product-placeholder.png' }}"
               alt="{{ product.title }}"
               class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
             />
           </a>
-          {% else %}
-          <a
-            href="{{ url_for('public.product_detail', product_id=product.id) }}"
-          >
-            <div
-              class="w-full h-full bg-gray-700 flex items-center justify-center"
-            >
-              <span class="text-gray-500 text-4xl">📦</span>
-            </div>
-          </a>
-          {% endif %} {% if product.stock <= 5 and product.stock > 0 %}
+          {% if product.stock <= 5 and product.stock > 0 %}
           <div
             class="absolute top-2 right-2 bg-yellow-500 text-black text-xs px-2 py-1 rounded-full font-semibold"
           >

@@ -1,0 +1,359 @@
+{% extends 'user/user_base.html' %} {% block title %}Create Ad Campaign - {{
+settings['site_name'] }}{% endblock %} {% block user_content %}
+<div class="container mx-auto p-6 max-w-4xl">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-white">Create New Ad Campaign</h1>
+    <a
+      href="{{ url_for('ads.ads_dashboard') }}"
+      class="text-gray-400 hover:text-white"
+    >
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mb-6">
+    {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+
+  <form method="POST" class="space-y-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <!-- Product Selection -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">1. Select Product</h2>
+      <p class="text-gray-400 mb-6">
+        Choose which product you want to advertise. Only active products with
+        stock are eligible.
+      </p>
+
+      {% if products %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for product in products %}
+        <label class="relative cursor-pointer">
+          <input
+            type="radio"
+            name="product_id"
+            value="{{ product.id }}"
+            class="sr-only"
+            required
+          />
+          <div
+            class="border-2 border-border rounded-lg p-4 hover:border-yellow-500 transition peer-checked:border-yellow-500"
+          >
+            <div class="flex items-center">
+              {% if product.featured_image %}
+              <img
+                src="{{ url_for('static', filename=product.featured_image) }}"
+                class="w-16 h-16 object-cover rounded mr-4"
+              />
+              {% else %}
+              <div
+                class="w-16 h-16 bg-gray-700 rounded mr-4 flex items-center justify-center"
+              >
+                <svg
+                  class="w-8 h-8 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  ></path>
+                </svg>
+              </div>
+              {% endif %}
+              <div>
+                <h3 class="text-white font-semibold">{{ product.title }}</h3>
+                <p class="text-gray-400 text-sm">
+                  ${{ "%.2f"|format(product.price_usd) }} • Stock: {{
+                  product.stock }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-8">
+        <svg
+          class="w-16 h-16 text-gray-600 mx-auto mb-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+          ></path>
+        </svg>
+        <p class="text-gray-400 mb-4">No eligible products found</p>
+        <p class="text-gray-500 text-sm">
+          You need active products with stock to create ads
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Placement Selection -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">2. Choose Placement</h2>
+      <p class="text-gray-400 mb-6">
+        Select where you want your ad to appear and for how long.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for placement_key, placement in ad_placements.items() %}
+        <label class="relative cursor-pointer">
+          <input
+            type="radio"
+            name="placement_type"
+            value="{{ placement_key }}"
+            class="sr-only"
+            required
+          />
+          <div
+            class="border-2 border-border rounded-lg p-6 hover:border-yellow-500 transition peer-checked:border-yellow-500"
+          >
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-white font-semibold">{{ placement.name }}</h3>
+              <span class="text-yellow-400 font-bold">
+                {{ "%.6f"|format(placement.base_cost_btc) }} BTC
+              </span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">
+              {{ placement.description }}
+            </p>
+            <div class="flex justify-between text-xs text-gray-500">
+              <span>Max Duration: {{ placement.max_duration_days }} days</span>
+              <span>Priority: {{ placement.priority }}</span>
+            </div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Campaign Settings -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">3. Campaign Settings</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bid Amount -->
+        <div>
+          <label for="bid_amount" class="block text-white font-semibold mb-2"
+            >Bid Amount</label
+          >
+          <p class="text-gray-400 text-sm mb-3">
+            How much you're willing to pay per impression
+          </p>
+          <div class="relative">
+            <input
+              type="number"
+              id="bid_amount"
+              name="bid_amount"
+              step="0.000001"
+              min="0.000001"
+              class="w-full px-4 py-3 bg-back border border-border rounded-lg text-white focus:border-yellow-500 focus:outline-none"
+              placeholder="0.000100"
+              required
+            />
+            <div class="absolute right-3 top-3 text-gray-400">
+              <span id="bid_currency">BTC</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Budget -->
+        <div>
+          <label for="daily_budget" class="block text-white font-semibold mb-2"
+            >Daily Budget</label
+          >
+          <p class="text-gray-400 text-sm mb-3">
+            Maximum amount to spend per day
+          </p>
+          <div class="relative">
+            <input
+              type="number"
+              id="daily_budget"
+              name="daily_budget"
+              step="0.000001"
+              min="0.000001"
+              class="w-full px-4 py-3 bg-back border border-border rounded-lg text-white focus:border-yellow-500 focus:outline-none"
+              placeholder="0.001000"
+              required
+            />
+            <div class="absolute right-3 top-3 text-gray-400">
+              <span id="budget_currency">BTC</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div>
+          <label for="duration_days" class="block text-white font-semibold mb-2"
+            >Campaign Duration</label
+          >
+          <p class="text-gray-400 text-sm mb-3">
+            How long your campaign will run (days)
+          </p>
+          <input
+            type="number"
+            id="duration_days"
+            name="duration_days"
+            min="1"
+            max="30"
+            class="w-full px-4 py-3 bg-back border border-border rounded-lg text-white focus:border-yellow-500 focus:outline-none"
+            placeholder="7"
+            required
+          />
+        </div>
+
+        <!-- Cryptocurrency -->
+        <div>
+          <label
+            for="crypto_currency"
+            class="block text-white font-semibold mb-2"
+            >Payment Currency</label
+          >
+          <p class="text-gray-400 text-sm mb-3">
+            Choose your preferred cryptocurrency
+          </p>
+          <select
+            id="crypto_currency"
+            name="crypto_currency"
+            class="w-full px-4 py-3 bg-back border border-border rounded-lg text-white focus:border-yellow-500 focus:outline-none"
+          >
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="XMR">Monero (XMR)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Summary -->
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <h2 class="text-xl font-bold text-white mb-4">4. Budget Summary</h2>
+
+      <div class="bg-back rounded-lg p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div>
+            <p class="text-gray-400 text-sm">Daily Budget</p>
+            <p class="text-white font-bold text-lg" id="summary_daily">
+              0.000000 BTC
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-400 text-sm">Total Budget</p>
+            <p class="text-white font-bold text-lg" id="summary_total">
+              0.000000 BTC
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-400 text-sm">Your Balance</p>
+            <p class="text-white font-bold text-lg" id="summary_balance">
+              {{ "%.6f"|format(user_balance.balance_btc if user_balance and
+              user_balance.balance_btc else 0.0) }} BTC
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="mt-4 p-3 bg-yellow-900 bg-opacity-20 border border-yellow-700 rounded-lg"
+        >
+          <p class="text-yellow-400 text-sm">
+            <strong>Note:</strong> The total budget will be deducted from your
+            wallet immediately. Any unused funds will be refunded when the
+            campaign ends.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="flex justify-end gap-4">
+      <a
+        href="{{ url_for('ads.ads_dashboard') }}"
+        class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+      >
+        Cancel
+      </a>
+      <button
+        type="submit"
+        class="px-6 py-3 bg-yellow-600 text-gray-900 font-semibold rounded-lg hover:bg-yellow-500 transition"
+      >
+        Create Campaign
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const cryptoSelect = document.getElementById('crypto_currency');
+      const bidAmount = document.getElementById('bid_amount');
+      const dailyBudget = document.getElementById('daily_budget');
+      const durationDays = document.getElementById('duration_days');
+      const bidCurrency = document.getElementById('bid_currency');
+      const budgetCurrency = document.getElementById('budget_currency');
+      const summaryDaily = document.getElementById('summary_daily');
+      const summaryTotal = document.getElementById('summary_total');
+      const summaryBalance = document.getElementById('summary_balance');
+
+      // User balances
+      const balances = {
+          BTC: {{ user_balance.balance_btc if user_balance and user_balance.balance_btc else 0.0 }},
+          XMR: {{ user_balance.balance_xmr if user_balance and user_balance.balance_xmr else 0.0 }}
+      };
+
+      function updateCurrency() {
+          const currency = cryptoSelect.value;
+          bidCurrency.textContent = currency;
+          budgetCurrency.textContent = currency;
+          summaryBalance.textContent = `${balances[currency].toFixed(6)} ${currency}`;
+          updateSummary();
+      }
+
+      function updateSummary() {
+          const daily = parseFloat(dailyBudget.value) || 0;
+          const duration = parseInt(durationDays.value) || 0;
+          const currency = cryptoSelect.value;
+
+          const total = daily * duration;
+
+          summaryDaily.textContent = `${daily.toFixed(6)} ${currency}`;
+          summaryTotal.textContent = `${total.toFixed(6)} ${currency}`;
+
+          // Check if user has sufficient balance
+          if (total > balances[currency]) {
+              summaryTotal.classList.add('text-red-400');
+          } else {
+              summaryTotal.classList.remove('text-red-400');
+          }
+      }
+
+      // Event listeners
+      cryptoSelect.addEventListener('change', updateCurrency);
+      dailyBudget.addEventListener('input', updateSummary);
+      durationDays.addEventListener('input', updateSummary);
+
+      // Initialize
+      updateCurrency();
+  });
+</script>
+{% endblock %}

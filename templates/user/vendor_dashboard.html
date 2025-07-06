@@ -2,13 +2,11 @@
 settings['site_name'] }}{% endblock %} {% block user_content %}
 <style>
   .bg-cardyy {
-    background-color: #182747FF !important;
-}
+    background-color: #182747ff !important;
+  }
 </style>
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-xl font-bold text-white  mb-6">
-    Business Account
-  </h1>
+  <h1 class="text-xl font-bold text-white mb-6">Business Account</h1>
 
   <!-- Vendor Profile Header -->
   <div
@@ -40,7 +38,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
     </div>
     {% endif %}
     <div>
-      <p class="text-2xl font-semibold text-blue-500  dark:text-gray-100">
+      <p class="text-2xl font-semibold text-blue-500 dark:text-gray-100">
         {{ vendor_name }}
       </p>
       <ul class="text-md text-gray-700 dark:text-gray-300 mt-2">
@@ -84,7 +82,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
       <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
         Total Shipped
       </h2>
-      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+      <p class="text-3xl font-bold text-blue-500 dark:text-gray-100 mt-2">
         {{ stats.total_shipped }}
       </p>
     </div>
@@ -92,7 +90,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
       <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
         Total Sales
       </h2>
-      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+      <p class="text-3xl font-bold text-blue-500 dark:text-gray-100 mt-2">
         {{ stats.total_sales }}
       </p>
     </div>
@@ -100,7 +98,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
       <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">
         Revenue
       </h2>
-      <p class="text-3xl font-bold text-blue-500  dark:text-gray-100 mt-2">
+      <p class="text-3xl font-bold text-blue-500 dark:text-gray-100 mt-2">
         ${{ "%.2f"|format(stats.revenue) }}
       </p>
     </div>
@@ -108,7 +106,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
   <!-- Recent Orders -->
   <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+    <h2 class="text-xl font-semibold text-blue-500 dark:text-gray-100 mb-4">
       Recent Orders
     </h2>
     {% if recent_orders %}
@@ -133,7 +131,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
   <!-- Recent Reviews -->
   <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+    <h2 class="text-xl font-semibold text-blue-500 dark:text-gray-100 mb-4">
       Recent Reviews
     </h2>
     {% if recent_reviews %}
@@ -157,7 +155,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
   <!-- Recent Messages -->
   <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md">
-    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+    <h2 class="text-xl font-semibold text-blue-500 dark:text-gray-100 mb-4">
       Recent Messages
     </h2>
     {% if recent_messages %}
@@ -180,7 +178,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
   <!-- Vendor Actions -->
   <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+    <h2 class="text-xl font-semibold text-blue-500 dark:text-gray-100 mb-4">
       Vendor Actions
     </h2>
     <div class="flex flex-wrap gap-4">
@@ -196,6 +194,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
       <a href="{{ url_for('vendor.vendor_reviews') }}" class="bstd"
         >Manage Reviews</a
       >
+      <a href="{{ url_for('ads.ads_dashboard') }}" class="bstd">Advertising</a>
       <a href="{{ url_for('user.wallet') }}" class="bstd">Withdraw Funds</a>
       <a href="{{ url_for('vendor.business_details') }}" class="bstd"
         >Business Details</a
@@ -205,7 +204,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
 
   <!-- Vendor Analytics -->
   <div class="bg-cardy dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-    <h2 class="text-xl font-semibold text-blue-500  dark:text-gray-100 mb-4">
+    <h2 class="text-xl font-semibold text-blue-500 dark:text-gray-100 mb-4">
       Analytics
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -213,7 +212,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
           Order Completion Rate
         </h3>
-        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+        <p class="text-2xl font-bold text-blue-500 dark:text-gray-100">
           {{ stats.completion_rate|default('N/A') }}%
         </p>
       </div>
@@ -221,7 +220,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
           Average Rating
         </h3>
-        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+        <p class="text-2xl font-bold text-blue-500 dark:text-gray-100">
           {{ stats.avg_rating|default('N/A') }}/5
         </p>
       </div>
@@ -229,7 +228,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
           Revenue (30d)
         </h3>
-        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+        <p class="text-2xl font-bold text-blue-500 dark:text-gray-100">
           ${{ stats.revenue_30d|default('0.00') }}
         </p>
       </div>
@@ -237,7 +236,7 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
         <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300">
           Conversion Rate
         </h3>
-        <p class="text-2xl font-bold text-blue-500  dark:text-gray-100">
+        <p class="text-2xl font-bold text-blue-500 dark:text-gray-100">
           {{ stats.conversion_rate|default('N/A') }}%
         </p>
       </div>

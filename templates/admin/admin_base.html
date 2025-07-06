@@ -28,7 +28,7 @@
       .container {
         max-width: 1280px
       }
-      .bg-primary { background-color: var(--primary-color) !important; }
+      .bg-primary { background-color: var(--secondary-color) !important; }
         .text-primary { color: var(--primary-color); }
         .bg-secondary { background-color: var(--secondary-color); }
         .text-secondary { color: var(--secondary-color); }
@@ -46,6 +46,7 @@
           max-width: 320px;
           height: 100vh !important;
           top: 0 !important;
+          overflow: scroll;
           left: 0;
           z-index: 30;
           background: var(--primary-color);
@@ -107,7 +108,7 @@
     <!-- Sidebar -->
     <aside
       id="adminSidebar"
-      class="fixed top-0 left-0 w-64 h-screen bg-primary text-white p-4 z-40 transform transition-transform duration-300 md:translate-x-0 -translate-x-full md:block"
+      class="fixed top-0 left-0 w-64 h-screen bg-primary overflow-y-scroll text-white p-4 z-40 transform transition-transform duration-300 md:translate-x-0 -translate-x-full md:block"
     >
       <nav>
         <ul class="space-y-2">
@@ -197,6 +198,13 @@
               class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
               ><i class="fas fa-money-check-alt w-5 text-center"></i>
               Withdrawals</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('admin.admin_ads') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-ad w-5 text-center"></i> Advertising</a
             >
           </li>
           <li>

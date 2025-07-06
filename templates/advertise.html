@@ -1,106 +1,771 @@
 <!-- templates/advertise.html -->
-{% extends 'base.html' %}
+{% extends 'base.html' %} {% block title %}Advertise Your Products - {{
+settings['site_name'] }}{% endblock %} {% block content %}
+<div class="min-h-screen bg-cards">
+  <!-- Hero Section -->
+  <section
+    class="relative bg-gradient-to-r from-primary to-primary/80 text-white py-20 overflow-hidden"
+  >
+    <div class="absolute inset-0 bg-black/10"></div>
+    <div class="relative max-w-7xl mx-auto px-6 text-center">
+      <div class="mb-8">
+        <div
+          class="inline-flex items-center px-4 py-2 bg-card/20 rounded-full text-sm font-medium mb-6"
+        >
+          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+            />
+          </svg>
+          Trusted by 500+ Vendors
+        </div>
+        <h1 class="text-2xl md:text-2xl font-bold leading-tight mb-6 text-green-500">
+          Boost Your Sales with
+          <span class="text-yellow-300">Sponsored Ads</span>
+        </h1>
+        <p
+          class="text-lg md:text-sm text-white/90 max-w-3xl mx-auto leading-relaxed"
+        >
+          Reach thousands of buyers actively searching for products like yours.
+          Pay only for clicks, not impressions. Start with as little as 0.001
+          BTC.
+        </p>
+      </div>
 
-{% block title %}Advertise Your Products - {{ settings['site_name'] }}{% endblock %}
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <a
+          href="{{ url_for('ads.ads_dashboard') }}"
+          class="inline-flex items-center px-8 py-4 bg-yellow-400 text-gray-200 font-bold text-lg rounded-lg hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-lg"
+        >
+          <svg
+            class="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+          Start Advertising Now
+        </a>
+        <a
+          href="#how-it-works"
+          class="inline-flex items-center px-6 py-3 border-2 border-white/30 text-white font-medium rounded-lg hover:bg-card/10 transition"
+        >
+          <svg
+            class="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
+          </svg>
+          Learn More
+        </a>
+      </div>
 
-{% block content %}
-<div class="container mx-auto px-4 py-12">
-    <!-- Hero Section -->
-    <section class="text-center mb-16">
-        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Advertise Your Products</h1>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">Boost your sales by sponsoring your products on {{ settings['site_name'] }}. Reach more customers with our powerful ads system.</p>
-        <svg class="h-16 w-16 text-primary mx-auto mt-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-    </section>
+      <!-- Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">15,000+</div>
+          <div class="text-white/80">Daily Active Buyers</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">3.2x</div>
+          <div class="text-white/80">Average Sales Increase</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">0.001 BTC</div>
+          <div class="text-white/80">Minimum Budget</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- How It Works Section -->
-    <section class="mb-16">
-        <h2 class="text-3xl font-semibold text-gray-900 mb-8 text-center">How Our Ads System Works</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Step 1 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3-16H9" />
-                </svg>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">1. Fund Your Wallet</h3>
-                <p class="text-gray-600">Deposit BTC into your unique wallet address. Your balance funds your ad campaigns.</p>
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="py-20 bg-card">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold text-gray-200 mb-4">
+          How Our Advertising System Works
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          A simple, transparent process designed to maximize your ROI while
+          maintaining full control over your advertising spend.
+        </p>
+      </div>
+
+      <div class="grid gap-8 md:grid-cols-4">
+        <!-- Step 1 -->
+        <div class="relative">
+          <div
+            class="bg-gradient-to-br from-primary to-primary/80 text-white rounded-2xl p-8 text-center h-full"
+          >
+            <div
+              class="w-16 h-16 bg-card/20 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <span class="text-2xl font-bold">1</span>
             </div>
-            <!-- Step 2 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01" />
-                </svg>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">2. Create Your Ad</h3>
-                <p class="text-gray-600">Choose a product, set a bid (BTC per click), and define a daily budget. Higher bids get better placement.</p>
+            <h3 class="text-xl font-bold mb-4">Fund Your Wallet</h3>
+            <p class="text-white/90 leading-relaxed">
+              Deposit Bitcoin into your secure advertising wallet. Minimum
+              deposit: 0.001 BTC. Your funds are held securely and only used for
+              your campaigns.
+            </p>
+            <div class="mt-6 p-4 bg-card/10 rounded-lg">
+              <div class="text-sm text-white/80 mb-1">
+                Recommended Starting Amount
+              </div>
+              <div class="text-lg font-bold">0.05 BTC</div>
             </div>
-            <!-- Step 3 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">3. Reach Customers</h3>
-                <p class="text-gray-600">Your product appears as a sponsored listing. Pay only when customers click, up to your daily budget.</p>
-            </div>
+          </div>
         </div>
 
-        <!-- Example -->
-        <div class="mt-12 bg-gray-100 p-6 rounded-lg">
-            <h3 class="text-xl font-semibold text-gray-900 mb-4">Example</h3>
-            <p class="text-gray-700 mb-2">Imagine you sell a "Crypto Gadget" for 0.01 BTC. You deposit 0.05 BTC into your wallet, then create an ad with:</p>
-            <ul class="list-disc list-inside text-gray-700 mb-4">
-                <li>Bid: 0.001 BTC per click</li>
-                <li>Daily Budget: 0.01 BTC</li>
-            </ul>
-            <p class="text-gray-700">Your gadget appears at the top of the "Electronics" category. If 10 customers click it in a day, you spend 0.01 BTC, hitting your budget. Your product stays visible until the budget is exhausted, driving more sales!</p>
+        <!-- Step 2 -->
+        <div class="relative">
+          <div
+            class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl p-8 text-center h-full"
+          >
+            <div
+              class="w-16 h-16 bg-card/20 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <span class="text-2xl font-bold">2</span>
+            </div>
+            <h3 class="text-xl font-bold mb-4">Create Campaign</h3>
+            <p class="text-white/90 leading-relaxed">
+              Select your product, set your bid per click, daily budget, and
+              target categories. Our system optimizes placement based on your
+              settings.
+            </p>
+            <div class="mt-6 p-4 bg-card/10 rounded-lg">
+              <div class="text-sm text-white/80 mb-1">Typical Bid Range</div>
+              <div class="text-lg font-bold">0.0001 - 0.001 BTC</div>
+            </div>
+          </div>
         </div>
-    </section>
 
-    <!-- Advantages Section -->
-    <section class="mb-16">
-        <h2 class="text-3xl font-semibold text-gray-900 mb-8 text-center">Advantages of Advertising With Us</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <!-- Advantage 1 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Increased Visibility</h3>
-                <p class="text-gray-600 text-sm">Sponsored products appear at the top, grabbing attention from more buyers.</p>
+        <!-- Step 3 -->
+        <div class="relative">
+          <div
+            class="bg-gradient-to-br from-green-600 to-green-700 text-white rounded-2xl p-8 text-center h-full"
+          >
+            <div
+              class="w-16 h-16 bg-card/20 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <span class="text-2xl font-bold">3</span>
             </div>
-            <!-- Advantage 2 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 8c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Pay-Per-Click Control</h3>
-                <p class="text-gray-600 text-sm">Only pay when customers click, with full control over your budget and bids.</p>
+            <h3 class="text-xl font-bold mb-4">Get Visibility</h3>
+            <p class="text-white/90 leading-relaxed">
+              Your product appears as a sponsored listing at the top of search
+              results and category pages. Only pay when customers click on your
+              ad.
+            </p>
+            <div class="mt-6 p-4 bg-card/10 rounded-lg">
+              <div class="text-sm text-white/80 mb-1">Average CTR</div>
+              <div class="text-lg font-bold">2.4%</div>
             </div>
-            <!-- Advantage 3 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Secure BTC Payments</h3>
-                <p class="text-gray-600 text-sm">Fund your ads with Bitcoin, processed securely and credited instantly via our system.</p>
-            </div>
-            <!-- Advantage 4 -->
-            <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <svg class="h-12 w-12 text-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Targeted Reach</h3>
-                <p class="text-gray-600 text-sm">Your ads appear in relevant categories, connecting you with interested buyers.</p>
-            </div>
+          </div>
         </div>
-    </section>
 
-    <!-- Call to Action -->
-    <section class="text-center bg-primary text-gray-900 py-12 rounded-lg">
-        <h2 class="text-2xl font-semibold mb-4">Start Advertising Today</h2>
-        <p class="text-lg mb-6">Ready to grow your sales? Sign up as a vendor and sponsor your products now!</p>
-        <a href="{{ url_for('vendor_ads') }}" class="inline-block bg-white text-primary font-semibold py-3 px-6 rounded-md hover:bg-gray-100 transition duration-200">Get Started</a>
-    </section>
+        <!-- Step 4 -->
+        <div class="relative">
+          <div
+            class="bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-2xl p-8 text-center h-full"
+          >
+            <div
+              class="w-16 h-16 bg-card/20 rounded-full flex items-center justify-center mx-auto mb-6"
+            >
+              <span class="text-2xl font-bold">4</span>
+            </div>
+            <h3 class="text-xl font-bold mb-4">Track & Optimize</h3>
+            <p class="text-white/90 leading-relaxed">
+              Monitor your campaign performance in real-time. Adjust bids,
+              budgets, and targeting to maximize your return on investment.
+            </p>
+            <div class="mt-6 p-4 bg-card/10 rounded-lg">
+              <div class="text-sm text-white/80 mb-1">Real-time Analytics</div>
+              <div class="text-lg font-bold">24/7</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detailed Example Section -->
+  <section class="py-20 bg-transparent">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold text-gray-200 mb-4">
+          Real Campaign Example
+        </h2>
+        <p class="text-xl text-gray-600">
+          See exactly how a successful campaign works from start to finish
+        </p>
+      </div>
+
+      <div class="bg-card rounded-2xl shadow-xl overflow-hidden">
+        <div class="bg-gradient-to-r from-primary to-primary/80 text-white p-8">
+          <h3 class="text-2xl font-bold mb-2">
+            Vendor Success Story: "Crypto Gadget Pro"
+          </h3>
+          <p class="text-white/90">
+            How one vendor increased sales by 340% in 30 days
+          </p>
+        </div>
+
+        <div class="p-8">
+          <div class="grid md:grid-cols-2 gap-8">
+            <!-- Campaign Setup -->
+            <div>
+              <h4 class="text-xl font-bold text-gray-200 mb-4">
+                Campaign Setup
+              </h4>
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between items-center p-4 bg-gray-700 rounded-lg"
+                >
+                  <span class="font-medium">Product:</span>
+                  <span class="text-primary font-bold">Crypto Gadget Pro</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-gray-700 rounded-lg"
+                >
+                  <span class="font-medium">Product Price:</span>
+                  <span class="text-green-600 font-bold">0.025 BTC</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-gray-700 rounded-lg"
+                >
+                  <span class="font-medium">Bid Per Click:</span>
+                  <span class="text-blue-600 font-bold">0.0005 BTC</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-gray-700 rounded-lg"
+                >
+                  <span class="font-medium">Daily Budget:</span>
+                  <span class="text-purple-600 font-bold">0.01 BTC</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-gray-700 rounded-lg"
+                >
+                  <span class="font-medium">Target Categories:</span>
+                  <span class="text-gray-700">Electronics, Gadgets</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Results -->
+            <div>
+              <h4 class="text-xl font-bold text-gray-200 mb-4">
+                30-Day Results
+              </h4>
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between items-center p-4 bg-green-50 rounded-lg border-l-4 border-green-500"
+                >
+                  <span class="font-medium">Total Clicks:</span>
+                  <span class="text-green-600 font-bold">1,247</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
+                >
+                  <span class="font-medium">Total Spent:</span>
+                  <span class="text-blue-600 font-bold">0.6235 BTC</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500"
+                >
+                  <span class="font-medium">Conversions:</span>
+                  <span class="text-purple-600 font-bold">89 Sales</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500"
+                >
+                  <span class="font-medium">Revenue:</span>
+                  <span class="text-yellow-600 font-bold">2.225 BTC</span>
+                </div>
+                <div
+                  class="flex justify-between items-center p-4 bg-primary/10 rounded-lg border-l-4 border-primary"
+                >
+                  <span class="font-medium">ROI:</span>
+                  <span class="text-primary font-bold">+257%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key Insights -->
+          <div
+            class="mt-8 p-6 bg-gradient-to-r from-gray-700 to-gray-100 rounded-xl"
+          >
+            <h4 class="text-lg font-bold text-gray-200 mb-4">Key Insights</h4>
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="text-center">
+                <div class="text-2xl font-bold text-primary mb-1">7.1%</div>
+                <div class="text-sm text-gray-600">Conversion Rate</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-primary mb-1">
+                  0.0005 BTC
+                </div>
+                <div class="text-sm text-gray-600">Cost Per Click</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-bold text-primary mb-1">
+                  0.007 BTC
+                </div>
+                <div class="text-sm text-gray-600">Cost Per Sale</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing & Features -->
+  <section class="py-20 bg-card">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold text-gray-200 mb-4">
+          Transparent Pricing & Features
+        </h2>
+        <p class="text-xl text-gray-600">
+          No hidden fees, no surprises. Only pay for actual clicks.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Basic Plan -->
+        <div
+          class="bg-card border-2 border-gray-200 rounded-2xl p-8 hover:border-primary transition-all"
+        >
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold text-gray-200 mb-2">Starter</h3>
+            <div class="text-4xl font-bold text-primary mb-2">0.001 BTC</div>
+            <div class="text-gray-600">Minimum Budget</div>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Up to 3 active campaigns
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Basic analytics
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Category targeting
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Email support
+            </li>
+          </ul>
+
+          <a
+            href="{{ url_for('ads.ads_dashboard') }}"
+            class="w-full bg-gray-100 text-gray-200 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition text-center block"
+          >
+            Get Started
+          </a>
+        </div>
+
+        <!-- Pro Plan -->
+        <div
+          class="bg-gradient-to-br from-primary to-primary/80 text-white rounded-2xl p-8 transform scale-105 shadow-xl"
+        >
+          <div class="text-center mb-8">
+            <div
+              class="inline-block bg-yellow-400 text-gray-200 px-3 py-1 rounded-full text-sm font-bold mb-4"
+            >
+              MOST POPULAR
+            </div>
+            <h3 class="text-2xl font-bold mb-2">Professional</h3>
+            <div class="text-4xl font-bold mb-2">0.01 BTC</div>
+            <div class="text-white/80">Recommended Budget</div>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-yellow-300 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Up to 10 active campaigns
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-yellow-300 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Advanced analytics & reporting
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-yellow-300 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Priority placement
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-yellow-300 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              A/B testing tools
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-yellow-300 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Priority support
+            </li>
+          </ul>
+
+          <a
+            href="{{ url_for('ads.ads_dashboard') }}"
+            class="w-full bg-yellow-400 text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-yellow-300 transition text-center block"
+          >
+            Start Professional
+          </a>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div
+          class="bg-card border-2 border-gray-200 rounded-2xl p-8 hover:border-primary transition-all"
+        >
+          <div class="text-center mb-8">
+            <h3 class="text-2xl font-bold text-gray-200 mb-2">Enterprise</h3>
+            <div class="text-4xl font-bold text-primary mb-2">0.1 BTC+</div>
+            <div class="text-gray-600">High Volume</div>
+          </div>
+
+          <ul class="space-y-4 mb-8">
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Unlimited campaigns
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Custom reporting
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Dedicated account manager
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              API access
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-5 h-5 text-green-500 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              24/7 phone support
+            </li>
+          </ul>
+
+          <a
+            href="{{ url_for('ads.ads_dashboard') }}"
+            class="w-full bg-gray-100 text-gray-200 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition text-center block"
+          >
+            Contact Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-20 bg-gray-700">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold text-gray-200 mb-4">
+          Frequently Asked Questions
+        </h2>
+        <p class="text-xl text-gray-600">
+          Everything you need to know about advertising on {{
+          settings['site_name'] }}
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            How much should I bid per click?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            Bids typically range from 0.0001 to 0.001 BTC per click, depending
+            on your product category and competition. Start with a moderate bid
+            (0.0005 BTC) and adjust based on performance. Higher bids increase
+            your ad's visibility and placement position.
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            What's the minimum budget I need?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            The minimum budget is 0.001 BTC, but we recommend starting with at
+            least 0.01 BTC for meaningful results. This gives you enough clicks
+            to gather data and optimize your campaign effectively.
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            How do I know if my campaign is working?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            Track your campaign's click-through rate (CTR), conversion rate, and
+            cost per acquisition (CPA). A good CTR is 2-5%, and you should aim
+            for a CPA that's 20-30% of your product price for profitability.
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            Can I pause or stop my campaign anytime?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            Yes! You have full control over your campaigns. You can pause,
+            resume, or stop them at any time. Unused budget remains in your
+            advertising wallet and can be used for future campaigns or
+            withdrawn.
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            What happens if I run out of budget?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            When your daily budget is reached, your ad stops showing for that
+            day. It automatically resumes the next day if you have sufficient
+            funds. You can also increase your budget mid-campaign to continue
+            advertising.
+          </p>
+        </div>
+
+        <div class="bg-card rounded-xl p-6 shadow-sm">
+          <h3 class="text-lg font-bold text-gray-200 mb-3">
+            How do I get the best ROI from my ads?
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            Focus on high-quality product images, compelling descriptions,
+            competitive pricing, and target relevant categories. Monitor your
+            analytics regularly and adjust bids based on performance. Consider
+            A/B testing different ad creatives.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA Section -->
+  <section class="py-20 bg-gradient-to-r from-primary to-primary/80 text-white">
+    <div class="max-w-4xl mx-auto px-6 text-center">
+      <h2 class="text-xl text-white font-bold mb-6">Ready to Boost Your Sales?</h2>
+      <p class="text-sm text-white/90 mb-8 leading-relaxed">
+        Join hundreds of successful vendors who've increased their sales by an
+        average of 320% using our advertising platform. Start your first
+        campaign in under 5 minutes.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <a
+          href="{{ url_for('ads.ads_dashboard') }}"
+          class="inline-flex items-center px-8 py-4 bg-yellow-400 text-gray-200 font-bold text-lg rounded-lg hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-lg"
+        >
+          <svg
+            class="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+          Start Advertising Now
+        </a>
+        <a
+          href="{{ url_for('ads.ads_dashboard') }}"
+          class="inline-flex items-center px-6 py-3 border-2 border-white/30 text-white font-medium rounded-lg hover:bg-card/10 transition"
+        >
+          <svg
+            class="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          View Dashboard
+        </a>
+      </div>
+
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">5 min</div>
+          <div class="text-white/80">Setup Time</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">0%</div>
+          <div class="text-white/80">Platform Fees</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold text-yellow-300 mb-2">24/7</div>
+          <div class="text-white/80">Support Available</div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}

@@ -1,0 +1,269 @@
+{% extends 'admin/admin_base.html' %} {% block title %}Vendor Ads - {{
+settings['site_name'] }}{% endblock %} {% block admin_content %}
+<div class="container mx-auto p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-white">
+      Vendor Ads: {{ vendor.pusername }}
+    </h1>
+    <a
+      href="{{ url_for('admin.admin_ads') }}"
+      class="text-gray-400 hover:text-white"
+    >
+      ← Back to All Ads
+    </a>
+  </div>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mb-6">
+    {% for category, message in messages %}
+    <div
+      class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}"
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+
+  <!-- Vendor Information -->
+  <div class="bg-card rounded-lg p-6 border border-border mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <h3 class="text-lg font-bold text-white mb-2">Vendor Details</h3>
+        <div class="space-y-2 text-gray-300">
+          <p><strong>Username:</strong> {{ vendor.pusername }}</p>
+          <p><strong>Email:</strong> {{ vendor.email }}</p>
+          <p>
+            <strong>Joined:</strong> {{ vendor.created_at.split(' ')[0] if
+            vendor.created_at else 'N/A' }}
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-white mb-2">Ad Statistics</h3>
+        <div class="space-y-2 text-gray-300">
+          <p><strong>Total Ads:</strong> {{ total_ads }}</p>
+          <p><strong>Active Ads:</strong> {{ active_ads }}</p>
+          <p>
+            <strong>Total Spend:</strong> ${{ "%.2f"|format(total_spend *
+            btc_price) }}
+          </p>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-white mb-2">Performance</h3>
+        <div class="space-y-2 text-gray-300">
+          <p><strong>Total Impressions:</strong> {{ total_impressions }}</p>
+          <p><strong>Total Clicks:</strong> {{ total_clicks }}</p>
+          <p>
+            <strong>Average CTR:</strong>
+            {% set avg_ctr = (total_clicks / total_impressions * 100) if
+            total_impressions > 0 else 0 %} {{ "%.2f"|format(avg_ctr) }}%
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Overview -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-blue-400 mb-2">{{ total_ads }}</div>
+        <div class="text-gray-400">Total Campaigns</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-green-400 mb-2">
+          {{ active_ads }}
+        </div>
+        <div class="text-gray-400">Active Campaigns</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-yellow-400 mb-2">
+          ${{ "%.2f"|format(total_spend * btc_price) }}
+        </div>
+        <div class="text-gray-400">Total Spent (USD)</div>
+      </div>
+    </div>
+    <div class="bg-card rounded-lg p-6 border border-border">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-purple-400 mb-2">
+          {{ total_impressions }}
+        </div>
+        <div class="text-gray-400">Total Impressions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor's Ads Table -->
+  <div class="bg-card rounded-lg p-6 border border-border">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-white">
+        All Campaigns by {{ vendor.pusername }}
+      </h2>
+      <span class="text-sm text-gray-400"
+        >{{ vendor_ads|length }} campaign(s)</span
+      >
+    </div>
+
+    {% if vendor_ads %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-border">
+            <th class="py-3 px-4 text-gray-400 font-semibold">Product</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Status</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Bid</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Budget</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Impressions</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Clicks</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">CTR</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Spent</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Created</th>
+            <th class="py-3 px-4 text-gray-400 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ad in vendor_ads %}
+          <tr class="border-b border-border hover:bg-gray-800">
+            <td class="py-3 px-4">
+              <div class="flex items-center">
+                {% if ad.featured_image %}
+                <img
+                  src="{{ url_for('static', filename=ad.featured_image) }}"
+                  class="w-10 h-10 object-cover rounded mr-3"
+                />
+                {% endif %}
+                <div>
+                  <p class="text-white font-medium">{{ ad.product_title }}</p>
+                  <p class="text-sm text-gray-400">
+                    ${{ "%.2f"|format(ad.price_usd) }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <span
+                class="px-2 py-1 text-xs rounded-full 
+                    {{ 'bg-green-600' if ad.status == 'active' else 'bg-yellow-600' if ad.status == 'paused' else 'bg-red-600' }}"
+              >
+                {{ ad.status|title }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-white">
+              {{ "%.6f"|format(ad.bid_amount) }} {{ ad.crypto_currency }}
+            </td>
+            <td class="py-3 px-4 text-white">
+              {{ "%.6f"|format(ad.daily_budget) }} {{ ad.crypto_currency }}
+            </td>
+            <td class="py-3 px-4 text-white">
+              {{ ad.total_impressions or 0 }}
+            </td>
+            <td class="py-3 px-4 text-white">{{ ad.total_clicks or 0 }}</td>
+            <td class="py-3 px-4 text-white">
+              {% set ctr = ((ad.total_clicks or 0) / (ad.total_impressions or 1)
+              * 100) %} {{ "%.2f"|format(ctr) }}%
+            </td>
+            <td class="py-3 px-4 text-white">
+              ${{ "%.2f"|format((ad.total_cost or 0) * btc_price) }}
+            </td>
+            <td class="py-3 px-4 text-white">
+              {{ ad.created_at.split(' ')[0] if ad.created_at else 'N/A' }}
+            </td>
+            <td class="py-3 px-4">
+              <div class="flex gap-2">
+                <a
+                  href="{{ url_for('admin.admin_ad_details', ad_id=ad.id) }}"
+                  class="text-blue-400 hover:text-blue-300 text-sm"
+                  >View</a
+                >
+                <a
+                  href="{{ url_for('admin.admin_edit_ad', ad_id=ad.id) }}"
+                  class="text-yellow-400 hover:text-yellow-300 text-sm"
+                  >Edit</a
+                >
+                <form
+                  action="{{ url_for('admin.admin_delete_ad', ad_id=ad.id) }}"
+                  method="post"
+                  class="inline"
+                >
+                  <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                  />
+                  <button
+                    type="submit"
+                    class="text-red-400 hover:text-red-300 text-sm"
+                    onclick="return confirm('Are you sure you want to delete this ad? This will refund any unused budget to the vendor.')"
+                  >
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+      <svg
+        class="w-16 h-16 text-gray-600 mx-auto mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        ></path>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+        ></path>
+      </svg>
+      <p class="text-gray-400 mb-4">
+        No advertising campaigns found for this vendor
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex justify-between items-center mt-8">
+    <div class="flex gap-4">
+      <a
+        href="{{ url_for('admin.admin_edit_user', user_id=vendor.id) }}"
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 transition"
+      >
+        Edit Vendor Profile
+      </a>
+      <a
+        href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.id) }}"
+        class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 transition"
+      >
+        View Vendor Profile
+      </a>
+    </div>
+
+    <a
+      href="{{ url_for('admin.admin_ads') }}"
+      class="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition"
+    >
+      Back to All Ads
+    </a>
+  </div>
+</div>
+{% endblock %}

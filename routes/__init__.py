@@ -18,6 +18,7 @@ from .public import public_bp
 from .forum import forum_bp
 from .cart import cart_bp
 from .wallet import wallet_bp
+from .ads import ads_bp
 
 def init_routes(app):
     app.register_blueprint(public_bp)
@@ -27,3 +28,4 @@ def init_routes(app):
     app.register_blueprint(forum_bp, url_prefix='/forum')
     app.register_blueprint(cart_bp, url_prefix='/cart')
     app.register_blueprint(wallet_bp, url_prefix='/wallet')
+    app.register_blueprint(ads_bp, url_prefix='/ads')

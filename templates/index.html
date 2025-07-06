@@ -1,73 +1,130 @@
-{% extends 'base.html' %}
-{% block title %}Home - {{ settings['site_name'] }}{% endblock %}
-{% block content %}
+{% extends 'base.html' %} {% block title %}Home - {{ settings['site_name'] }}{%
+endblock %} {% block content %}
 <div class="w-full">
-    {% include 'components/featured_products.html' %}
-    {% include 'components/random_products.html' %}
-    
-   
+  <!-- Featured Sponsored Ads Carousel -->
+  {% from 'components/sponsored_ads.html' import render_featured_carousel %} {{
+  render_featured_carousel() }} {% include 'components/featured_products.html'
+  %} {% include 'components/random_products.html' %}
 </div>
- <!-- Why Shop With Us Section -->
- <div class="mb-12 w-full px-6 pt-10">
-    <div class="mb-8">
-        <h2 class="text-xl font-semibold text-white max-w-md">
-            Experience Secure and Anonymous Trading
-        </h2>
-        <p class="text-gray-100">
-            We prioritize a safe and transparent marketplace where buyers and sellers connect seamlessly and confidently.
-        </p>
+<!-- Why Shop With Us Section -->
+<div class="mb-12 w-full px-6 pt-10">
+  <div class="mb-8">
+    <h2 class="text-xl font-semibold text-white max-w-md">
+      Experience Secure and Anonymous Trading
+    </h2>
+    <p class="text-gray-100">
+      We prioritize a safe and transparent marketplace where buyers and sellers
+      connect seamlessly and confidently.
+    </p>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Feature 1: Escrow -->
+    <div class="bg-card p-6 rounded-lg shadow-md text-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6 text-primary mx-auto mb-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 11c0-1.1.9-2 2-2s2 .9 2 2-2 4-2 4m-4-4c0-1.1.9-2 2-2s2 .9 2 2m-6 4h12m-9-8h6m-6 12h6m-9-8v8m12-8v8"
+        />
+      </svg>
+      <h3 class="text-md font-semibold text-gray-200 mb-2">Secure Escrow</h3>
+      <p class="text-gray-400 text-xs">
+        Your funds are held safely in our multisig escrow until you receive your
+        order, ensuring trust and security.
+      </p>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Feature 1: Escrow -->
-        <div class="bg-card p-6 rounded-lg shadow-md text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.1.9-2 2-2s2 .9 2 2-2 4-2 4m-4-4c0-1.1.9-2 2-2s2 .9 2 2m-6 4h12m-9-8h6m-6 12h6m-9-8v8m12-8v8" />
-            </svg>
-            <h3 class="text-md font-semibold text-gray-200 mb-2">Secure Escrow</h3>
-            <p class="text-gray-400 text-xs">Your funds are held safely in our multisig escrow until you receive your order, ensuring trust and security.</p>
-        </div>
-        <!-- Feature 2: Anonymity -->
-        <div class="bg-card p-6 rounded-lg shadow-md text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <h3 class="text-md font-semibold text-gray-200 mb-2">Complete Anonymity</h3>
-            <p class="text-gray-400 text-xs">Shop with privacy using cryptocurrency and our secure platform—no personal info required.</p>
-        </div>
-        <!-- Feature 3: Wide Selection -->
-        <div class="bg-card p-6 rounded-lg shadow-md text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18M3 9h18M3 15h18M3 21h18" />
-            </svg>
-            <h3 class="text-md font-semibold text-gray-200 mb-2">Wide Selection</h3>
-            <p class="text-gray-400 text-xs">Browse thousands of products from vendors worldwide, all in one convenient marketplace.</p>
-        </div>
-        <!-- Feature 4: Fast Delivery -->
-        <div class="bg-card p-6 rounded-lg shadow-md text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10h7l-9 11v-7H4l9-11v7z" />
-            </svg>
-            <h3 class="text-md font-normal text-gray-200 mb-2">Fast Delivery</h3>
-            <p class="text-gray-400 text-xs">Get your orders quickly with our efficient vendor network and streamlined shipping.</p>
-        </div>
+    <!-- Feature 2: Anonymity -->
+    <div class="bg-card p-6 rounded-lg shadow-md text-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6 text-primary mx-auto mb-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 10V3L4 14h7v7l9-11h-7z"
+        />
+      </svg>
+      <h3 class="text-md font-semibold text-gray-200 mb-2">
+        Complete Anonymity
+      </h3>
+      <p class="text-gray-400 text-xs">
+        Shop with privacy using cryptocurrency and our secure platform—no
+        personal info required.
+      </p>
     </div>
+    <!-- Feature 3: Wide Selection -->
+    <div class="bg-card p-6 rounded-lg shadow-md text-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6 text-primary mx-auto mb-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 3h18M3 9h18M3 15h18M3 21h18"
+        />
+      </svg>
+      <h3 class="text-md font-semibold text-gray-200 mb-2">Wide Selection</h3>
+      <p class="text-gray-400 text-xs">
+        Browse thousands of products from vendors worldwide, all in one
+        convenient marketplace.
+      </p>
+    </div>
+    <!-- Feature 4: Fast Delivery -->
+    <div class="bg-card p-6 rounded-lg shadow-md text-center">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6 text-primary mx-auto mb-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M13 10h7l-9 11v-7H4l9-11v7z"
+        />
+      </svg>
+      <h3 class="text-md font-normal text-gray-200 mb-2">Fast Delivery</h3>
+      <p class="text-gray-400 text-xs">
+        Get your orders quickly with our efficient vendor network and
+        streamlined shipping.
+      </p>
+    </div>
+  </div>
 </div>
 <!-- CSS for Slideshow (only if there are featured categories) -->
 {% if featured_categories and featured_categories|length > 0 %}
 <style>
-    .slideshow-container {
-        display: flex;
-        width: {{ featured_categories|length * 100 }}%; /* Total width based on number of slides */
-        animation: slide {{ featured_categories|length * 5 }}s linear infinite; /* 5s per slide */
-    }
-    .slide {
-        width: {{ 100 / featured_categories|length }}%; /* Equal width for each slide */
-        position: relative;
-    }
-    @keyframes slide {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); } /* Moves half the total width for seamless loop */
-    }
+  .slideshow-container {
+      display: flex;
+      width: {{ featured_categories|length * 100 }}%; /* Total width based on number of slides */
+      animation: slide {{ featured_categories|length * 5 }}s linear infinite; /* 5s per slide */
+  }
+  .slide {
+      width: {{ 100 / featured_categories|length }}%; /* Equal width for each slide */
+      position: relative;
+  }
+  @keyframes slide {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); } /* Moves half the total width for seamless loop */
+  }
 </style>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}

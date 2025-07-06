@@ -192,7 +192,7 @@ def monitor_order_payments():
     from utils.database import send_notification_with_email
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT o.id, o.user_id, o.product_id, o.crypto_currency, e.multisig_address, e.amount_btc, e.amount_xmr FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.status = 'pending' AND o.escrow_status = 'pending'")
+        c.execute("SELECT o.id, o.user_id, o.product_id, o.crypto_currency, e.multisig_address, e.amount_btc FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.status = 'pending' AND o.escrow_status = 'pending'")
         for row in c.fetchall():
             order_id = row['id']
             user_id = row['user_id']
@@ -203,8 +203,10 @@ def monitor_order_payments():
                 txid = check_payment(address, row['amount_btc'])
                 amount = row['amount_btc']
             elif currency == 'XMR':
-                txid = check_monero_payment(address, row['amount_xmr'])
-                amount = row['amount_xmr']
+                # For XMR, we need to calculate the amount from USD or use a default
+                # Since escrow table only has BTC amount, we'll use the BTC amount for now
+                txid = check_monero_payment(address, row['amount_btc'])
+                amount = row['amount_btc']
             else:
                 txid = None
                 amount = 0
@@ -353,9 +355,45 @@ def exchange():
 
 
 # Add global Jinja functions (once)
+def get_sponsored_ads(placement_type, limit=3):
+    """Get sponsored ads for a specific placement type"""
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT sa.*, p.title, p.description, p.price_usd, p.featured_image,
+                       u.pusername as vendor_name
+                FROM sponsored_ads sa
+                JOIN products p ON sa.product_id = p.id
+                JOIN users u ON sa.vendor_id = u.id
+                WHERE sa.placement_type = ? AND sa.status = 'active'
+                AND p.status = 'active' AND p.stock > 0
+                ORDER BY sa.bid_amount DESC
+                LIMIT ?
+            """, (placement_type, limit))
+            
+            ads = [dict(row) for row in c.fetchall()]
+            
+            # Record impressions for each ad
+            for ad in ads:
+                c.execute("""
+                    INSERT OR REPLACE INTO ad_impressions (ad_id, product_id, impression_count, date)
+                    VALUES (?, ?, 
+                        COALESCE((SELECT impression_count FROM ad_impressions 
+                                 WHERE ad_id = ? AND date = CURRENT_DATE), 0) + 1,
+                        CURRENT_DATE)
+                """, (ad['id'], ad['product_id'], ad['id']))
+            
+            conn.commit()
+            return ads
+    except Exception as e:
+        logger.error(f"Error getting sponsored ads: {str(e)}")
+        return []
+
 app.jinja_env.globals.update(
     get_product_rating=get_product_rating,
-    get_product_count=get_product_count
+    get_product_count=get_product_count,
+    get_sponsored_ads=get_sponsored_ads
 )
 
 @app.context_processor

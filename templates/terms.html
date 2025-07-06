@@ -1,0 +1,455 @@
+<!-- templates/privacy_policy.html -->
+{% extends 'base.html' %} {% block title %}Privacy Policy - Sydney Marketplace{%
+    endblock %} {% block content %}
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+      <!-- Header Section -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-4">Privacy Policy</h1>
+        <p class="text-gray-400 text-lg">Your Privacy is Our Priority</p>
+        <div class="flex justify-center items-center space-x-4 mt-4">
+          <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm"
+            >Tor Network</span
+          >
+          <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
+            >PGP Encrypted</span
+          >
+          <span class="bg-yellow-600 text-white px-3 py-1 rounded-full text-sm"
+            >No IP Logging</span
+          >
+        </div>
+      </div>
+    
+      <!-- Last Updated Banner -->
+      <div class="bg-card border border-gray-700 rounded-lg p-4 mb-8">
+        <div class="flex items-center">
+          <svg
+            class="w-5 h-5 text-yellow-400 mr-2"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="text-gray-300"
+            ><strong>Last Updated:</strong> February 2025</span
+          >
+        </div>
+      </div>
+    
+      <!-- Main Content -->
+      <div class="bg-card rounded-lg shadow-lg overflow-hidden">
+        <!-- Introduction -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">Introduction</h2>
+          <p class="text-gray-300 leading-relaxed">
+            Sydney Marketplace operates on the Tor network, prioritizing user
+            privacy, anonymity, and security above all else. This Privacy Policy
+            outlines our commitment to protecting your digital rights and explains
+            how we handle information in our privacy-focused marketplace
+            environment.
+          </p>
+          <div class="mt-4 p-4 bg-gray-800 rounded-lg">
+            <p class="text-yellow-400 font-semibold">🔒 Core Privacy Principles:</p>
+            <ul class="text-gray-300 mt-2 space-y-1">
+              <li>• No IP address collection or logging</li>
+              <li>• PGP encryption for all communications</li>
+              <li>• Cryptocurrency-only transactions (BTC/XMR)</li>
+              <li>• Minimal data retention policies</li>
+              <li>• Zero third-party data sharing</li>
+            </ul>
+          </div>
+        </div>
+    
+        <!-- Information Collection -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            1. Information We Collect
+          </h2>
+    
+          <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+            1.1 Account Information
+          </h3>
+          <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <ul class="text-gray-300 space-y-2">
+              <li><strong>Username:</strong> Your chosen marketplace identifier</li>
+              <li><strong>Password Hash:</strong> Securely hashed using bcrypt</li>
+              <li><strong>PGP Public Key:</strong> For encrypted communications</li>
+              <li>
+                <strong>Cryptocurrency Addresses:</strong> BTC/XMR addresses for
+                transactions
+              </li>
+              <li>
+                <strong>Vendor Bond:</strong> Escrow bond information (vendors only)
+              </li>
+            </ul>
+          </div>
+    
+          <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+            1.2 Transaction Data
+          </h3>
+          <div class="bg-gray-800 p-4 rounded-lg mb-4">
+            <ul class="text-gray-300 space-y-2">
+              <li>
+                <strong>Order Details:</strong> Product information, quantities,
+                prices
+              </li>
+              <li><strong>Escrow Addresses:</strong> Multisig wallet addresses</li>
+              <li><strong>Transaction Status:</strong> Order progress tracking</li>
+              <li><strong>Dispute Records:</strong> Resolution documentation</li>
+            </ul>
+          </div>
+    
+          <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+            1.3 What We DON'T Collect
+          </h3>
+          <div class="bg-red-900/20 border border-red-700 p-4 rounded-lg">
+            <ul class="text-gray-300 space-y-2">
+              <li>❌ Real names or personal identifiers</li>
+              <li>❌ Email addresses or phone numbers</li>
+              <li>❌ IP addresses or location data</li>
+              <li>❌ Browser fingerprints or device IDs</li>
+              <li>❌ Social media accounts or external profiles</li>
+            </ul>
+          </div>
+        </div>
+    
+        <!-- Data Usage -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            2. How We Use Your Information
+          </h2>
+    
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h4 class="text-lg font-semibold text-green-400 mb-2">
+                ✅ Legitimate Uses
+              </h4>
+              <ul class="text-gray-300 space-y-2 text-sm">
+                <li>• Process marketplace transactions</li>
+                <li>• Facilitate buyer-vendor communication</li>
+                <li>• Manage escrow and dispute resolution</li>
+                <li>• Prevent fraud and platform abuse</li>
+                <li>• Maintain marketplace security</li>
+              </ul>
+            </div>
+    
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h4 class="text-lg font-semibold text-red-400 mb-2">
+                ❌ What We Never Do
+              </h4>
+              <ul class="text-gray-300 space-y-2 text-sm">
+                <li>• Sell or rent your data</li>
+                <li>• Share with third parties</li>
+                <li>• Use for marketing purposes</li>
+                <li>• Track across other sites</li>
+                <li>• Create user profiles</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+    
+        <!-- Security Measures -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            3. Security & Privacy Measures
+          </h2>
+    
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+                Encryption & Security
+              </h3>
+              <div class="bg-gray-800 p-4 rounded-lg">
+                <ul class="text-gray-300 space-y-2">
+                  <li>
+                    <strong>PGP Encryption:</strong> All messages end-to-end
+                    encrypted
+                  </li>
+                  <li>
+                    <strong>Password Hashing:</strong> bcrypt with high cost factor
+                  </li>
+                  <li>
+                    <strong>Session Security:</strong> Secure session management
+                  </li>
+                  <li>
+                    <strong>Database Encryption:</strong> AES-256 for sensitive data
+                  </li>
+                  <li>
+                    <strong>Tor Network:</strong> Anonymous routing and access
+                  </li>
+                </ul>
+              </div>
+            </div>
+    
+            <div>
+              <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+                Data Retention
+              </h3>
+              <div class="bg-gray-800 p-4 rounded-lg">
+                <ul class="text-gray-300 space-y-2">
+                  <li>
+                    <strong>Active Accounts:</strong> Data retained while active
+                  </li>
+                  <li>
+                    <strong>Inactive Accounts:</strong> Deleted after 12 months
+                  </li>
+                  <li><strong>Transaction Logs:</strong> Deleted after 12 hours</li>
+                  <li><strong>Messages:</strong> Auto-delete after 30 days</li>
+                  <li><strong>Backup Rotation:</strong> 7-day retention maximum</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <!-- Cryptocurrency Privacy -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            4. Cryptocurrency Privacy
+          </h2>
+    
+          <div class="bg-blue-900/20 border border-blue-700 p-6 rounded-lg mb-4">
+            <h3 class="text-xl font-semibold text-blue-400 mb-3">
+              Bitcoin (BTC) Considerations
+            </h3>
+            <p class="text-gray-300 mb-4">
+              Bitcoin transactions are recorded on a public blockchain. While we
+              anonymize your identity on our platform, blockchain data (addresses,
+              amounts, timestamps) is permanent and publicly accessible.
+            </p>
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h4 class="text-lg font-semibold text-yellow-400 mb-2">
+                Privacy Best Practices:
+              </h4>
+              <ul class="text-gray-300 space-y-2">
+                <li>• Use new addresses for each transaction</li>
+                <li>• Consider using Bitcoin mixers or CoinJoin</li>
+                <li>• Avoid linking multiple transactions to same address</li>
+                <li>• Use hardware wallets for enhanced security</li>
+              </ul>
+            </div>
+          </div>
+    
+          <div class="bg-green-900/20 border border-green-700 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold text-green-400 mb-3">
+              Monero (XMR) Privacy
+            </h3>
+            <p class="text-gray-300 mb-4">
+              Monero provides enhanced privacy through ring signatures, stealth
+              addresses, and RingCT. Transaction amounts and addresses are
+              obfuscated by default.
+            </p>
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h4 class="text-lg font-semibold text-yellow-400 mb-2">
+                Monero Advantages:
+              </h4>
+              <ul class="text-gray-300 space-y-2">
+                <li>• Ring signatures hide sender identity</li>
+                <li>• Stealth addresses protect recipient privacy</li>
+                <li>• RingCT obscures transaction amounts</li>
+                <li>• Built-in privacy by default</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+    
+        <!-- User Rights -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">
+            5. Your Rights & Control
+          </h2>
+    
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+                Data Control
+              </h3>
+              <div class="bg-gray-800 p-4 rounded-lg">
+                <ul class="text-gray-300 space-y-2">
+                  <li>
+                    <strong>Account Deletion:</strong> Request complete data removal
+                  </li>
+                  <li>
+                    <strong>PGP Key Updates:</strong> Change encryption keys anytime
+                  </li>
+                  <li>
+                    <strong>Transaction History:</strong> View your order history
+                  </li>
+                  <li>
+                    <strong>Message Deletion:</strong> Delete individual messages
+                  </li>
+                  <li><strong>Opt-Out:</strong> Stop using platform anytime</li>
+                </ul>
+              </div>
+            </div>
+    
+            <div>
+              <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+                Privacy Tools
+              </h3>
+              <div class="bg-gray-800 p-4 rounded-lg">
+                <ul class="text-gray-300 space-y-2">
+                  <li><strong>Tor Browser:</strong> Recommended for access</li>
+                  <li><strong>PGP Encryption:</strong> Secure communications</li>
+                  <li><strong>New Addresses:</strong> For each transaction</li>
+                  <li>
+                    <strong>Session Management:</strong> Control active sessions
+                  </li>
+                  <li>
+                    <strong>Two-Factor Auth:</strong> Enhanced account security
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <!-- Legal & Compliance -->
+        <div class="p-8 border-b border-gray-700">
+          <h2 class="text-2xl font-bold text-white mb-4">6. Legal & Compliance</h2>
+    
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold text-yellow-400 mb-3">
+              Legal Framework
+            </h3>
+            <p class="text-gray-300 mb-4">
+              Sydney Marketplace operates within applicable legal frameworks while
+              maintaining our commitment to user privacy. We may be required to
+              respond to lawful requests, though we strive to protect user anonymity
+              to the maximum extent possible.
+            </p>
+    
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 class="text-lg font-semibold text-green-400 mb-2">
+                  Our Commitments
+                </h4>
+                <ul class="text-gray-300 space-y-1 text-sm">
+                  <li>• Challenge overly broad requests</li>
+                  <li>• Require proper legal documentation</li>
+                  <li>• Notify users when legally permitted</li>
+                  <li>• Minimize data disclosure scope</li>
+                </ul>
+              </div>
+    
+              <div>
+                <h4 class="text-lg font-semibold text-red-400 mb-2">
+                  User Responsibilities
+                </h4>
+                <ul class="text-gray-300 space-y-1 text-sm">
+                  <li>• Comply with marketplace rules</li>
+                  <li>• Respect other users' privacy</li>
+                  <li>• Use platform for legal purposes only</li>
+                  <li>• Maintain account security</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <!-- Contact & Support -->
+        <div class="p-8">
+          <h2 class="text-2xl font-bold text-white mb-4">7. Contact & Support</h2>
+    
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold text-yellow-400 mb-3">Getting Help</h3>
+            <p class="text-gray-300 mb-4">
+              For questions about this Privacy Policy or privacy-related concerns,
+              you can reach us through:
+            </p>
+    
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 class="text-lg font-semibold text-green-400 mb-2">
+                  Secure Contact Methods
+                </h4>
+                <ul class="text-gray-300 space-y-2">
+                  <li>
+                    <strong>PGP Encrypted:</strong> Support via marketplace
+                    messaging
+                  </li>
+                  <li>
+                    <strong>Dispute System:</strong> For transaction-related issues
+                  </li>
+                  <li>
+                    <strong>Admin Panel:</strong> For vendor and account issues
+                  </li>
+                  <li><strong>FAQ Section:</strong> For common questions</li>
+                </ul>
+              </div>
+    
+              <div>
+                <h4 class="text-lg font-semibold text-blue-400 mb-2">
+                  Response Times
+                </h4>
+                <ul class="text-gray-300 space-y-2">
+                  <li><strong>Urgent Issues:</strong> 24-48 hours</li>
+                  <li><strong>General Support:</strong> 3-5 business days</li>
+                  <li><strong>Privacy Requests:</strong> 7-10 business days</li>
+                  <li><strong>Policy Updates:</strong> Posted immediately</li>
+                </ul>
+              </div>
+            </div>
+    
+            <div
+              class="mt-6 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg"
+            >
+              <p class="text-yellow-400 font-semibold mb-2">⚠️ Important Notice:</p>
+              <p class="text-gray-300 text-sm">
+                Always use PGP encryption when contacting support about sensitive
+                matters. Never share personal information in unencrypted
+                communications.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+      <!-- Action Buttons -->
+      <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <a
+          href="{{ url_for('public.index') }}"
+          class="inline-flex items-center justify-center px-6 py-3 bg-yellow-600 text-gray-900 font-semibold rounded-lg hover:bg-yellow-500 transition duration-200"
+        >
+          <svg
+            class="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            ></path>
+          </svg>
+          Back to Home
+        </a>
+    
+        <a
+          href="{{ url_for('public.faqs') }}"
+          class="inline-flex items-center justify-center px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition duration-200"
+        >
+          <svg
+            class="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          FAQ & Support
+        </a>
+      </div>
+    </div>
+    {% endblock %}
+    

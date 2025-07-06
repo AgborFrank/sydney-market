@@ -1,0 +1,385 @@
+<!-- Sponsored Ads Component -->
+{% macro render_sponsored_ads(placement_type, limit=3) %} {% set ads =
+get_sponsored_ads(placement_type, limit) %} {% if ads %}
+<div class="sponsored-ads-container mb-8">
+  <!-- Ad Label -->
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg font-semibold text-white">
+      {% if placement_type == 'homepage_featured' %} Featured Products {% elif
+      placement_type == 'category_top' %} Sponsored in This Category {% elif
+      placement_type == 'search_results' %} Sponsored Results {% elif
+      placement_type == 'sidebar_promoted' %} Promoted Products {% else %}
+      Sponsored {% endif %}
+    </h3>
+    <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded"
+      >Sponsored</span
+    >
+  </div>
+
+  <!-- Ads Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-{{ limit }} gap-6">
+    {% for ad in ads %}
+    <div
+      class="sponsored-ad bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer"
+      data-ad-id="{{ ad.id }}"
+      data-product-id="{{ ad.product_id }}"
+      onclick="recordAdClick({{ ad.id }})"
+    >
+      <!-- Product Image -->
+      <div class="relative">
+        {% if ad.featured_image %}
+        <img
+          src="{{ url_for('static', filename=ad.featured_image) }}"
+          alt="{{ ad.title }}"
+          class="w-full h-48 object-cover"
+        />
+        {% else %}
+        <div class="w-full h-48 bg-gray-700 flex items-center justify-center">
+          <svg
+            class="w-12 h-12 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            ></path>
+          </svg>
+        </div>
+        {% endif %}
+
+        <!-- Sponsored Badge -->
+        <div class="absolute top-2 right-2">
+          <span
+            class="bg-yellow-600 text-gray-900 text-xs px-2 py-1 rounded font-semibold"
+          >
+            Sponsored
+          </span>
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="p-4">
+        <h4 class="text-white font-semibold mb-2 line-clamp-2">
+          {{ ad.title }}
+        </h4>
+        <p class="text-gray-400 text-sm mb-3 line-clamp-2">
+          {{ ad.description[:100] }}{% if ad.description|length > 100 %}...{%
+          endif %}
+        </p>
+
+        <div class="flex justify-between items-center">
+          <div class="text-yellow-400 font-bold text-lg">
+            ${{ "%.2f"|format(ad.price_usd) }}
+          </div>
+          <div class="text-gray-400 text-sm">by {{ ad.vendor_name }}</div>
+        </div>
+
+        <!-- Action Button -->
+        <a
+          href="{{ url_for('public.product_detail', product_id=ad.product_id) }}"
+          class="block w-full bg-yellow-600 text-gray-900 text-center py-2 rounded-lg font-semibold hover:bg-yellow-500 transition mt-3"
+        >
+          View Product
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %} {% endmacro %}
+
+<!-- Carousel Style for Homepage Featured -->
+{% macro render_featured_carousel() %} {% set ads =
+get_sponsored_ads('homepage_featured', 5) %} {% if ads %}
+<div class="featured-carousel mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-xl font-semibold text-white">Featured Products</h3>
+    <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded"
+      >Sponsored</span
+    >
+  </div>
+
+  <div class="relative">
+    <div class="carousel-container overflow-hidden rounded-lg">
+      <div
+        class="carousel-track flex transition-transform duration-500"
+        id="featuredCarousel"
+      >
+        {% for ad in ads %}
+        <div class="carousel-slide flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-2">
+          <div
+            class="sponsored-ad bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer h-full"
+            data-ad-id="{{ ad.id }}"
+            data-product-id="{{ ad.product_id }}"
+            onclick="recordAdClick({{ ad.id }})"
+          >
+            <!-- Product Image -->
+            <div class="relative h-48">
+              {% if ad.featured_image %}
+              <img
+                src="{{ url_for('static', filename=ad.featured_image) }}"
+                alt="{{ ad.title }}"
+                class="w-full h-full object-cover"
+              />
+              {% else %}
+              <div
+                class="w-full h-full bg-gray-700 flex items-center justify-center"
+              >
+                <svg
+                  class="w-12 h-12 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  ></path>
+                </svg>
+              </div>
+              {% endif %}
+
+              <!-- Sponsored Badge -->
+              <div class="absolute top-2 right-2">
+                <span
+                  class="bg-yellow-600 text-gray-900 text-xs px-2 py-1 rounded font-semibold"
+                >
+                  Sponsored
+                </span>
+              </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="p-4">
+              <h4 class="text-white font-semibold mb-2 line-clamp-2">
+                {{ ad.title }}
+              </h4>
+              <div class="flex justify-between items-center mb-3">
+                <div class="text-yellow-400 font-bold text-lg">
+                  ${{ "%.2f"|format(ad.price_usd) }}
+                </div>
+                <div class="text-gray-400 text-sm">by {{ ad.vendor_name }}</div>
+              </div>
+
+              <!-- Action Button -->
+              <a
+                href="{{ url_for('public.product_detail', product_id=ad.product_id) }}"
+                class="block w-full bg-yellow-600 text-gray-900 text-center py-2 rounded-lg font-semibold hover:bg-yellow-500 transition"
+              >
+                View Product
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Navigation Arrows -->
+    <button
+      class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition"
+      onclick="moveCarousel(-1)"
+    >
+      <svg
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"
+        ></path>
+      </svg>
+    </button>
+    <button
+      class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition"
+      onclick="moveCarousel(1)"
+    >
+      <svg
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 5l7 7-7 7"
+        ></path>
+      </svg>
+    </button>
+  </div>
+</div>
+{% endif %} {% endmacro %}
+
+<!-- Sidebar Promoted Products -->
+{% macro render_sidebar_ads() %} {% set ads =
+get_sponsored_ads('sidebar_promoted', 3) %} {% if ads %}
+<div class="sidebar-ads mb-6">
+  <h3 class="text-lg font-semibold text-white mb-4">Promoted Products</h3>
+  <div class="space-y-4">
+    {% for ad in ads %}
+    <div
+      class="sponsored-ad bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer"
+      data-ad-id="{{ ad.id }}"
+      data-product-id="{{ ad.product_id }}"
+      onclick="recordAdClick({{ ad.id }})"
+    >
+      <div class="flex">
+        <!-- Product Image -->
+        <div class="relative w-20 h-20 flex-shrink-0">
+          {% if ad.featured_image %}
+          <img
+            src="{{ url_for('static', filename=ad.featured_image) }}"
+            alt="{{ ad.title }}"
+            class="w-full h-full object-cover"
+          />
+          {% else %}
+          <div
+            class="w-full h-full bg-gray-700 flex items-center justify-center"
+          >
+            <svg
+              class="w-6 h-6 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              ></path>
+            </svg>
+          </div>
+          {% endif %}
+
+          <!-- Sponsored Badge -->
+          <div class="absolute top-1 right-1">
+            <span
+              class="bg-yellow-600 text-gray-900 text-xs px-1 py-0.5 rounded text-xs"
+            >
+              Ad
+            </span>
+          </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="p-3 flex-1">
+          <h4 class="text-white font-semibold text-sm mb-1 line-clamp-2">
+            {{ ad.title }}
+          </h4>
+          <div class="text-yellow-400 font-bold text-sm mb-1">
+            ${{ "%.2f"|format(ad.price_usd) }}
+          </div>
+          <div class="text-gray-400 text-xs">by {{ ad.vendor_name }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %} {% endmacro %}
+
+<script>
+  // Carousel functionality
+  let currentSlide = 0;
+  const slides = document.querySelectorAll(".carousel-slide");
+  const totalSlides = slides.length;
+
+  function moveCarousel(direction) {
+    currentSlide = (currentSlide + direction + totalSlides) % totalSlides;
+    const track = document.getElementById("featuredCarousel");
+    if (track) {
+      const slideWidth =
+        100 /
+        (window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1);
+      track.style.transform = `translateX(-${currentSlide * slideWidth}%)`;
+    }
+  }
+
+  // Auto-advance carousel
+  if (slides.length > 0) {
+    setInterval(() => {
+      moveCarousel(1);
+    }, 5000);
+  }
+
+  // Record ad clicks
+  function recordAdClick(adId) {
+    fetch("/ads/api/record_click/" + adId, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken":
+          document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute("content") || "",
+      },
+    }).catch((error) => {
+      console.log("Ad click recorded");
+    });
+  }
+
+  // Record impressions when ads come into view
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: "0px 0px -50px 0px",
+  };
+
+  const adObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const adElement = entry.target;
+        const adId = adElement.dataset.adId;
+        if (adId && !adElement.dataset.impressionRecorded) {
+          adElement.dataset.impressionRecorded = "true";
+          // Impression is already recorded server-side when ads are loaded
+        }
+      }
+    });
+  }, observerOptions);
+
+  // Observe all ad elements
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".sponsored-ad").forEach((ad) => {
+      adObserver.observe(ad);
+    });
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .carousel-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .carousel-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sponsored-ad {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .sponsored-ad:hover {
+    transform: translateY(-2px);
+  }
+</style>

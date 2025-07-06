@@ -6,17 +6,19 @@
 .menu nav a:hover, footer ul li a:hover{
     color: var(--primary-color) !important;
 }
-
+.text-green-400 {
+    color: #15803d !important;
+}
 ul li,  ol li {
     color: #b1b7bb; 
 }
 footer ul li a{
-   font-size: 14px !important;
-   color: #b1b7bb;
+   font-size: 13px !important;
+   color: #b1b7bb !important;
 }
 form span, form p {
     color:#c4ccd9 !important;
-}
+} 
 form textarea, form input, form select {
     background: transparent !important;
 }

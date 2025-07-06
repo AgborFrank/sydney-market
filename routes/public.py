@@ -513,26 +513,21 @@ def category_products(category_id):
                     SELECT c.id FROM categories c
                     JOIN category_tree ct ON c.parent_id = ct.id
                 )
-                SELECT p.*, u.pusername as vendor_username 
+                SELECT p.*, u.pusername as vendor_username, c.name as category_name,
+                       vl.level as vendor_level, vl.sales_count, vl.positive_feedback_percentage
                 FROM products p 
                 LEFT JOIN users u ON p.vendor_id = u.id 
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN vendor_levels vl ON p.vendor_id = vl.vendor_id
                 WHERE p.category_id IN (SELECT id FROM category_tree) AND p.stock > 0
             """, (category_id,))
             products = [dict(row) for row in c.fetchall()]
             
-            # Add favorite status and images to products
+            # Add favorite status to products
             user_id = session['user_id']
             for product in products:
                 c.execute("SELECT id FROM favorites WHERE user_id = ? AND product_id = ?", (user_id, product['id']))
                 product['is_favorited'] = c.fetchone() is not None
-                
-                # Add first image for each product
-                c.execute("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY created_at ASC LIMIT 1", (product['id'],))
-                img = c.fetchone()
-                if img and img['image_path']:
-                    product['image_url'] = url_for('static', filename=img['image_path'])
-                else:
-                    product['image_url'] = url_for('static', filename='images/logo.png')
             
             # Fetch all categories for sidebar (optional, if you want to keep the sidebar)
             c.execute("SELECT * FROM categories")
@@ -551,7 +546,7 @@ def category_products(category_id):
         return redirect(url_for('public.index'))
 
     return render_template('category.html', category=category, products=products, 
-                         top_level_categories=top_level_categories)
+                         top_level_categories=top_level_categories, sponsored_products=[])
 
 @public_bp.route('/advertise')
 def advertise():
@@ -594,10 +589,14 @@ def search_products():
             SELECT p.*, AVG(r.rating) as avg_rating,
                    vl.level as vendor_level,
                    vl.positive_feedback_percentage as vendor_positive_feedback_percentage,
-                   vl.sales_count as vendor_sales_count
+                   vl.sales_count as vendor_sales_count,
+                   c.name as category_name,
+                   u.pusername as vendor_username
             FROM products p
             LEFT JOIN reviews r ON p.id = r.product_id
             LEFT JOIN vendor_levels vl ON p.vendor_id = vl.vendor_id
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN users u ON p.vendor_id = u.id
             WHERE p.stock > 0
         """
         params = []
@@ -636,16 +635,9 @@ def search_products():
         c.execute(sql, params)
         products = [dict(row) for row in c.fetchall()]
         
-        # Add first image and favorite status for each product
+        # Add favorite status for each product
         user_id = session['user_id']
         for product in products:
-            c.execute("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY created_at ASC LIMIT 1", (product['id'],))
-            img = c.fetchone()
-            if img and img['image_path']:
-                product['image_url'] = url_for('static', filename=img['image_path'])
-            else:
-                product['image_url'] = url_for('static', filename='images/logo.png')  # fallback image
-            
             # Check if product is favorited
             c.execute("SELECT id FROM favorites WHERE user_id = ? AND product_id = ?", (user_id, product['id']))
             product['is_favorited'] = c.fetchone() is not None
@@ -1034,8 +1026,10 @@ def vendor_shop(vendor_id):
     products = db.execute(
         "SELECT p.*, "
         "(SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as reviews_count, "
-        "(SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating "
+        "(SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating, "
+        "c.name as category_name "
         "FROM products p "
+        "LEFT JOIN categories c ON p.category_id = c.id "
         "WHERE p.vendor_id = ? AND p.status = 'active' "
         "ORDER BY p.created_at DESC",
         (vendor_id,)
@@ -1056,12 +1050,8 @@ def vendor_shop(vendor_id):
         else:
             prod_dict['created_at'] = datetime.now(tz=timezone('Africa/Lagos'))
 
-        # Fetch product images (first image only for preview)
-        first_image = db.execute(
-            "SELECT image_path FROM product_images WHERE product_id = ? ORDER BY created_at ASC LIMIT 1",
-            (prod_dict['id'],)
-        ).fetchone()
-        prod_dict['first_image'] = first_image['image_path'] if first_image else None
+        # Use featured_image directly (no need for complex image processing)
+        prod_dict['first_image'] = prod_dict.get('featured_image')
 
         # Check if product is favorited by current user
         product_favorite_status = db.execute(
