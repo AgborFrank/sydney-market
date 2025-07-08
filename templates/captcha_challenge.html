@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Human Verification</title>
+    <link
+      href="{{ url_for('static', filename='images/favicon.png') }}"
+      rel="shortcut icon"
+    />
+    <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='dist/styles.css') }}"
+    />
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link href="{{ url_for('static', filename='dist/media.css') }}" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <link href="https://css.gg/css" rel="stylesheet" />
+    <style>
+      body {
+        background: #10151c;
+      }
+      .captcha-card {
+        background: #061124ff;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        padding: 2.5rem 2rem;
+        max-width: 470px;
+        margin: 7vh auto 0 auto;
+      }
+      .captcha-title {
+        color: #036ffcff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0rem;
+        text-align: center;
+      }
+      .captcha-label {
+        color: #cbd5e1;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+      .captcha-input {
+        width: 100%;
+        padding: 0.5rem;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        background: #181e29;
+        color: #fff;
+        margin-bottom: 1.5rem;
+      }
+      .captcha-btn {
+        width: 100%;
+        background: #cc0b0bff;
+        color: #fff;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        padding: 0.75rem 0;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .captcha-btn:hover {
+        background: #aa0808ff;
+      }
+      .captcha-img {
+        display: block;
+        margin: 0 auto 1rem auto;
+        border: 1px solid #334155;
+        border-radius: 6px;
+      }
+      .captcha-error {
+        color: #ef4444;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="captcha-card mx-auto max-w-xl">
+      <div class="captcha-title">HUMAN VERIFICATION REQUIRED</div>
+
+      <div class="text-center mb-6">
+        <p class="text-gray-300 text-sm mb-2">🔒 Security Check</p>
+        <p class="text-gray-400 text-xs leading-relaxed">
+          To protect our marketplace from automated bots and ensure a secure
+          environment for all users, we require human verification before
+          accessing sensitive areas.
+        </p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div class="captcha-error">{{ message }}</div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <form method="post" action="{{ url_for('user.captcha_challenge') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="text-center mb-4">
+          <p class="text-gray-300 text-sm font-medium mb-2">
+            📝 Please enter the code shown in the image below:
+          </p>
+          <p class="text-gray-400 text-xs mb-4">
+            The code contains 5 characters (letters and numbers). Enter exactly
+            as shown, ignoring case sensitivity.
+          </p>
+        </div>
+
+        <div class="flex justify-center items-center space-x-2 mb-4">
+          <img
+            src="{{ url_for('user.captcha_image') }}"
+            alt="CAPTCHA Verification Code"
+            class="captcha-img"
+            style="border: 1px solid #888"
+          />
+          <a href="" class="text-blue-400 hover:text-blue-300 text-sm"
+            >↻ New Code</a
+          >
+        </div>
+
+        <div class="mb-4">
+          <label
+            for="captcha"
+            class="block text-gray-300 text-sm font-medium mb-2"
+          >
+            Verification Code:
+          </label>
+          <input
+            type="text"
+            name="captcha"
+            id="captcha"
+            maxlength="5"
+            required
+            autocomplete="off"
+            class="captcha-input"
+            placeholder="Enter the 5-character code"
+          />
+          <p class="text-gray-500 text-xs mt-1">
+            💡 Tip: If the code is unclear, click "New Code" to get a fresh one
+          </p>
+        </div>
+
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <button type="submit" class="captcha-btn bg-primary">
+          🔐 Verify & Continue
+        </button>
+
+        <div class="text-center mt-4">
+          <p class="text-gray-500 text-xs">
+            This verification helps us maintain a secure and trustworthy
+            marketplace environment.
+          </p>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>

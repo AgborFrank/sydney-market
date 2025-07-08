@@ -80,7 +80,9 @@ def init_db(reset=False):
                 INSERT OR IGNORE INTO security_settings (setting_name, value, description)
                 VALUES ('password_require_special', 'yes', 'Require special characters in passwords');
                 INSERT OR IGNORE INTO security_settings (setting_name, value, description)
-                VALUES ('session_timeout_minutes', '30', 'Session timeout duration in minutes')
+                VALUES ('session_timeout_minutes', '30', 'Session timeout duration in minutes');
+                INSERT OR IGNORE INTO security_settings (setting_name, value, description)
+                VALUES ('captcha_system_enabled', 'enabled', 'Enable or disable CAPTCHA challenge system')
             ''')
 
         # Users table (no vendor-specific fields)

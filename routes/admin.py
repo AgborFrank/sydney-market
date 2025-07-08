@@ -18,6 +18,7 @@ import sqlite3
 from utils.ddos_protection import ddos_protection
 from flask_wtf.csrf import generate_csrf
 from utils.security import log_admin_action_encrypted
+from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, set_captcha_code, generate_captcha_code
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 logger = logging.getLogger(__name__)
@@ -76,6 +77,8 @@ def is_admin():
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    settings = get_settings()
+    require_captcha = settings.get('admin_login_captcha', 'enabled') == 'enabled'
     if 'user_id' in session and session.get('role') == 'admin':
         return redirect(url_for('admin.dashboard'))
     
@@ -83,6 +86,12 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         pin = request.form.get('pin', '').strip()
+        # Only require/validate CAPTCHA on first step (username/password)
+        if password and not pin and require_captcha:
+            captcha_input = request.form.get('captcha', '').strip()
+            if not validate_captcha(captcha_input):
+                flash('CAPTCHA incorrect. Please try again.', 'error')
+                return render_template('admin/login.html', step='username', error='CAPTCHA incorrect.')
         
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -141,7 +150,12 @@ def login():
                         logger.error(f"Failed to log encrypted admin action: {e}")
                 return redirect(url_for('admin.dashboard'))
     
-    return render_template('admin/login.html', step='username')
+    return render_template('admin/login.html', step='username', require_captcha=require_captcha)
+
+@admin_bp.route('/captcha_image')
+def admin_captcha_image():
+    """Serve CAPTCHA image for admin login."""
+    return serve_captcha_image()
 
 @admin_bp.route('/dashboard')
 @require_admin_role
@@ -2338,7 +2352,8 @@ def admin_security():
         'max_failed_logins': '5',
         'lockout_minutes': '15',
         'admin_action_logging': 'enabled',
-        'admin_login_captcha': 'enabled'
+        'admin_login_captcha': 'enabled',
+        'captcha_system_enabled': 'enabled'
     }
     settings = {**defaults, **settings}
     return render_template('admin/security.html', settings=settings, audit_trail=audit_trail)
@@ -2414,7 +2429,8 @@ def admin_update_security():
         'max_failed_logins': request.form.get('max_failed_logins', type=int),
         'lockout_minutes': request.form.get('lockout_minutes', type=int),
         'admin_action_logging': 'enabled' if request.form.get('admin_action_logging') == 'enabled' else 'disabled',
-        'admin_login_captcha': 'enabled' if request.form.get('admin_login_captcha') == 'enabled' else 'disabled'
+        'admin_login_captcha': 'enabled' if request.form.get('admin_login_captcha') == 'enabled' else 'disabled',
+        'captcha_system_enabled': 'enabled' if request.form.get('captcha_system_enabled') == 'enabled' else 'disabled'
     }
     # Validate inputs
     if not (8 <= settings['password_min_length'] <= 50):

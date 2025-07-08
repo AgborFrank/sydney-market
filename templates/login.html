@@ -41,7 +41,7 @@
     </p>
     {% endfor %} {% endif %} {% endwith %}
 
-    <form method="POST" class="space-y-2">
+    <form method="post" action="{{ url_for('user.login') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div>
         <label for="username" class="block text-gray-500 font-semibold mb-2"
@@ -70,7 +70,30 @@
           required
         />
       </div>
-      {% include 'components/recaptcha.html' %}
+      <div class="mb-4">
+        <label for="captcha">Enter the code shown:</label><br />
+        <div class="flex items-center space-x-2 mb-2">
+          <img
+            src="{{ url_for('user.captcha_image') }}"
+            alt="CAPTCHA"
+            id="captcha-image"
+            style="border: 1px solid #888"
+          />
+          <a href="" class="text-blue-400 hover:text-blue-300 text-sm"
+            >↻ Refresh</a
+          >
+        </div>
+        <input
+          type="text"
+          name="captcha"
+          id="captcha"
+          maxlength="5"
+          required
+          autocomplete="off"
+          class="w-full py-2 px-4 rounded-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+          placeholder="Enter CAPTCHA code"
+        />
+      </div>
       <button
         type="submit"
         class="w-full bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
@@ -80,7 +103,7 @@
     </form>
 
     <p class="mt-4 text-gray-300">
-      Don’t have an account?
+      Don't have an account?
       <a
         href="{{ url_for('user.register') }}"
         class="text-yellow-400 hover:underline"

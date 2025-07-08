@@ -84,6 +84,38 @@ settings['site_name'] }}{% endblock %} {% block content %}
         />
       </div>
 
+      {% if require_captcha %}
+      <!-- CAPTCHA Field -->
+      <div class="mb-6">
+        <label for="captcha" class="block text-gray-500 font-semibold mb-2"
+          >CAPTCHA</label
+        >
+        <div class="flex items-center space-x-4">
+          <img
+            src="{{ url_for('admin.admin_captcha_image') }}"
+            alt="CAPTCHA"
+            class="rounded border border-gray-300"
+            style="height: 48px"
+          />
+          <a
+            href=""
+            onclick="window.location.reload(); return false;"
+            class="text-xs text-yellow-400 hover:underline"
+            >Refresh</a
+          >
+        </div>
+        <input
+          type="text"
+          id="captcha"
+          name="captcha"
+          class="mt-2 w-full px-4 py-2 border bg-card text-white border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          placeholder="Enter CAPTCHA code"
+          maxlength="5"
+          required
+        />
+      </div>
+      {% endif %}
+
       <!-- Submit Button -->
       <div class="text-center">
         <button

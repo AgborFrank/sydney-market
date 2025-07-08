@@ -28,7 +28,7 @@ class Config:
     ADMIN_BTC_ADDRESS = "your-admin-btc-address"  # Add this
     
     # DDoS Protection Configuration
-    DDOS_ENABLED = False
+    DDOS_ENABLED = True
     DDOS_MAX_REQUESTS_PER_MINUTE = int(os.getenv('DDOS_MAX_REQUESTS_PER_MINUTE', '6000'))
     DDOS_MAX_REQUESTS_PER_HOUR = int(os.getenv('DDOS_MAX_REQUESTS_PER_HOUR', '1000'))
     DDOS_MAX_REQUESTS_PER_DAY = int(os.getenv('DDOS_MAX_REQUESTS_PER_DAY', '10000'))

@@ -201,6 +201,33 @@
       </div>
     </div>
 
+    <!-- CAPTCHA System Control -->
+    <div>
+      <h4 class="text-md font-semibold text-gray-700 mb-2">
+        CAPTCHA Challenge System
+      </h4>
+      <p class="text-sm text-gray-500 mb-4">
+        Enable or disable the CAPTCHA challenge system for user registration and
+        login.
+      </p>
+      <div class="flex items-center">
+        <input type="checkbox" name="captcha_system_enabled"
+        id="captcha_system_enabled" value="enabled" {% if
+        settings['captcha_system_enabled'] == 'enabled' %}checked{% endif %}
+        class="h-4 w-4 text-yellow-400 focus:ring-yellow-400 border-gray-300
+        rounded">
+        <label
+          for="captcha_system_enabled"
+          class="ml-2 block text-sm text-gray-700"
+          >Enable CAPTCHA Challenge System</label
+        >
+      </div>
+      <p class="text-xs text-gray-400 mt-1">
+        When disabled, users can register and login without CAPTCHA
+        verification.
+      </p>
+    </div>
+
     <!-- Audit Trail -->
     <div class="mt-8">
       <h4 class="text-md font-semibold text-gray-700 mb-2">Audit Trail</h4>

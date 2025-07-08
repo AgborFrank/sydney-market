@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, g
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, g, jsonify
 from utils.database import get_db_connection, get_settings, get_user_profile_data, get_bond_amounts, get_pending_payment, get_user_notifications, mark_notification_read
 from utils.security import regenerate_session, encrypt_message
 from utils.crypto import get_exchange_rates
@@ -22,11 +22,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dataclasses import dataclass
 from datetime import datetime
 import base64
+import time
 from utils.ddos_protection import recaptcha
 from utils.bitcoin import generate_btc_address
 from utils.monero import generate_monero_address
 import qrcode
 import io
+from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, mark_captcha_verified, reset_captcha_verification, generate_captcha_code, set_captcha_code
+from functools import wraps
 #from app import User  # Import User from app.py
 
 # Set up logging
@@ -213,22 +216,51 @@ def inject_profile_data():
         if error:
             logger.error(f"Failed to fetch profile_data for user {current_user.id}: {error}")
     return {'profile_data': g.get('profile_data', {})}
+
+def require_captcha_challenge(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if is_captcha_required():
+            return redirect(url_for('user.captcha_challenge', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@user_bp.route('/captcha_challenge', methods=['GET', 'POST'])
+def captcha_challenge():
+    logger.warning(f"CAPTCHA challenge route called - Method: {request.method}")
+    if request.method == 'POST':
+        captcha_input = request.form.get('captcha', '').strip()
+        logger.warning(f"CAPTCHA challenge POST - captcha_input: '{captcha_input}'")
+        if validate_captcha(captcha_input):
+            mark_captcha_verified()
+            next_url = request.args.get('next') or request.form.get('next') or url_for('user.login')
+            logger.warning(f"CAPTCHA challenge successful - redirecting to: {next_url}")
+            return redirect(next_url)
+        else:
+            logger.warning("CAPTCHA challenge failed")
+            flash('CAPTCHA incorrect. Please try again.', 'error')
+    next_url = request.args.get('next') or request.form.get('next') or url_for('user.login')
+    logger.warning(f"CAPTCHA challenge GET - next_url: {next_url}")
+    return render_template('captcha_challenge.html', next=next_url)
+
 # Login route
 @user_bp.route('/login', methods=['GET', 'POST'])
+@require_captcha_challenge
 def login():
     from app import User  # Import here to avoid circular import
     logger.debug("Entering /login")
+    logger.warning(f"Login route called - Method: {request.method}")
     next_url = request.args.get('next') or request.form.get('next')
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').encode('utf-8')
-        
-        # Verify reCAPTCHA
-        if recaptcha and recaptcha.config.RECAPTCHA_ENABLED:
-            recaptcha_response = request.form.get('g-recaptcha-response')
-            if not recaptcha.verify_recaptcha(recaptcha_response, request.remote_addr):
-                flash("reCAPTCHA verification failed. Please try again.", 'error')
-                return render_template('login.html', form_data={'username': username, 'next': next_url})
+        captcha_input = request.form.get('captcha', '').strip()
+        logger.warning(f"Login POST - captcha_input: '{captcha_input}'")
+        # Validate CAPTCHA
+        if not validate_captcha(captcha_input):
+            logger.warning("Login CAPTCHA validation failed")
+            flash("CAPTCHA incorrect. Please try again.", 'error')
+            return render_template('login.html', form_data={'username': username, 'next': next_url})
         
         if not username or not password:
             flash("Username and password are required.", 'error')
@@ -313,6 +345,7 @@ def two_factor_auth():
 
 # Register route
 @user_bp.route('/register', methods=['GET', 'POST'])
+@require_captcha_challenge
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -320,14 +353,12 @@ def register():
         password = request.form.get('password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
         pin = request.form.get('pin', '').strip()
+        captcha_input = request.form.get('captcha', '').strip()
+        # Validate CAPTCHA
+        if not validate_captcha(captcha_input):
+            flash("CAPTCHA incorrect. Please try again.", 'error')
+            return render_template('register.html', form_data=request.form.to_dict())
         
-        # Verify reCAPTCHA
-        if recaptcha and recaptcha.config.RECAPTCHA_ENABLED:
-            recaptcha_response = request.form.get('g-recaptcha-response')
-            if not recaptcha.verify_recaptcha(recaptcha_response, request.remote_addr):
-                flash("reCAPTCHA verification failed. Please try again.", 'error')
-                return render_template('register.html', form_data=request.form.to_dict())
-
         if not all([username, pusername, password, confirm_password, pin]):
             flash("All fields are required.", 'error')
             return render_template('register.html', form_data=request.form.to_dict())
@@ -422,6 +453,7 @@ def logout():
     regenerate_session()
     flash("You have been logged out successfully.", 'success')
     logger.debug("Session cleared and regenerated")
+    reset_captcha_verification()
     return redirect(url_for('user.login'))
 
 @user_bp.route('/add_pgp_key', methods=['GET', 'POST'])
@@ -2024,4 +2056,22 @@ def mark_notification(notification_id):
     user_id = session['user_id']
     mark_notification_read(notification_id, user_id)
     return ('', 204)
+
+# Route to serve CAPTCHA image
+@user_bp.route('/captcha_image')
+def captcha_image():
+    return serve_captcha_image()
+
+# Route to refresh CAPTCHA via AJAX
+@user_bp.route('/captcha_refresh')
+def captcha_refresh():
+    """Refresh CAPTCHA and return new image URL."""
+    try:
+        # Generate new CAPTCHA
+        code = generate_captcha_code()
+        set_captcha_code(code)
+        return jsonify({'success': True, 'url': url_for('user.captcha_image') + '?' + str(int(time.time()))})
+    except Exception as e:
+        logging.error(f"Failed to refresh CAPTCHA: {e}")
+        return jsonify({'success': False, 'error': 'Failed to refresh CAPTCHA'}), 500
 

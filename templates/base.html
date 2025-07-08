@@ -29,9 +29,9 @@
     <link href="https://css.gg/css" rel="stylesheet" />
     <style>
       :root {
-          --primary-color: {{ settings.primary_color | default('#3b82f6') }};
-          --secondary-color: {{ settings.secondary_color | default('#16a34a') }};
-          --primary-color-rgb: {{ settings.primary_color_rgb | default('59, 130, 246') }};
+          --primary-color: {{ settings.primary_color | default('#3b82f6', true) if settings is defined else '#3b82f6' }};
+          --secondary-color: {{ settings.secondary_color | default('#16a34a', true) if settings is defined else '#16a34a' }};
+          --primary-color-rgb: {{ settings.primary_color_rgb | default('59, 130, 246', true) if settings is defined else '59, 130, 246' }};
       }
       .container { max-width: 1280px; }
       .bg-primary { background-color: var(--primary-color); }
@@ -88,9 +88,9 @@
           <div
             class="2xl:w-[270px] flex flex-col items-center justify-start mx-2"
           >
-            {% if request.endpoint == 'public.product_detail' and vendor and
-            product %} {% include 'components/vendor_profile.html' %} {% endif
-            %}
+            {% if request.endpoint == 'public.product_detail' and vendor is
+            defined and vendor and product is defined and product %} {% include
+            'components/vendor_profile.html' %} {% endif %}
             <div class="w-full flex flex-col gap-2">
               <!-- Profile Actions -->
               <div
@@ -185,7 +185,7 @@
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
-                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      class="px-2 _album py-[3px] group-hover:text-white rounded-md"
                       href=""
                       >Affiliate Stats</a
                     >
@@ -202,12 +202,12 @@
                   </div>
                 </div>
               </div>
-              {% if session['role'] == 'vendor' %}
+              {% if session.get('role') == 'vendor' %}
 
               <!-- Exchange Rates -->
               {% import "components/exchange.html" as exchange %} {{
-              exchange.exchange_rates(rates) }} {% endif %} {% include
-              'components/categories_sidebar.html' %}
+              exchange.exchange_rates(rates) if rates is defined else '' }} {%
+              endif %} {% include 'components/categories_sidebar.html' %}
               <!--LATEST NEWS-->
               {% include 'components/news_sidebar.html' %}
 

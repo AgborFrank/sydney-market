@@ -33,14 +33,30 @@ app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.secret_key = Config.SECRET_KEY  # Ensure this is static in production (e.g., from env)
 
-# Configure session
+# Configure session with Redis fallback
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32))
-app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
-    port=int(os.getenv('REDIS_PORT', 6379)),
-    password=os.getenv('REDIS_PASSWORD', None)
-)
+
+# Try to use Redis for sessions, fallback to filesystem if Redis is unavailable
+try:
+    redis_client = redis.Redis(
+        host=os.getenv('REDIS_HOST', 'localhost'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        password=os.getenv('REDIS_PASSWORD', None),
+        socket_connect_timeout=5,
+        socket_timeout=5
+    )
+    # Test Redis connection
+    redis_client.ping()
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_REDIS'] = redis_client
+    print("Using Redis for session storage")
+except Exception as e:
+    print(f"Redis not available, using filesystem sessions: {e}")
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_DIR'] = '/tmp/flask_sessions'
+    # Create session directory if it doesn't exist
+    os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+
 Session(app)
 
 # Upload folder for categories
