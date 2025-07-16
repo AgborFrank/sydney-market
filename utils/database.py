@@ -861,6 +861,13 @@ def get_settings():
         c.execute("SELECT key, value FROM settings")
         return dict(c.fetchall())
 
+def get_security_settings():
+    """Get security settings from the security_settings table."""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT setting_name, value FROM security_settings")
+        return dict(c.fetchall())
+
 def get_user_profile_data(user_id):
     """Fetch user profile data for the user profile component."""
     profile_data = {

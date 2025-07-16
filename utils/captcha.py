@@ -1,4 +1,13 @@
-from captcha.image import ImageCaptcha
+try:
+    from captcha.image import ImageCaptcha
+except ImportError:
+    # Fallback if there's a naming conflict
+    import sys
+    import os
+    # Remove current directory from path to avoid local captcha.py
+    if os.getcwd() in sys.path:
+        sys.path.remove(os.getcwd())
+    from captcha.image import ImageCaptcha
 import random
 import string
 from flask import session, send_file, make_response, current_app
@@ -78,6 +87,10 @@ def serve_captcha_image():
         set_captcha_code(code)
         image_data = generate_captcha_image(code)
         
+        # Ensure image_data is bytes
+        if isinstance(image_data, io.BytesIO):
+            image_data = image_data.getvalue()
+        
         response = make_response(send_file(
             io.BytesIO(image_data),
             mimetype='image/png'
@@ -118,9 +131,9 @@ def is_captcha_required():
     """Check if CAPTCHA verification is required."""
     try:
         # First check if CAPTCHA system is enabled globally
-        from utils.database import get_settings
-        settings = get_settings()
-        if settings.get('captcha_system_enabled') != 'enabled':
+        from utils.database import get_security_settings
+        security_settings = get_security_settings()
+        if security_settings.get('captcha_system_enabled') != 'enabled':
             logging.info("CAPTCHA system is disabled globally")
             return False
         
@@ -149,9 +162,9 @@ def reset_captcha_verification():
 def get_captcha_system_status():
     """Get the current status of the CAPTCHA system."""
     try:
-        from utils.database import get_settings
-        settings = get_settings()
-        return settings.get('captcha_system_enabled', 'enabled')
+        from utils.database import get_security_settings
+        security_settings = get_security_settings()
+        return security_settings.get('captcha_system_enabled', 'enabled')
     except Exception as e:
         logging.error(f"Error getting CAPTCHA system status: {e}")
         return 'enabled'  # Default to enabled for security 

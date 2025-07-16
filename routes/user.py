@@ -363,6 +363,15 @@ def register():
             flash("All fields are required.", 'error')
             return render_template('register.html', form_data=request.form.to_dict())
 
+        # Username validation
+        if len(username) < 3 or len(username) > 50:
+            flash("Public username must be 3-50 characters.", 'error')
+            return render_template('register.html', form_data=request.form.to_dict())
+        
+        if len(pusername) < 3 or len(pusername) > 50:
+            flash("Private username must be 3-50 characters.", 'error')
+            return render_template('register.html', form_data=request.form.to_dict())
+
         if password != confirm_password:
             flash("Passwords do not match.", 'error')
             return render_template('register.html', form_data=request.form.to_dict())

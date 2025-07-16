@@ -57,9 +57,13 @@
             value="{{ form_data.username|default('') }}"
             class="w-full py-2 px-4 rounded-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-1 focus:ring-slate-400"
             placeholder="Choose a unique username"
+            minlength="3"
+            maxlength="50"
             required
           />
-          <small class="text-gray-500">Use for market interactions</small>
+          <small class="text-gray-500"
+            >Use for market interactions (3-50 characters)</small
+          >
         </div>
         <div>
           <label
@@ -74,9 +78,13 @@
             value="{{ form_data.pusername|default('') }}"
             class="w-full py-2 px-4 rounded-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-1 focus:ring-slate-400"
             placeholder="Choose a unique username"
+            minlength="3"
+            maxlength="50"
             required
           />
-          <small class="text-gray-500">Use to access your account</small>
+          <small class="text-gray-500"
+            >Use to access your account (3-50 characters)</small
+          >
         </div>
       </div>
       <div>

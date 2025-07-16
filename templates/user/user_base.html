@@ -65,6 +65,8 @@
     </style>
   </head>
   <body class="flex flex-col min-h-screen">
+    {% if stats is not defined %} {% set stats = {'items_bought': 0, 'paid_usd':
+    0, 'in_escrow_usd': 0, 'total_purchases_usd': 0} %} {% endif %}
     <div
       class="min-h-full w-[99%] 2xl:max-w-screen-4xl mx-auto"
       style="position: relative; z-index: 10"
@@ -75,7 +77,6 @@
       <div
         class="contentcont z-0 bg-primary border-solid border-[1px] border-border rounded-md w-full"
       >
-      
         <div
           class="content mx-auto min-h-[calc(100vh-230px)] px-[16px] py-[15px] flex flex-wrap gap-2"
         >
@@ -211,7 +212,6 @@
           <div
             class="2xl:w-[calc(100%-300px)] flex flex-col mx-auto justify-start gap-2 text-xs text-sydney bg-card p-2 border-solid border border-border hover:border-sydney rounded-md"
           >
-          
             {% block user_content %}{% endblock %}
           </div>
         </div>
