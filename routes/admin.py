@@ -2527,7 +2527,7 @@ def admin_packages():
                     price_usd = request.form.get('price_usd', type=float)
                     free = 1 if request.form.get('free') == '1' else 0
 
-                    if not all([title, features, product_limit, price_usd]) or product_limit < 1 or price_usd < 0:
+                    if not all([title, features]) or product_limit is None or price_usd is None or product_limit < 1 or price_usd < 0:
                         flash("Invalid package details.", 'error')
                     else:
                         c.execute("""
@@ -2545,7 +2545,7 @@ def admin_packages():
                     price_usd = request.form.get('price_usd', type=float)
                     free = 1 if request.form.get('free') == '1' else 0
 
-                    if not all([package_id, title, features, product_limit, price_usd]) or product_limit < 1 or price_usd < 0:
+                    if not all([package_id, title, features]) or product_limit is None or price_usd is None or product_limit < 1 or price_usd < 0:
                         flash("Invalid package details.", 'error')
                     else:
                         c.execute("""
