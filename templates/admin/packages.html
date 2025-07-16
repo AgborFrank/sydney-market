@@ -11,6 +11,7 @@ endblock %} {% block admin_content %}
       action="{{ url_for('admin.admin_packages') }}"
       class="space-y-4"
     >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <input type="hidden" name="action" value="add" />
       <div>
         <label for="title" class="block text-gray-700 font-semibold mb-2"
@@ -78,6 +79,7 @@ endblock %} {% block admin_content %}
           name="free"
           value="1"
           class="mr-2 align-middle"
+          onchange="toggleFreePackage()"
         />
         <span class="text-gray-600"
           >Check to make this package free (ignores price)</span
@@ -92,6 +94,12 @@ endblock %} {% block admin_content %}
         </button>
       </div>
     </form>
+    {% if 'Invalid package details.' in get_flashed_messages() %}
+    <p class="text-red-600 mt-2">
+      Please fill in all fields. Product Limit must be at least 1. Price must be
+      0 or greater. Features cannot be empty.
+    </p>
+    {% endif %}
   </div>
 
   <!-- Packages Table -->
@@ -135,6 +143,11 @@ endblock %} {% block admin_content %}
               action="{{ url_for('admin.admin_packages') }}"
               class="inline"
             >
+              <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+              />
               <input type="hidden" name="action" value="delete" />
               <input
                 type="hidden"
@@ -171,6 +184,7 @@ endblock %} {% block admin_content %}
         action="{{ url_for('admin.admin_packages') }}"
         class="space-y-4"
       >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <input type="hidden" name="action" value="edit" />
         <input type="hidden" name="package_id" id="edit_package_id" />
         <div>
@@ -287,6 +301,19 @@ endblock %} {% block admin_content %}
 
   function closeModal() {
     document.getElementById("editModal").classList.add("hidden");
+  }
+
+  function toggleFreePackage() {
+    const freeCheckbox = document.getElementById("free");
+    const priceInput = document.getElementById("price_usd");
+    if (freeCheckbox.checked) {
+      priceInput.value = 0;
+      priceInput.setAttribute("readonly", "readonly");
+      priceInput.classList.add("bg-gray-100");
+    } else {
+      priceInput.removeAttribute("readonly");
+      priceInput.classList.remove("bg-gray-100");
+    }
   }
 </script>
 {% endblock %}

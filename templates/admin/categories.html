@@ -156,6 +156,7 @@
                 class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition text-xs">Edit</a>
               <form method="POST" action="{{ url_for('admin.admin_delete_category', category_id=category['id']) }}" class="inline"
                 onsubmit="return confirm('Delete {{ category['name'] }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit"
                   class="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition text-xs">Delete</button>
               </form>
