@@ -157,6 +157,14 @@
                         <p>3. Your PGP should have been added now. Click on select enable 2FA and introduce your PIN once again before clicking on save changes.</p>
                     </div>
 
+                    {% if pgp_encrypted_challenge %}
+                    <span class="font-bold">PGP Encrypted Challenge:</span>
+                    <textarea readonly class="border-solid text-xs leading-tight rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" rows="10" cols="110">{{ pgp_encrypted_challenge }}</textarea>
+
+                    <span class="font-bold">PGP Decrypted Message:</span>
+                    <input name="da_pgp_decrypted" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" type="text" maxlength="5000" placeholder="Paste the decrypted plaintext here" />
+                    {% endif %}
+
                     <span class="font-bold">PGP public key:</span>
                     <textarea name="da_pgp" class="border-solid text-xs leading-tight rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney" rows="17" cols="110" maxlength="5000">{{ current_user.pgp_public_key|default('') }}</textarea>
 

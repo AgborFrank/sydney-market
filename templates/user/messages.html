@@ -6,6 +6,24 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
     Secure Messages
   </h1>
 
+  {% if is_tor %}
+  <div class="bg-blue-900 border border-blue-700 rounded p-4 mb-6">
+    <p class="text-blue-200 text-sm">
+      <i class="fas fa-shield-alt mr-2"></i>
+      You are accessing this page through Tor. Encryption services may be slower
+      than usual.
+    </p>
+  </div>
+  {% endif %} {% if gpg_error %}
+  <div class="bg-red-900 border border-red-700 rounded p-4 mb-6">
+    <p class="text-red-200 text-sm">
+      <i class="fas fa-exclamation-triangle mr-2"></i>
+      Encryption service is temporarily unavailable. Messages will be stored
+      without encryption.
+    </p>
+  </div>
+  {% endif %}
+
   <!-- Message Section Tabs -->
   <div class="flex justify-center mb-6">
     <a

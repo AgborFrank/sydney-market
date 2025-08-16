@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, g, jsonify
 from utils.database import get_db_connection, get_settings, get_user_profile_data, get_bond_amounts, get_pending_payment, get_user_notifications, mark_notification_read
-from utils.security import regenerate_session, encrypt_message
+from utils.security import regenerate_session, encrypt_message, init_gpg_for_tor, is_tor_request
 from utils.crypto import get_exchange_rates
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from utils.support import secure_support
 from flask_wtf import FlaskForm
 from flask_login import login_required, current_user, login_user
 from wtforms import StringField, PasswordField, SelectField, TextAreaField, FileField, BooleanField, IntegerField
@@ -20,7 +21,7 @@ from routes import require_role
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import time
 from utils.ddos_protection import recaptcha
@@ -30,6 +31,7 @@ import qrcode
 import io
 from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, mark_captcha_verified, reset_captcha_verification, generate_captcha_code, set_captcha_code
 from functools import wraps
+from flask_wtf.csrf import generate_csrf
 #from app import User  # Import User from app.py
 
 # Set up logging
@@ -38,7 +40,8 @@ logger = logging.getLogger(__name__)
 user_bp = Blueprint('user', __name__)
 limiter = Limiter(get_remote_address, app=None)  # Attach in app.py
 
-FERNET_KEY = Fernet.generate_key()  # Replace with a static key in config
+# Use a static key for development - in production, this should be stored securely
+FERNET_KEY = b'xESD56d8W_2sAxJvPJ3GYk3DyJPXV_RGPmAgNCxy0GU='
 cipher = Fernet(FERNET_KEY)
 
 WORD_LIST = ["apple"]
@@ -66,6 +69,14 @@ def validate_pgp_key(pgp_key):
     if not pgp_key or pgp_key.strip() == '':
         return False
     return pgp_key.strip().startswith('-----BEGIN PGP PUBLIC KEY BLOCK-----') and '-----END PGP PUBLIC KEY BLOCK-----' in pgp_key
+
+def is_two_factor_enabled(val):
+	"""Return True if the stored 2FA flag indicates 2FA is enabled."""
+	try:
+		flag = str(val).strip().lower()
+	except Exception:
+		flag = ''
+	return flag in ('1', 'true', 'enabled', 'yes')
 
 @dataclass
 class Order:
@@ -155,6 +166,7 @@ class EditProfileForm(FlaskForm):
     da_refund = TextAreaField('Refund Address', validators=[Optional(), Length(max=2000)])
     da_pincb = PasswordField('Current PIN (Security)', validators=[Optional(), Length(min=6, max=6)])
     da_pgp = TextAreaField('PGP Public Key', validators=[Optional(), Length(max=5000)])
+    da_pgp_decrypted = StringField('PGP Decrypted Message', validators=[Optional(), Length(max=5000)])
     da_factor = SelectField('2FA', choices=[('0', 'Disabled'), ('1', 'Enabled')], validators=[DataRequired()])
     da_canbuy = SelectField('Allow Purchases', choices=[('1', 'Allow'), ('0', 'Do not allow')], validators=[DataRequired()])
     da_pinbuy = SelectField('Require PIN on Purchases', choices=[('0', 'Not require'), ('1', 'Require')], validators=[DataRequired()])
@@ -217,6 +229,10 @@ def inject_profile_data():
             logger.error(f"Failed to fetch profile_data for user {current_user.id}: {error}")
     return {'profile_data': g.get('profile_data', {})}
 
+@user_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
+
 def require_captcha_challenge(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -250,8 +266,73 @@ def login():
     from app import User  # Import here to avoid circular import
     logger.debug("Entering /login")
     logger.warning(f"Login route called - Method: {request.method}")
+    
+    # Debug CSRF token
+    from flask_wtf.csrf import generate_csrf
+    try:
+        csrf_token = generate_csrf()
+        logger.debug(f"CSRF token generated: {csrf_token[:20]}...")
+    except Exception as e:
+        logger.error(f"Error generating CSRF token: {e}")
+    
     next_url = request.args.get('next') or request.form.get('next')
     if request.method == 'POST':
+        # Check if request is coming from Tor
+        is_tor_request = request.headers.get('X-Forwarded-For', '').endswith('.onion') or \
+                        request.headers.get('Host', '').endswith('.onion') or \
+                        '.onion' in request.headers.get('Host', '')
+        
+        # Validate CSRF token (with Tor-specific handling)
+        from flask_wtf.csrf import validate_csrf
+        from config import Config
+        config = Config()
+        
+        try:
+            csrf_token = request.form.get('csrf_token')
+            
+            # For Tor requests, be more lenient with CSRF validation
+            if is_tor_request:
+                if config.TOR_CSRF_DISABLED:
+                    logger.info("CSRF disabled for Tor requests")
+                    pass
+                elif config.TOR_CSRF_LENIENT:
+                    if not csrf_token:
+                        logger.warning("No CSRF token in Tor request, but allowing login attempt")
+                        # For Tor requests, we'll allow the login without CSRF token
+                        # This is a security trade-off for Tor compatibility
+                        pass
+                    else:
+                        try:
+                            validate_csrf(csrf_token)
+                        except Exception as e:
+                            logger.warning(f"CSRF validation failed for Tor request: {e}")
+                            # For Tor requests, we'll allow the login even if CSRF fails
+                            pass
+                else:
+                    # Strict CSRF validation even for Tor
+                    if not csrf_token:
+                        logger.error("No CSRF token found in Tor request")
+                        flash("CSRF token missing. Please try refreshing the page.", 'error')
+                        return render_template('login.html', form_data={'next': next_url})
+                    validate_csrf(csrf_token)
+            else:
+                # For non-Tor requests, strict CSRF validation
+                if not csrf_token:
+                    logger.error("No CSRF token found in form")
+                    flash("CSRF token missing. Please try refreshing the page.", 'error')
+                    return render_template('login.html', form_data={'next': next_url})
+                validate_csrf(csrf_token)
+                
+        except Exception as e:
+            logger.error(f"CSRF validation failed: {e}")
+            if is_tor_request:
+                logger.warning("Allowing Tor request despite CSRF failure")
+                # For Tor requests, we'll allow the login even if CSRF fails
+                pass
+            else:
+                flash("CSRF token validation failed. Please try refreshing the page.", 'error')
+                return render_template('login.html', form_data={'next': next_url})
+        
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').encode('utf-8')
         captcha_input = request.form.get('captcha', '').strip()
@@ -275,7 +356,7 @@ def login():
             session['temp_user_id'] = user['id']
             session['temp_username'] = user['username']
             session['temp_role'] = user['role']
-            if user['two_factor_secret'] == '1':  # Use two_factor_secret
+            if is_two_factor_enabled(user['two_factor_secret']):
                 if not user['pgp_public_key']:
                     flash("2FA enabled but no PGP key set.", 'error')
                     return redirect(url_for('user.login'))
@@ -325,7 +406,8 @@ def two_factor_auth():
 
         if user_data and bcrypt.checkpw(pin, user_data['pin'].encode('utf-8')):
             if decrypted_message == session.get('2fa_message'):
-                user = User(**filter_user_data(user_data))
+                user_dict = dict(user_data)
+                user = User(**filter_user_data(user_dict))
                 login_user(user)
                 session['user_id'] = user_data['id']
                 session['username'] = user_data['username']
@@ -476,11 +558,11 @@ def add_pgp_key():
         pgp_public_key = request.form.get('pgp_public_key', '').strip()
         if not pgp_public_key:
             flash("PGP public key is required.", 'error')
-            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict())
+            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict(), settings=get_settings())
 
         if not validate_pgp_key(pgp_public_key):
             flash("Invalid PGP public key format.", 'error')
-            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict())
+            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict(), settings=get_settings())
 
         try:
             key, _ = pgpy.PGPKey.from_blob(pgp_public_key)
@@ -488,7 +570,7 @@ def add_pgp_key():
         except Exception as e:
             logger.error(f"PGP Key validation failed: {str(e)}")
             flash(f"Invalid PGP public key: {str(e)}", 'error')
-            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict())
+            return render_template('user/add_pgp_key.html', form_data=request.form.to_dict(), settings=get_settings())
 
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -499,7 +581,7 @@ def add_pgp_key():
         logger.debug("PGP key added for user_id: {}".format(session['user_id']))
         return redirect(url_for('user.settings'))
 
-    return render_template('user/add_pgp_key.html', form_data={})
+    return render_template('user/add_pgp_key.html', form_data={}, settings=get_settings())
 
 @user_bp.route('/feedback', methods=['GET', 'POST'])
 def feedback():
@@ -629,7 +711,7 @@ def feedback():
 
 @user_bp.route('/dashboard')
 def dashboard():
-    """Render user dashboard with profile, orders, reports, rates, and buyer stats. Redirect vendors to vendor dashboard."""
+    """Render user dashboard with profile, orders, reports, rates, and buyer stats. Show different content for vendors vs buyers."""
     if 'user_id' not in session:
         flash("Please log in to access your dashboard.", 'error')
         return redirect(url_for('user.login'))
@@ -646,8 +728,9 @@ def dashboard():
             return redirect(url_for('user.login'))
         is_vendor = bool(user_row['is_vendor'])
         pusername = user_row['pusername']
+    
     if is_vendor:
-        # Fetch vendor stats, recent orders, reviews, messages
+        # Fetch vendor stats, recent orders, reviews, messages, and published products
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("""
@@ -665,6 +748,18 @@ def dashboard():
             avatar = vendor_data['avatar'] or None
             logo = vendor_data['logo'] or None
             shipping_location = vendor_data['shipping_location'] or "Not specified"
+            
+            # Fetch vendor's published products
+            c.execute("""
+                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.featured_image,
+                       c.name as category_name
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.vendor_id = ?
+                ORDER BY p.created_at DESC
+            """, (user_id,))
+            published_products = [dict(row) for row in c.fetchall()]
+            
             # Market Stats
             c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ?", (user_id,))
             total_orders = c.fetchone()[0]
@@ -711,11 +806,11 @@ def dashboard():
             recent_reviews = [dict(row) for row in c.fetchall()]
             # Recent Messages
             c.execute("""
-                SELECT m.id, m.subject, m.body, m.sent_at, u.pusername as sender
+                SELECT m.id, m.content, m.created_at, u.pusername as sender
                 FROM messages m
                 JOIN users u ON m.sender_id = u.id
-                WHERE m.recipient_id = ? AND m.recipient_type = 'vendor'
-                ORDER BY m.sent_at DESC LIMIT 5
+                WHERE m.recipient_id = ? AND m.trashed = 0
+                ORDER BY m.created_at DESC LIMIT 5
             """, (user_id,))
             recent_messages = [dict(row) for row in c.fetchall()]
             # Analytics
@@ -763,19 +858,37 @@ def dashboard():
                               recent_orders=recent_orders,
                               recent_reviews=recent_reviews,
                               recent_messages=recent_messages,
+                              published_products=published_products,
                               title="Vendor Dashboard")
-    # Non-vendor user dashboard (existing logic)
+    
+    # Non-vendor user dashboard (buyer) - fetch purchased products
     profile_data, error = get_user_profile_data(user_id)
     if error:
         flash(error, 'error')
         session.clear()
         return redirect(url_for('user.login'))
+    
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT username FROM users WHERE id = ?", (user_id,))
         user_row = c.fetchone()
         user = dict(user_row)
-        # Recent orders
+        
+        # Fetch purchased products (completed orders)
+        c.execute("""
+            SELECT o.id as order_id, o.amount_usd, o.status, o.created_at as purchase_date,
+                   p.id as product_id, p.title, p.featured_image, p.price_usd,
+                   u.pusername as vendor_username, c.name as category_name
+            FROM orders o
+            JOIN products p ON o.product_id = p.id
+            JOIN users u ON o.vendor_id = u.id
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE o.user_id = ? AND o.status = 'completed'
+            ORDER BY o.created_at DESC
+        """, (user_id,))
+        purchased_products = [dict(row) for row in c.fetchall()]
+        
+        # Recent orders (all statuses)
         c.execute("""
             SELECT o.*, p.title, u.pusername as vendor_username
             FROM orders o
@@ -785,6 +898,7 @@ def dashboard():
             ORDER BY o.created_at DESC LIMIT 5
         """, (user_id,))
         orders = [dict(row) for row in c.fetchall()]
+        
         # Recent reports
         c.execute("""
             SELECT r.*, u.pusername as vendor_username
@@ -794,6 +908,7 @@ def dashboard():
             ORDER BY r.created_at DESC LIMIT 5
         """, (user_id,))
         reports = [dict(row) for row in c.fetchall()]
+        
         # Buyer statistics
         try:
             c.execute("""
@@ -816,10 +931,12 @@ def dashboard():
             paid_usd = 0.0
             in_escrow_usd = 0.0
             total_purchases_usd = 0.0
+    
     rates = get_exchange_rates()
     if not rates:
         flash("Unable to fetch exchange rates.", 'error')
         rates = {"bitcoin": {}, "monero": {}}
+    
     stats = {
         "items_bought": items_bought,
         "paid_usd": paid_usd,
@@ -827,6 +944,7 @@ def dashboard():
         "total_purchases_usd": total_purchases_usd
     }
     logger.debug("Buyer stats: %s", stats)
+    
     return render_template('user/dashboard.html',
                          user=user,
                          orders=orders,
@@ -834,6 +952,7 @@ def dashboard():
                          reports=reports,
                          profile_data=profile_data,
                          stats=stats,
+                         purchased_products=purchased_products,
                          title="Dashboard - Sydney")
 
 def get_bond_amounts():
@@ -882,89 +1001,112 @@ def validate_pgp_key(pgp_key):
     return pgp_key.strip().startswith('-----BEGIN PGP PUBLIC KEY BLOCK-----') and '-----END PGP PUBLIC KEY BLOCK-----' in pgp_key
 
 @user_bp.route('/become_vendor', methods=['GET', 'POST'])
+@login_required
 def become_vendor():
+    """Page for non-vendor users to view and subscribe to vendor packages"""
     if 'user_id' not in session:
-        flash('Please log in to become a vendor.', 'error')
+        flash("Please log in to access this page.", 'error')
         return redirect(url_for('user.login'))
 
     user_id = session['user_id']
-    if has_purchases(user_id):
-        flash('Accounts with prior purchases cannot upgrade. Please create a new account.', 'error')
-        return redirect(url_for('user.become_vendor'))
-
-    bond = get_bond_amounts()
-    payment = get_pending_payment(user_id)
-    profile_data, error = get_user_profile_data(session['user_id'])
-    # Exchange rates
-    rates = get_exchange_rates()
-    if not rates:
-        flash("Unable to fetch exchange rates.", 'error')
-        rates = {"bitcoin": {}, "monero": {}}
-
-    if payment and payment['status'] == 'pending':
-        # Check payment status
-        if payment['crypto_type'] == 'btc':
-            txid = check_payment(payment['address'], payment['amount'])
-            if txid:
-                with get_db_connection() as conn:
-                    c = conn.cursor()
-                    c.execute("UPDATE vendor_payments SET txid = ?, status = 'confirmed' WHERE id = ?", (txid, payment['id']))
-                    c.execute("UPDATE users SET is_vendor = 1 WHERE id = ?", (user_id,))
-                    conn.commit()
-                flash('Payment confirmed. You are now a vendor!', 'success')
-                return redirect(url_for('user.dashboard'))
-        elif payment['crypto_type'] == 'xmr':
-            if check_monero_payment(payment['address'], payment['amount']):
-                with get_db_connection() as conn:
-                    c = conn.cursor()
-                    c.execute("UPDATE vendor_payments SET status = 'confirmed' WHERE id = ?", (payment['id'],))
-                    c.execute("UPDATE users SET is_vendor = 1 WHERE id = ?", (user_id,))
-                    conn.commit()
-                flash('Payment confirmed. You are now a vendor!', 'success')
-                return redirect(url_for('user.dashboard'))
-
-    if request.method == 'POST':
-        if not request.form.get('accept_terms'):
-            flash('You must accept the terms.', 'error')
-            return redirect(url_for('user.become_vendor'))
-
-        crypto = request.form.get('e_crypto')
-        if crypto not in ['btc', 'xmr']:
-            flash('Invalid cryptocurrency selected.', 'error')
-            return redirect(url_for('user.become_vendor'))
-
-        if payment:
-            flash('You already have a pending payment. Please complete it.', 'error')
-            return redirect(url_for('user.become_vendor'))
-
-        # Use admin wallet for bond payment
-        settings = get_settings()
-        if crypto == 'btc':
-            address = settings.get('btc_admin_wallet', '')
-            amount = float(settings.get('vendor_bond_amount', 0.05))
-        else:
-            address = settings.get('xmr_admin_wallet', '')
-            amount = float(settings.get('vendor_bond_amount', 0.05))
-        if not address:
-            flash('Admin wallet address not configured. Please contact support.', 'error')
-            return redirect(url_for('user.become_vendor'))
-        try:
-            qr_path = generate_qr_code(address, crypto, user_id)
-        except Exception as e:
-            flash(f'Failed to generate payment address: {str(e)}', 'error')
-            return redirect(url_for('user.become_vendor'))
-
-        # Store payment
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("INSERT INTO vendor_payments (user_id, crypto_type, address, amount, status) VALUES (?, ?, ?, ?, 'pending')",
-                      (user_id, crypto, address, amount))
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        
+        if not user:
+            flash("User not found.", 'error')
+            return redirect(url_for('public.index'))
+        
+        # If user is already a vendor, redirect to vendor dashboard
+        if user['role'] == 'vendor':
+            flash("You are already a vendor.", 'info')
+            return redirect(url_for('vendor.products_index'))
+        
+        # Check if user already has a pending or active subscription
+        c.execute("""
+            SELECT vs.*, p.title as package_title, p.price_usd, p.features, p.product_limit
+            FROM vendor_subscriptions vs
+            JOIN packages p ON vs.package_id = p.id
+            WHERE vs.vendor_id = ? AND vs.status IN ('pending', 'active')
+        """, (user_id,))
+        existing_subscription = c.fetchone()
+        
+        if request.method == 'POST':
+            package_id = request.form.get('package_id', type=int)
+            if not package_id:
+                flash("Please select a package.", 'error')
+                return redirect(url_for('user.become_vendor'))
+            
+            # Get package details
+            c.execute("SELECT * FROM packages WHERE id = ?", (package_id,))
+            package = c.fetchone()
+            if not package:
+                flash("Package not found.", 'error')
+                return redirect(url_for('user.become_vendor'))
+            
+            package = dict(package)
+            
+            # Handle free package
+            if package.get('free', 0) == 1:
+                # Update user role to vendor and create subscription
+                expires_at = datetime.now() + timedelta(days=30)
+                c.execute("UPDATE users SET role = 'vendor' WHERE id = ?", (user_id,))
+                c.execute("""
+                    INSERT INTO vendor_subscriptions (vendor_id, package_id, status, expires_at, payment_txid)
+                    VALUES (?, ?, 'active', ?, NULL)
+                """, (user_id, package_id, expires_at))
+                conn.commit()
+                
+                # Update session role
+                session['role'] = 'vendor'
+                
+                flash("Congratulations! You are now a vendor with an active subscription.", 'success')
+                return redirect(url_for('vendor.products_index'))
+            
+            # Handle paid package
+            crypto_currency = request.form.get('crypto_currency')
+            if crypto_currency not in ['BTC', 'XMR']:
+                flash("Please select a valid cryptocurrency.", 'error')
+                return redirect(url_for('user.become_vendor'))
+            
+            # Get crypto price and calculate amount
+            from routes.vendor import get_crypto_price
+            crypto_price = get_crypto_price(crypto_currency)
+            if not crypto_price:
+                flash("Unable to fetch cryptocurrency price. Please try again later.", 'error')
+                return redirect(url_for('user.become_vendor'))
+            
+            crypto_amount = package['price_usd'] / crypto_price
+            wallet_address = "YOUR_BTC_ADDRESS" if crypto_currency == "BTC" else "YOUR_XMR_ADDRESS"
+            
+            # Create pending subscription
+            expires_at = datetime.now() + timedelta(days=30)
+            c.execute("""
+                INSERT INTO vendor_subscriptions (vendor_id, package_id, status, expires_at, payment_txid)
+                VALUES (?, ?, 'pending', ?, NULL)
+            """, (user_id, package_id, expires_at))
             conn.commit()
-
-        flash(f'Please send {amount} {crypto.upper()} to the provided address.', 'success')
-        return redirect(url_for('user.become_vendor'))
-
-    return render_template('user/become_vendor.html', bond=bond, payment=payment, rates=rates, profile_data=profile_data)
+            
+            flash(f"Please send {crypto_amount:.6f} {crypto_currency} to {wallet_address} and provide the transaction ID to complete your subscription.", 'info')
+            return redirect(url_for('vendor.confirm_payment', package_id=package_id, crypto_currency=crypto_currency))
+        
+        # Get all available packages
+        c.execute("SELECT * FROM packages ORDER BY price_usd ASC")
+        packages = [dict(row) for row in c.fetchall()]
+        
+        # Get crypto prices for display
+        from routes.vendor import get_crypto_price
+        btc_price = get_crypto_price("BTC")
+        xmr_price = get_crypto_price("XMR")
+        
+        return render_template('user/become_vendor.html', 
+                             packages=packages, 
+                             existing_subscription=existing_subscription,
+                             btc_price=btc_price, 
+                             xmr_price=xmr_price,
+                             title="Become a Vendor - Sydney")
 
 # GET route to render form
 @user_bp.route('/edit_profile')
@@ -976,7 +1118,7 @@ def edit_profile():
     if not rates:
         flash("Unable to fetch exchange rates.", 'error')
         rates = {"bitcoin": {}, "monero": {}}
-    return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates)
+    return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates, pgp_encrypted_challenge=session.get('pgp_verify_encrypted'))
 
 # POST route to handle form submission
 @user_bp.route('/update_profile', methods=['POST'])
@@ -1039,12 +1181,74 @@ def update_profile():
 
         # Security settings (require PIN)
         security_fields = ['pgp_public_key', 'two_factor_secret', 'canbuy', 'pinbuy', 'phis']
-        if any([form.da_pgp.data, form.da_factor.data, form.da_canbuy.data, form.da_pinbuy.data, form.da_phis.data]):
+        if any([form.da_pgp.data, form.da_factor.data, form.da_canbuy.data, form.da_pinbuy.data, form.da_phis.data]) or session.get('pgp_verify_challenge'):
             if not form.da_pincb.data or not bcrypt.checkpw(form.da_pincb.data.encode('utf-8'), current_pin_hash.encode('utf-8')):
                 flash('Invalid current PIN for security settings.', 'error')
                 return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates)
-            updates['pgp_public_key'] = form.da_pgp.data
-            updates['two_factor_secret'] = '1' if form.da_factor.data == '1' else '0'
+
+            # Handle PGP verification handshake
+            submitted_pgp = (form.da_pgp.data or '').strip()
+            pending_pgp = session.get('pgp_verify_pending_public_key', '').strip() if session.get('pgp_verify_pending_public_key') else ''
+            request_enable_2fa = (form.da_factor.data == '1')
+
+            # If a PGP key is submitted or a challenge is pending, process the handshake flow
+            if submitted_pgp or session.get('pgp_verify_challenge'):
+                # Step 1: new key submitted → generate challenge and ask user to decrypt
+                if submitted_pgp and not session.get('pgp_verify_challenge'):
+                    # Validate basic format
+                    if not validate_pgp_key(submitted_pgp):
+                        flash('Invalid PGP public key format.', 'error')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates)
+                    try:
+                        pubkey, _ = pgpy.PGPKey.from_blob(submitted_pgp)
+                        challenge = f"PGP-VERIFY:{current_user.username}:{int(time.time())}:{secrets.token_hex(8)}"
+                        encrypted = str(pubkey.encrypt(pgpy.PGPMessage.new(challenge)))
+                        session['pgp_verify_challenge'] = challenge
+                        # store minimal fingerprint marker to bind session to the key
+                        session['pgp_verify_key_fingerprint'] = submitted_pgp[:64]
+                        session['pgp_verify_encrypted'] = encrypted
+                        session['pgp_verify_pending_public_key'] = submitted_pgp
+                        flash('Step 1: Decrypt the PGP message shown in the Security Settings section and paste the plaintext in the PGP Decrypted Message field, then save again with your PIN.', 'info')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates, pgp_encrypted_challenge=encrypted)
+                    except Exception as e:
+                        logger.error(f"PGP challenge encryption failed: {e}")
+                        flash('Could not encrypt with provided PGP key. Please verify your key.', 'error')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates)
+                else:
+                    # Step 2: expect the decrypted message back
+                    decrypted_response = (form.da_pgp_decrypted.data or '').strip()
+                    if not decrypted_response:
+                        flash('Please paste the decrypted PGP challenge into the PGP Decrypted Message field and save again.', 'error')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates, pgp_encrypted_challenge=session.get('pgp_verify_encrypted'))
+                    if decrypted_response != session.get('pgp_verify_challenge'):
+                        flash('Decrypted PGP challenge does not match. Ensure you decrypted the latest message.', 'error')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates, pgp_encrypted_challenge=session.get('pgp_verify_encrypted'))
+                    # Success → persist PGP key from submitted value or pending session
+                    final_pgp = submitted_pgp or pending_pgp
+                    if not final_pgp:
+                        flash('Internal error: missing PGP key for verification.', 'error')
+                        return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates)
+                    updates['pgp_public_key'] = final_pgp
+                    # Clear challenge state
+                    session.pop('pgp_verify_challenge', None)
+                    session.pop('pgp_verify_key_fingerprint', None)
+                    session.pop('pgp_verify_encrypted', None)
+                    session.pop('pgp_verify_pending_public_key', None)
+                    flash('PGP key verified and saved.', 'success')
+
+            # Guard enabling 2FA: require a saved PGP key
+            if request_enable_2fa:
+                # Confirm the user has a stored PGP key at this point
+                cursor.execute('SELECT pgp_public_key FROM users WHERE id = ?', (current_user.id,))
+                row = cursor.fetchone()
+                effective_pgp = updates.get('pgp_public_key') or (row['pgp_public_key'] if row else None)
+                if not effective_pgp:
+                    flash('You must add and verify a PGP public key before enabling 2FA.', 'error')
+                    return render_template('user/edit_profile.html', form=form, profile_data=profile_data, rates=rates, pgp_encrypted_challenge=session.get('pgp_verify_encrypted'))
+                updates['two_factor_secret'] = '1'
+            else:
+                updates['two_factor_secret'] = '0'
+
             updates['canbuy'] = int(form.da_canbuy.data)
             updates['pinbuy'] = int(form.da_pinbuy.data)
             updates['phis'] = int(form.da_phis.data)
@@ -1080,6 +1284,16 @@ def update_profile():
         try:
             cursor.execute(query, params)
             conn.commit()
+            # Refresh current_user fields for immediate UI consistency
+            try:
+                cursor.execute("SELECT id, username, pusername, pin, password, role, active, registered_at, btc_address, avatar, login_phrase, status, session_timeout, profile_visibility, is_vendor, notify_messages, notify_orders, pgp_public_key, pgp_private_key, vendor_status, two_factor_secret, mnemonic_hash, created_at, last_login, jabber, description, currencyid, stealth, multisig, refund, canbuy, pinbuy, phis, menu_follow, feedback, tocountryid, countryid, discardww FROM users WHERE id = ?", (current_user.id,))
+                row = cursor.fetchone()
+                if row:
+                    from app import User as AppUser
+                    user_obj = AppUser(*row)
+                    login_user(user_obj)
+            except Exception as e:
+                logger.warning(f"Could not refresh current_user: {e}")
             flash('Profile updated successfully.', 'success')
         except sqlite3.Error as e:
             conn.rollback()
@@ -1093,125 +1307,196 @@ def messages():
         flash("Please log in to view messages.", 'error')
         return redirect(url_for('user.login'))
     
-    gpg = gnupg.GPG()
-    selected_recipient_id = request.args.get('recipient_id', type=int)
-    
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        # Check if user has uploaded private key
-        c.execute("SELECT pgp_private_key FROM users WHERE id = ?", (session['user_id'],))
-        private_key_encrypted = c.fetchone()['pgp_private_key']
-        has_private_key = bool(private_key_encrypted)
+    try:
+        # Check if this is a Tor request
+        is_tor = is_tor_request(request)
+        if is_tor:
+            logger.info("Messages route accessed via Tor")
         
-        # Handle private key upload
-        if request.method == 'POST' and request.form.get('action') == 'upload_private_key':
-            #validate_csrf_token()
-            private_key = request.form.get('private_key', '').strip()
-            passphrase = request.form.get('passphrase', '').strip()
-            if not private_key or not passphrase:
-                flash("Private key and passphrase are required.", 'error')
-            else:
-                # Verify key by importing
-                import_result = gpg.import_keys(private_key)
-                if not import_result.count:
-                    flash("Invalid PGP private key.", 'error')
+        # Initialize GPG with Tor-specific settings
+        gpg, gpg_error = init_gpg_for_tor()
+        
+        if gpg_error and gpg_error != "fallback":
+            logger.error(f"GPG initialization failed: {gpg_error}")
+            flash("Encryption service temporarily unavailable. Please try again later.", 'error')
+            return render_template('user/messages.html', has_private_key=False, gpg_error=True)
+        
+        selected_recipient_id = request.args.get('recipient_id', type=int)
+        
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            # Check if user has uploaded private key
+            c.execute("SELECT pgp_private_key FROM users WHERE id = ?", (session['user_id'],))
+            result = c.fetchone()
+            private_key_encrypted = result['pgp_private_key'] if result else None
+            has_private_key = bool(private_key_encrypted)
+            
+            # Handle private key upload
+            if request.method == 'POST' and request.form.get('action') == 'upload_private_key':
+                #validate_csrf_token()
+                private_key = request.form.get('private_key', '').strip()
+                passphrase = request.form.get('passphrase', '').strip()
+                if not private_key or not passphrase:
+                    flash("Private key and passphrase are required.", 'error')
                 else:
-                    # Encrypt private key with Fernet and store
-                    encrypted_key = cipher.encrypt(f"{private_key}||{passphrase}".encode())
-                    c.execute("UPDATE users SET pgp_private_key = ? WHERE id = ?",
-                              (encrypted_key, session['user_id']))
-                    conn.commit()
-                    flash("Private key uploaded successfully.", 'success')
-                    return redirect(url_for('user.messages'))
-        
-        # If no private key, show upload form only
-        if not has_private_key:
-            return render_template('user/messages.html', has_private_key=False)
-        
-        # Decrypt user's private key
-        encrypted_key = private_key_encrypted
-        decrypted_data = cipher.decrypt(encrypted_key).decode().split('||')
-        private_key, passphrase = decrypted_data[0], decrypted_data[1]
-        gpg.import_keys(private_key)
-        
-        # Handle sending a message
-        if request.method == 'POST' and request.form.get('action') == 'send_message':
-            #validate_csrf_token()
-            message = request.form.get('message', '').strip()
-            if not message:
-                flash("Message cannot be empty.", 'error')
-            elif not selected_recipient_id:
-                flash("No recipient selected.", 'error')
-            else:
-                c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (selected_recipient_id,))
-                recipient_key = c.fetchone()['pgp_public_key']
-                if not recipient_key:
-                    flash("Recipient has no PGP key.", 'error')
+                    try:
+                        if gpg:
+                            # Verify key by importing
+                            import_result = gpg.import_keys(private_key)
+                            if not import_result.count:
+                                flash("Invalid PGP private key.", 'error')
+                            else:
+                                # Encrypt private key with Fernet and store
+                                encrypted_key = cipher.encrypt(f"{private_key}||{passphrase}".encode())
+                                c.execute("UPDATE users SET pgp_private_key = ? WHERE id = ?",
+                                          (encrypted_key, session['user_id']))
+                                conn.commit()
+                                flash("Private key uploaded successfully.", 'success')
+                                return redirect(url_for('user.messages'))
+                        else:
+                            flash("Encryption service unavailable. Please try again later.", 'error')
+                    except Exception as e:
+                        logger.error(f"Error uploading private key: {e}")
+                        flash("Error uploading private key. Please try again.", 'error')
+            
+            # If no private key, show upload form only
+            if not has_private_key:
+                return render_template('user/messages.html', has_private_key=False)
+            
+            # Decrypt user's private key
+            try:
+                encrypted_key = private_key_encrypted
+                decrypted_data = cipher.decrypt(encrypted_key).decode().split('||')
+                private_key, passphrase = decrypted_data[0], decrypted_data[1]
+                if gpg:
+                    gpg.import_keys(private_key)
+            except Exception as e:
+                logger.error(f"Failed to decrypt private key: {e}")
+                flash("Error accessing your private key. Please re-upload it.", 'error')
+                return render_template('user/messages.html', has_private_key=False)
+            
+            # Handle sending a message
+            if request.method == 'POST' and request.form.get('action') == 'send_message':
+                #validate_csrf_token()
+                message = request.form.get('message', '').strip()
+                if not message:
+                    flash("Message cannot be empty.", 'error')
+                elif not selected_recipient_id:
+                    flash("No recipient selected.", 'error')
                 else:
-                    encrypted_msg = str(gpg.encrypt(message, recipients=[recipient_key], always_trust=True))
+                    try:
+                        c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (selected_recipient_id,))
+                        recipient_result = c.fetchone()
+                        if not recipient_result or not recipient_result['pgp_public_key']:
+                            flash("Recipient has no PGP key.", 'error')
+                        else:
+                            recipient_key = recipient_result['pgp_public_key']
+                            if gpg:
+                                encrypted_msg = str(gpg.encrypt(message, recipients=[recipient_key], always_trust=True))
+                            else:
+                                # Fallback: store message without encryption (not recommended for production)
+                                encrypted_msg = f"[UNENCRYPTED] {message}"
+                            
+                            c.execute("""
+                                INSERT INTO messages (sender_id, recipient_id, content, created_at)
+                                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                            """, (session['user_id'], selected_recipient_id, encrypted_msg))
+                            conn.commit()
+                            flash("Message sent securely.", 'success')
+                            return redirect(url_for('user.messages', recipient_id=selected_recipient_id))
+                    except Exception as e:
+                        logger.error(f"Error sending message: {e}")
+                        flash("Error sending message. Please try again.", 'error')
+            
+            # Fetch conversations
+            try:
+                c.execute("""
+                    SELECT DISTINCT 
+                        CASE WHEN m.sender_id = ? THEN m.recipient_id ELSE m.sender_id END as recipient_id,
+                        CASE WHEN m.sender_id = ? THEN r.pusername ELSE s.pusername END as recipient_name,
+                        MAX(m.created_at) as last_message_time,
+                        (SELECT content FROM messages m2 
+                         WHERE (m2.sender_id = m.sender_id AND m2.recipient_id = m.recipient_id) 
+                            OR (m2.sender_id = m.recipient_id AND m2.recipient_id = m.sender_id)
+                         ORDER BY m2.created_at DESC LIMIT 1) as last_message_encrypted
+                    FROM messages m
+                    LEFT JOIN users s ON s.id = m.sender_id
+                    LEFT JOIN users r ON r.id = m.recipient_id
+                    WHERE ? IN (m.sender_id, m.recipient_id)
+                    GROUP BY recipient_id, recipient_name, s.pusername, r.pusername
+                    ORDER BY last_message_time DESC
+                """, (session['user_id'], session['user_id'], session['user_id']))
+                conversations_raw = [dict(row) for row in c.fetchall()]
+                
+                # Decrypt last messages for display
+                conversations = []
+                for convo in conversations_raw:
+                    try:
+                        if convo['last_message_encrypted']:
+                            if gpg:
+                                decrypted = gpg.decrypt(convo['last_message_encrypted'], passphrase=passphrase)
+                                convo['last_message'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+                            else:
+                                # Fallback: show encrypted message as-is
+                                convo['last_message'] = "[Encrypted - GPG Unavailable]"
+                        else:
+                            convo['last_message'] = "Start a conversation"
+                    except Exception as e:
+                        logger.error(f"Failed to decrypt message: {e}")
+                        convo['last_message'] = "[Decryption Failed]"
+                    conversations.append(convo)
+            except Exception as e:
+                logger.error(f"Error fetching conversations: {e}")
+                conversations = []
+                flash("Error loading conversations. Please try again.", 'error')
+            
+            # Fetch messages for selected conversation
+            messages = []
+            selected_recipient_name = None
+            if selected_recipient_id:
+                try:
                     c.execute("""
-                        INSERT INTO messages (sender_id, recipient_id, content, created_at)
-                        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (session['user_id'], selected_recipient_id, encrypted_msg))
-                    conn.commit()
-                    flash("Message sent securely.", 'success')
-                    return redirect(url_for('user.messages', recipient_id=selected_recipient_id))
+                        SELECT m.*, s.pusername as sender_name, r.pusername as recipient_name
+                        FROM messages m
+                        LEFT JOIN users s ON s.id = m.sender_id
+                        LEFT JOIN users r ON r.id = m.recipient_id
+                        WHERE (m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?)
+                        ORDER BY m.created_at ASC
+                    """, (session['user_id'], selected_recipient_id, selected_recipient_id, session['user_id']))
+                    messages_raw = [dict(row) for row in c.fetchall()]
+                    
+                    for msg in messages_raw:
+                        try:
+                            if gpg:
+                                decrypted = gpg.decrypt(msg['content'], passphrase=passphrase)
+                                msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+                            else:
+                                # Fallback: show encrypted message as-is
+                                msg['content'] = "[Encrypted - GPG Unavailable]"
+                        except Exception as e:
+                            logger.error(f"Failed to decrypt message: {e}")
+                            msg['content'] = "[Decryption Failed]"
+                        messages.append(msg)
+                    
+                    c.execute("SELECT pusername FROM users WHERE id = ?", (selected_recipient_id,))
+                    recipient = c.fetchone()
+                    selected_recipient_name = recipient['pusername'] if recipient else "Unknown User"
+                except Exception as e:
+                    logger.error(f"Error fetching messages: {e}")
+                    flash("Error loading messages. Please try again.", 'error')
         
-        # Fetch conversations
-        c.execute("""
-            SELECT DISTINCT 
-                CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END as recipient_id,
-                CASE WHEN sender_id = ? THEN r.pusername ELSE s.pusername END as recipient_name,
-                MAX(created_at) as last_message_time,
-                (SELECT content FROM messages m2 
-                 WHERE (m2.sender_id = m.sender_id AND m2.recipient_id = m.recipient_id) 
-                    OR (m2.sender_id = m.recipient_id AND m2.recipient_id = m.sender_id)
-                 ORDER BY m2.created_at DESC LIMIT 1) as last_message_encrypted
-            FROM messages m
-            LEFT JOIN users s ON s.id = m.sender_id
-            LEFT JOIN users r ON r.id = m.recipient_id
-            WHERE ? IN (m.sender_id, m.recipient_id)
-            GROUP BY recipient_id, recipient_name
-            ORDER BY last_message_time DESC
-        """, (session['user_id'], session['user_id'], session['user_id']))
-        conversations_raw = [dict(row) for row in c.fetchall()]
-        
-        # Decrypt last messages for display
-        conversations = []
-        for convo in conversations_raw:
-            decrypted = gpg.decrypt(convo['last_message_encrypted'], passphrase=passphrase) if convo['last_message_encrypted'] else None
-            convo['last_message'] = str(decrypted) if decrypted.ok else "[Decryption Failed]"
-            conversations.append(convo)
-        
-        # Fetch messages for selected conversation
-        messages = []
-        selected_recipient_name = None
-        if selected_recipient_id:
-            c.execute("""
-                SELECT m.*, s.pusername as sender_name, r.pusername as recipient_name
-                FROM messages m
-                LEFT JOIN users s ON s.id = m.sender_id
-                LEFT JOIN users r ON r.id = m.recipient_id
-                WHERE (m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?)
-                ORDER BY m.created_at ASC
-            """, (session['user_id'], selected_recipient_id, selected_recipient_id, session['user_id']))
-            messages_raw = [dict(row) for row in c.fetchall()]
-            
-            for msg in messages_raw:
-                decrypted = gpg.decrypt(msg['content'], passphrase=passphrase)
-                msg['content'] = str(decrypted) if decrypted.ok else "[Decryption Failed]"
-                messages.append(msg)
-            
-            c.execute("SELECT pusername FROM users WHERE id = ?", (selected_recipient_id,))
-            recipient = c.fetchone()
-            selected_recipient_name = recipient['pusername'] if recipient else "Unknown"
+        return render_template('user/messages.html', 
+                              has_private_key=True,
+                              conversations=conversations, 
+                              messages=messages, 
+                              selected_recipient_id=selected_recipient_id, 
+                              selected_recipient_name=selected_recipient_name,
+                              is_tor=is_tor)
     
-    return render_template('user/messages.html', 
-                          has_private_key=True,
-                          conversations=conversations, 
-                          messages=messages, 
-                          selected_recipient_id=selected_recipient_id, 
-                          selected_recipient_name=selected_recipient_name)
+    except Exception as e:
+        logger.error(f"Unexpected error in messages route: {e}")
+        flash("An unexpected error occurred. Please try again later.", 'error')
+        return render_template('user/messages.html', has_private_key=False, error=True)
 
 @user_bp.route('/balance', methods=['GET'])
 @limiter.limit("20 per minute; 200 per hour; 1000 per day", key_func=get_remote_address)
@@ -1588,183 +1873,186 @@ def wallet():
         return redirect(url_for('user.dashboard'))
 
 @user_bp.route('/support', methods=['GET', 'POST'])
+@login_required
 def support():
     """User support page to submit and view tickets."""
     if 'user_id' not in session:
         flash("Please log in to access support.", 'error')
-        return redirect(url_for('auth.login'))
-
+        return redirect(url_for('user.login'))
+        
     try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
+       
+        
+        # Get user_id from session (fallback to current_user if needed)
+        user_id = session.get('user_id')
+        if not user_id and current_user.is_authenticated:
+            user_id = current_user.id
+        user_role = session.get('role', 'user')
+        
+        if not user_id:
+            logger.warning("User not authenticated in support route")
+            flash("Please log in to access support.", 'error')
+            return redirect(url_for('user.login'))
+        
+        if request.method == 'POST':
+            subject = request.form.get('subject', '').strip()
+            category = request.form.get('category', '').strip()
+            priority = request.form.get('priority', '').strip()
+            description = request.form.get('description', '').strip()
 
-            if request.method == 'POST':
-                subject = request.form.get('subject', '').strip()
-                category = request.form.get('category', '').strip()
-                priority = request.form.get('priority', '').strip()
-                description = request.form.get('description', '').strip()
-
-                if not all([subject, category, priority, description]):
-                    flash("All fields are required.", 'error')
-                elif len(subject) > 255 or len(description) > 2000:
-                    flash("Subject or description too long.", 'error')
-                elif category not in ['General', 'Account', 'Order', 'Payment', 'Dispute']:
-                    flash("Invalid category.", 'error')
-                elif priority not in ['Low', 'Medium', 'High']:
-                    flash("Invalid priority.", 'error')
-                else:
-                    c.execute("""
-                        INSERT INTO tickets (user_id, subject, category, priority, description, status, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (session['user_id'], subject, category, priority, description, 'open', datetime.utcnow(), datetime.utcnow()))
-                    conn.commit()
-                    flash("Support ticket submitted successfully.", 'success')
-                    logger.info(f"User {session['user_id']} submitted ticket: {subject}")
+            if not all([subject, category, priority, description]):
+                flash("All fields are required.", 'error')
+            elif len(subject) > 255 or len(description) > 2000:
+                flash("Subject or description too long.", 'error')
+            elif category not in ['General', 'Account', 'Order', 'Payment', 'Dispute', 'Vendor Support']:
+                flash("Invalid category.", 'error')
+            elif priority not in ['Low', 'Medium', 'High']:
+                flash("Invalid priority.", 'error')
+            else:
+                # Create secure ticket
+                ticket_id = secure_support.create_secure_ticket(
+                    user_id, subject, description, category, priority, user_role
+                )
+                
+                if ticket_id:
+                    flash("Secure support ticket submitted successfully.", 'success')
+                    logger.info(f"User {user_id} submitted secure ticket: {subject}")
                     return redirect(url_for('user.support'))
+                else:
+                    flash("Failed to create ticket. Please try again.", 'error')
 
-            # Fetch user's tickets
-            c.execute("""
-                SELECT id, subject, category, priority, status, created_at
-                FROM tickets
-                WHERE user_id = ?
-                ORDER BY created_at DESC
-            """, (session['user_id'],))
-            tickets = [dict(row) for row in c.fetchall()]
+        # Fetch user's tickets using secure system
+        tickets = secure_support.get_user_tickets(user_id, user_role)
 
-            # Available options for form
-            categories = ['General', 'Account', 'Order', 'Payment', 'Dispute']
-            priorities = ['Low', 'Medium', 'High']
+        # Available options for form
+        support_categories = ['General', 'Account', 'Order', 'Payment', 'Dispute']
+        if user_role == 'vendor':
+            support_categories.append('Vendor Support')
+        priorities = ['Low', 'Medium', 'High']
 
-            return render_template('user/support.html',
-                                 tickets=tickets,
-                                 categories=categories,
-                                 priorities=priorities)
-    except Exception as e:
-        logger.error(f"Error handling user support page: {str(e)}")
-        flash("An error occurred. Please try again.", 'error')
-        return redirect(url_for('user.support'))
+        logger.info(f"Support page loaded successfully for user {user_id}")
+        
+        return render_template('user/support.html',
+                             tickets=tickets,
+                             support_categories=support_categories,
+                             priorities=priorities,
+                             settings=get_settings())
+    except sqlite3.Error as e:
+        logger.error(f"Database error in support route: {str(e)}")
+        flash("Database error occurred. Please try again.", 'error')
+        return redirect(url_for('user.dashboard'))
+   
   
 @user_bp.route('/support/ticket/<int:ticket_id>', methods=['GET', 'POST'])
+@login_required
 def view_ticket(ticket_id):
     """View and respond to a specific support ticket."""
     if 'user_id' not in session:
         flash("Please log in to access this page.", 'error')
-        return redirect(url_for('auth.login'))
-
+        return redirect(url_for('user.login'))
+        
     try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Fetch ticket, ensure it belongs to the user
-            c.execute("""
-                SELECT t.id, t.user_id, u.pusername, t.subject, t.description, t.category, t.priority, t.status, t.created_at, t.updated_at
-                FROM tickets t
-                JOIN users u ON t.user_id = u.id
-                WHERE t.id = ? AND t.user_id = ?
-            """, (ticket_id, session['user_id']))
-            ticket = c.fetchone()
-            if not ticket:
-                flash("Ticket not found or you don't have access.", 'error')
-                return redirect(url_for('user.support'))
+        user_id = session.get('user_id')
+        if not user_id and current_user.is_authenticated:
+            user_id = current_user.id
+        if not user_id:
+            logger.warning("User not authenticated in view_ticket route")
+            flash("Please log in to access this page.", 'error')
+            return redirect(url_for('user.login'))
+        
+        from utils.support import secure_support
+        
+        user_role = session.get('role', 'user')
+        
+        # Get ticket with responses using secure system
+        ticket, responses = secure_support.get_ticket_with_responses(ticket_id, user_id, user_role)
+        
+        if not ticket:
+            flash("Ticket not found or access denied.", 'error')
+            return redirect(url_for('user.support'))
+        
+        # Verify user owns this ticket or is admin
+        if ticket['user_id'] != user_id and user_role != 'admin':
+            flash("Access denied.", 'error')
+            return redirect(url_for('user.support'))
 
-            ticket = dict(ticket)
-
-            # Fetch ticket responses
-            c.execute("""
-                SELECT tr.id, tr.sender_id, u.pusername, tr.body, tr.created_at
-                FROM ticket_responses tr
-                JOIN users u ON tr.sender_id = u.id
-                WHERE tr.ticket_id = ?
-                ORDER BY tr.created_at
-            """, (ticket_id,))
-            responses = [dict(row) for row in c.fetchall()]
-
-            if request.method == 'POST':
-                response_body = request.form.get('response_body', '').strip()
-                if not response_body:
-                    flash("Response body is required.", 'error')
-                elif len(response_body) > 2000:
-                    flash("Response is too long.", 'error')
-                else:
-                    c.execute("""
-                        INSERT INTO ticket_responses (ticket_id, sender_id, body, created_at)
-                        VALUES (?, ?, ?, ?)
-                    """, (ticket_id, session['user_id'], response_body, datetime.utcnow()))
-                    c.execute("""
-                        UPDATE tickets SET updated_at = ?, status = ?
-                        WHERE id = ?
-                    """, (datetime.utcnow(), 'in-progress', ticket_id))
-                    conn.commit()
-                    flash("Response submitted successfully.", 'success')
-                    logger.info(f"User {session['user_id']} responded to ticket #{ticket_id}")
+        if request.method == 'POST':
+            response_body = request.form.get('response_body', '').strip()
+            if not response_body:
+                flash("Response body is required.", 'error')
+            elif len(response_body) > 2000:
+                flash("Response is too long.", 'error')
+            else:
+                # Add secure response
+                success = secure_support.add_secure_response(
+                    ticket_id, user_id, response_body, user_role
+                )
+                
+                if success:
+                    flash("Secure response submitted successfully.", 'success')
+                    logger.info(f"User {user_id} responded to secure ticket #{ticket_id}")
                     return redirect(url_for('user.view_ticket', ticket_id=ticket_id))
+                else:
+                    flash("Failed to submit response. Please try again.", 'error')
 
-            return render_template('user/ticket_details.html',
-                                 ticket=ticket,
-                                 responses=responses)
+        return render_template('user/ticket_details.html',
+                             ticket=ticket,
+                             responses=responses,
+                             settings=get_settings())
     except Exception as e:
         logger.error(f"Error handling ticket #{ticket_id}: {str(e)}")
         flash("An error occurred. Please try again.", 'error')
         return redirect(url_for('user.support'))
     
 @user_bp.route('/my-tickets', methods=['GET'])
+@login_required
 def my_tickets():
     """Display all support tickets for the logged-in user."""
     if 'user_id' not in session:
         flash("Please log in to view your tickets.", 'error')
-        return redirect(url_for('auth.login'))
-
+        return redirect(url_for('user.login'))
+        
     try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Pagination
-            page = request.args.get('page', 1, type=int)
-            per_page = 10
+        from utils.support import secure_support
+        
+        user_id = session.get('user_id')
+        if not user_id and current_user.is_authenticated:
+            user_id = current_user.id
+        user_role = session.get('role', 'user')
+        
+        if not user_id:
+            flash("Please log in to view your tickets.", 'error')
+            return redirect(url_for('user.login'))
+        
+        # Get user's tickets using secure system
+        tickets = secure_support.get_user_tickets(user_id, user_role)
+        
+        # Pagination
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        total = len(tickets)
+        total_pages = (total + per_page - 1) // per_page
+        
+        # Apply pagination
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_tickets = tickets[start_idx:end_idx]
 
-            # Fetch user's tickets with pagination
-            c.execute("""
-                SELECT COUNT(*) as total
-                FROM tickets
-                WHERE user_id = ?
-            """, (session['user_id'],))
-            total = c.fetchone()['total']
-            total_pages = (total + per_page - 1) // per_page
-
-            c.execute("""
-                SELECT id, subject, category, priority, status, created_at
-                FROM tickets
-                WHERE user_id = ?
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            """, (session['user_id'], per_page, (page - 1) * per_page))
-            tickets = [dict(row) for row in c.fetchall()]
-
-            return render_template('user/my_tickets.html',
-                                 tickets=tickets,
-                                 page=page,
-                                 total_pages=total_pages)
+        return render_template('user/my-tickets.html',
+                             tickets=paginated_tickets,
+                             page=page,
+                             total_pages=total_pages,
+                             settings=get_settings())
     except Exception as e:
         logger.error(f"Error fetching user tickets: {str(e)}")
         flash("An error occurred. Please try again.", 'error')
         return redirect(url_for('user.support'))
       
 @user_bp.route('/support/tickets/<int:ticket_id>', methods=['GET'])
+@login_required
 def view_tickets(ticket_id):
-    if 'user_id' not in session:
-        flash("Please log in to view tickets.", 'error')
-        return redirect(url_for('user.login'))
-    
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM tickets WHERE id = ? AND user_id = ?", (ticket_id, session['user_id']))
-        ticket = c.fetchone()
-        if not ticket:
-            flash("Ticket not found or you don't have access.", 'error')
-            return redirect(url_for('user.support'))
-        
-        c.execute("SELECT * FROM ticket_responses WHERE ticket_id = ? ORDER BY created_at", (ticket_id,))
-        responses = [dict(row) for row in c.fetchall()]
-        
-        return render_template('user/support.html', ticket=dict(ticket), responses=responses, settings=get_settings())
+    """Alternative route for viewing tickets - redirects to main view_ticket route."""
+    return redirect(url_for('user.view_ticket', ticket_id=ticket_id))
 
 @user_bp.route('/orders', methods=['GET'])
 def orders():
@@ -1811,6 +2099,42 @@ def orders():
                          rates=rates,
                          current_status=status,
                          title="My Orders - Sydney")
+
+@user_bp.route('/purchased-products', methods=['GET'])
+def purchased_products():
+    """Display all products purchased by the user (completed orders only)."""
+    if 'user_id' not in session:
+        flash("Please log in to view your purchased products.", 'error')
+        return redirect(url_for('user.login'))
+    
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            # Fetch purchased products (completed orders only)
+            query = """
+                SELECT o.id as order_id, o.amount_usd, o.status, o.created_at as purchase_date,
+                       p.id as product_id, p.title, p.featured_image, p.price_usd, p.description,
+                       u.pusername as vendor_username, c.name as category_name
+                FROM orders o
+                JOIN products p ON o.product_id = p.id
+                JOIN users u ON o.vendor_id = u.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE o.user_id = ? AND o.status = 'completed'
+                ORDER BY o.created_at DESC
+            """
+            
+            c.execute(query, [session['user_id']])
+            purchased_products = [dict(row) for row in c.fetchall()]
+            
+    except Exception as e:
+        logger.error("Failed to fetch purchased products: %s", str(e))
+        flash("Unable to fetch purchased products.", 'error')
+        purchased_products = []
+        
+    return render_template('user/purchased_products.html',
+                         purchased_products=purchased_products,
+                         title="My Purchased Products - Sydney")
 
 @user_bp.route('/orders/pending')
 def orders_pending():
@@ -1898,37 +2222,43 @@ def faq():
 @login_required
 def messages_conversations():
     user_id = session['user_id']
-    gpg = gnupg.GPG()
+    is_tor = is_tor_request(request)
+    gpg, gpg_error = init_gpg_for_tor()
     key_info = get_user_private_key_and_passphrase(user_id)
     if not key_info.get('has_private_key'):
-        return render_template('user/messages.html', active_tab='conversations', has_private_key=False)
-    gpg.import_keys(key_info['private_key'])
+        return render_template('user/messages.html', active_tab='conversations', has_private_key=False, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"))
+    if gpg:
+        gpg.import_keys(key_info['private_key'])
     data = fetch_conversations(user_id, gpg, key_info['passphrase'])
-    return render_template('user/messages.html', active_tab='conversations', has_private_key=True, **data)
+    return render_template('user/messages.html', active_tab='conversations', has_private_key=True, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"), **data)
 
 @user_bp.route('/messages/order_messages')
 @login_required
 def messages_order_messages():
     user_id = session['user_id']
-    gpg = gnupg.GPG()
+    is_tor = is_tor_request(request)
+    gpg, gpg_error = init_gpg_for_tor()
     key_info = get_user_private_key_and_passphrase(user_id)
     if not key_info.get('has_private_key'):
-        return render_template('user/messages.html', active_tab='order_messages', has_private_key=False)
-    gpg.import_keys(key_info['private_key'])
+        return render_template('user/messages.html', active_tab='order_messages', has_private_key=False, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"))
+    if gpg:
+        gpg.import_keys(key_info['private_key'])
     data = fetch_order_messages(user_id, gpg, key_info['passphrase'])
-    return render_template('user/messages.html', active_tab='order_messages', has_private_key=True, **data)
+    return render_template('user/messages.html', active_tab='order_messages', has_private_key=True, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"), **data)
 
 @user_bp.route('/messages/trash')
 @login_required
 def messages_trash():
     user_id = session['user_id']
-    gpg = gnupg.GPG()
+    is_tor = is_tor_request(request)
+    gpg, gpg_error = init_gpg_for_tor()
     key_info = get_user_private_key_and_passphrase(user_id)
     if not key_info.get('has_private_key'):
-        return render_template('user/messages.html', active_tab='trash', has_private_key=False)
-    gpg.import_keys(key_info['private_key'])
+        return render_template('user/messages.html', active_tab='trash', has_private_key=False, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"))
+    if gpg:
+        gpg.import_keys(key_info['private_key'])
     data = fetch_trash(user_id, gpg, key_info['passphrase'])
-    return render_template('user/messages.html', active_tab='trash', has_private_key=True, **data)
+    return render_template('user/messages.html', active_tab='trash', has_private_key=True, is_tor=is_tor, gpg_error=(gpg_error and gpg_error != "fallback"), **data)
 
 @user_bp.route('/messages/invitations')
 @login_required
@@ -1987,9 +2317,9 @@ def fetch_conversations(user_id, gpg, passphrase):
         c = conn.cursor()
         c.execute("""
             SELECT DISTINCT 
-                CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END as recipient_id,
-                CASE WHEN sender_id = ? THEN r.pusername ELSE s.pusername END as recipient_name,
-                MAX(created_at) as last_message_time,
+                CASE WHEN m.sender_id = ? THEN m.recipient_id ELSE m.sender_id END as recipient_id,
+                CASE WHEN m.sender_id = ? THEN r.pusername ELSE s.pusername END as recipient_name,
+                MAX(m.created_at) as last_message_time,
                 (SELECT content FROM messages m2 
                  WHERE (m2.sender_id = m.sender_id AND m2.recipient_id = m.recipient_id) 
                     OR (m2.sender_id = m.recipient_id AND m2.recipient_id = m.sender_id)
@@ -1998,14 +2328,23 @@ def fetch_conversations(user_id, gpg, passphrase):
             LEFT JOIN users s ON s.id = m.sender_id
             LEFT JOIN users r ON r.id = m.recipient_id
             WHERE ? IN (m.sender_id, m.recipient_id)
-            GROUP BY recipient_id, recipient_name
+            GROUP BY recipient_id, recipient_name, s.pusername, r.pusername
             ORDER BY last_message_time DESC
         """, (user_id, user_id, user_id))
         conversations_raw = [dict(row) for row in c.fetchall()]
         conversations = []
         for convo in conversations_raw:
-            decrypted = gpg.decrypt(convo['last_message_encrypted'], passphrase=passphrase) if convo['last_message_encrypted'] else None
-            convo['last_message'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            if convo['last_message_encrypted']:
+                if gpg:
+                    try:
+                        decrypted = gpg.decrypt(convo['last_message_encrypted'], passphrase=passphrase)
+                        convo['last_message'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+                    except Exception:
+                        convo['last_message'] = "[Decryption Failed]"
+                else:
+                    convo['last_message'] = "[Encrypted - GPG Unavailable]"
+            else:
+                convo['last_message'] = "Start a conversation"
             conversations.append(convo)
         return {'conversations': conversations}
 
@@ -2024,8 +2363,17 @@ def fetch_order_messages(user_id, gpg, passphrase):
         messages_raw = [dict(row) for row in c.fetchall()]
         messages = []
         for msg in messages_raw:
-            decrypted = gpg.decrypt(msg['content'], passphrase=passphrase) if msg.get('content') else None
-            msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            if msg.get('content'):
+                if gpg:
+                    try:
+                        decrypted = gpg.decrypt(msg['content'], passphrase=passphrase)
+                        msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+                    except Exception:
+                        msg['content'] = "[Decryption Failed]"
+                else:
+                    msg['content'] = "[Encrypted - GPG Unavailable]"
+            else:
+                msg['content'] = ""
             messages.append(msg)
         return {'order_messages': messages}
 
@@ -2043,8 +2391,17 @@ def fetch_trash(user_id, gpg, passphrase):
         messages_raw = [dict(row) for row in c.fetchall()]
         messages = []
         for msg in messages_raw:
-            decrypted = gpg.decrypt(msg['content'], passphrase=passphrase) if msg.get('content') else None
-            msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+            if msg.get('content'):
+                if gpg:
+                    try:
+                        decrypted = gpg.decrypt(msg['content'], passphrase=passphrase)
+                        msg['content'] = str(decrypted) if decrypted and decrypted.ok else "[Decryption Failed]"
+                    except Exception:
+                        msg['content'] = "[Decryption Failed]"
+                else:
+                    msg['content'] = "[Encrypted - GPG Unavailable]"
+            else:
+                msg['content'] = ""
             messages.append(msg)
         return {'trash': messages}
 
@@ -2083,4 +2440,5 @@ def captcha_refresh():
     except Exception as e:
         logging.error(f"Failed to refresh CAPTCHA: {e}")
         return jsonify({'success': False, 'error': 'Failed to refresh CAPTCHA'}), 500
+
 

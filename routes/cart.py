@@ -1,7 +1,12 @@
 from flask import Blueprint, render_template, request, session, jsonify, flash, redirect, url_for
 from utils.database import get_db_connection
+from flask_wtf.csrf import generate_csrf
 
 cart_bp = Blueprint('cart', __name__)
+
+@cart_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
 
 @cart_bp.route('/add_to_cart', methods=['POST'])
 def add_to_cart():

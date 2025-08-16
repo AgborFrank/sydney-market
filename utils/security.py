@@ -141,3 +141,44 @@ def send_pgp_email_over_tor(to_email, subject, message, pgp_public_key, smtp_hos
     except Exception as e:
         print(f"[Email] Failed to send email via Tor: {e}")
         return False
+
+def init_gpg_for_tor():
+    """
+    Initialize GPG with Tor-specific settings and fallback mechanisms.
+    """
+    try:
+        import gnupg
+        
+        # Create GPG home directory if it doesn't exist
+        import os
+        os.makedirs(Config.GPG_HOME, exist_ok=True)
+        
+        # Initialize GPG with Tor-specific settings
+        gpg = gnupg.GPG(
+            gnupghome=Config.GPG_HOME,
+            gpgbinary=Config.GPG_BINARY
+        )
+        
+        # Test GPG functionality
+        test_result = gpg.list_keys()
+        logger.info("GPG initialized successfully for Tor")
+        return gpg, None
+        
+    except Exception as e:
+        logger.error(f"GPG initialization failed: {e}")
+        if Config.GPG_FALLBACK_ENABLED:
+            logger.info("Using fallback encryption method")
+            return None, "fallback"
+        else:
+            return None, str(e)
+
+def is_tor_request(request):
+    """
+    Check if the request is coming from Tor network.
+    """
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    host = request.headers.get('Host', '')
+    
+    return (forwarded_for.endswith('.onion') or 
+            '.onion' in host or 
+            'tor' in request.headers.get('User-Agent', '').lower())

@@ -2,7 +2,7 @@
 {% block title %}Your Products - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
 <div class="container mx-auto p-6">
-  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Your Products</h1>
+  <h1 class="text-lg font-normal uppercase 2xl:text-lg text-white">Your Products</h1>
   <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
     View and manage your products. Filter by status or category. Products marked as 'pending' or 'rejected' require admin approval or revisions.
   </h3>
@@ -47,11 +47,12 @@
   </form>
 
   <!-- Product List -->
-  <div class="mt-8 max-w-5xl mx-auto">
+  <div class="mt-8 w-full mx-auto">
     {% if products %}
       <table class="w-full text-white border-collapse">
         <thead>
           <tr class="bg-sydney bg-opacity-20">
+            <th class="p-2 text-left font-bold">Image</th>
             <th class="p-2 text-left font-bold">Title</th>
             <th class="p-2 text-left font-bold">Category</th>
             <th class="p-2 text-left font-bold">Price (USD)</th>
@@ -64,16 +65,21 @@
         <tbody>
           {% for product in products %}
             <tr class="border-b border-sydney border-opacity-50">
+              <td class="p-2">
+                <img src="/static/uploads/products/{{ product.featured_image|basename if product.featured_image else 'product-placeholder.png' }}" 
+                     alt="{{ product.title }}" 
+                     class="w-16 h-16 object-cover rounded border border-sydney border-opacity-50">
+              </td>
               <td class="p-2">{{ product.title }}</td>
               <td class="p-2">{{ product.category_name or 'Uncategorized' }}</td>
               <td class="p-2">${{ product.price_usd|round(2) }}</td>
               <td class="p-2">{{ product.stock }}</td>
               <td class="p-2">
                 <span class="px-2 py-1 rounded text-sm {{
-                  'bg-yellow-600' if product.status == 'pending' else
-                  'bg-green-600' if product.status == 'active' else
-                  'bg-red-600' if product.status == 'rejected' else
-                  'bg-gray-600'
+                  'text-yellow-600' if product.status == 'pending' else
+                  'text-green-600' if product.status == 'active' else
+                  'text-red-600' if product.status == 'rejected' else
+                  'text-gray-600'
                 }}">
                   {{ product.status|capitalize }}
                 </span>
@@ -81,7 +87,17 @@
                   <p class="text-sydney text-sm mt-1">Reason: {{ product.rejection_reason }}</p>
                 {% endif %}
               </td>
-              <td class="p-2">{{ product.created_at.strftime('%Y-%m-%d') }}</td>
+              <td class="p-2">
+                {% if product.created_at %}
+                  {% if product.created_at is string %}
+                    {{ product.created_at[:10] if product.created_at else 'N/A' }}
+                  {% else %}
+                    {{ product.created_at.strftime('%Y-%m-%d') }}
+                  {% endif %}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
               <td class="p-2 flex gap-2">
                 <a href="{{ url_for('vendor.products_edit', product_id=product.id) }}" class="bstd px-2 py-1 text-sm">Edit</a>
                 <form action="{{ url_for('vendor.delete_product', product_id=product.id) }}" method="post">

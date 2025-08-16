@@ -20,9 +20,21 @@ logger = logging.getLogger(__name__)
 #    )
 #    return conn
 def get_db_connection():
-    conn = sqlite3.connect(os.getenv('DB_PATH', 'marketplace.db'))
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        db_path = os.getenv('DB_PATH', 'marketplace.db')
+        conn = sqlite3.connect(db_path, timeout=30.0)  # Increased timeout for Tor
+        conn.row_factory = sqlite3.Row
+        
+        # Enable foreign key constraints
+        conn.execute("PRAGMA foreign_keys = ON")
+        
+        # Set journal mode to WAL for better concurrency
+        conn.execute("PRAGMA journal_mode = WAL")
+        
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
 
 
 def init_db(reset=False):
@@ -377,6 +389,7 @@ def init_db(reset=False):
                 amount_usd REAL NOT NULL,
                 amount_btc REAL NOT NULL,
                 crypto_currency TEXT DEFAULT 'BTC',
+                amount_xmr REAL DEFAULT 0,
                 status TEXT DEFAULT 'pending',
                 txid TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -472,12 +485,10 @@ def init_db(reset=False):
         c.execute('''CREATE TABLE IF NOT EXISTS messages 
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       sender_id INTEGER NOT NULL,
-                      recipient_type TEXT NOT NULL,
-                      recipient_id INTEGER,
-                      subject TEXT NOT NULL,
-                      body TEXT,
-                      encrypted_body TEXT,
-                      sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      recipient_id INTEGER NOT NULL,
+                      content TEXT NOT NULL,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      trashed INTEGER DEFAULT 0,
                       FOREIGN KEY (sender_id) REFERENCES users(id),
                       FOREIGN KEY (recipient_id) REFERENCES users(id))''')
 
@@ -576,9 +587,20 @@ def init_db(reset=False):
                       sender_id INTEGER NOT NULL,
                       body TEXT,
                       encrypted_body TEXT,
+                      is_encrypted BOOLEAN DEFAULT 0,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       FOREIGN KEY (ticket_id) REFERENCES tickets(id),
                       FOREIGN KEY (sender_id) REFERENCES users(id))''')
+        
+        # Support ticket encryption keys table
+        c.execute('''CREATE TABLE IF NOT EXISTS ticket_encryption_keys 
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      ticket_id INTEGER NOT NULL,
+                      user_id INTEGER NOT NULL,
+                      encryption_key_hash TEXT NOT NULL,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+                      FOREIGN KEY (user_id) REFERENCES users(id))''')
         #c.execute("ALTER TABLE orders ADD COLUMN vendor_earnings_usd REAL DEFAULT 0.0")
         # Add indexes for performance
         c.execute("CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)")
@@ -697,7 +719,15 @@ def get_settings():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT key, value FROM settings")
-        return dict(c.fetchall())
+        settings_raw = c.fetchall()
+        settings = {}
+        for row in settings_raw:
+            try:
+                settings[row[0]] = row[1]
+            except Exception as e:
+                logger.error(f"Error processing settings row: {e}, row: {row}")
+                continue
+        return settings
     
 def get_product_count(category_id, category_tree, cursor):
     """Recursively count products in a category and its subcategories."""
@@ -745,7 +775,15 @@ def get_random_products(limit=6):
                 LIMIT ?
             """, (limit,))
             products = c.fetchall()
-            logger.info(f"Fetched {len(products)} random products: {[dict(p)['id'] for p in products]}")
+            product_ids = []
+            for p in products:
+                try:
+                    product_dict = dict(p)
+                    product_ids.append(str(product_dict.get('id', 'unknown')))
+                except Exception as e:
+                    logger.error(f"Error converting product to dict: {e}, product: {p}")
+                    product_ids.append('error')
+            logger.info(f"Fetched {len(products)} random products: {product_ids}")
 
             enriched_products = []
             for product in products:
@@ -812,7 +850,15 @@ def get_featured_products(limit=6):
                 LIMIT ?
             """, (limit,))
             products = c.fetchall()
-            logger.info(f"Fetched {len(products)} featured products: {[dict(p)['id'] for p in products]}")
+            product_ids = []
+            for p in products:
+                try:
+                    product_dict = dict(p)
+                    product_ids.append(str(product_dict.get('id', 'unknown')))
+                except Exception as e:
+                    logger.error(f"Error converting featured product to dict: {e}, product: {p}")
+                    product_ids.append('error')
+            logger.info(f"Fetched {len(products)} featured products: {product_ids}")
 
             enriched_products = []
             for product in products:
@@ -859,14 +905,30 @@ def get_settings():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT key, value FROM settings")
-        return dict(c.fetchall())
+        settings_raw = c.fetchall()
+        settings = {}
+        for row in settings_raw:
+            try:
+                settings[row[0]] = row[1]
+            except Exception as e:
+                logger.error(f"Error processing settings row: {e}, row: {row}")
+                continue
+        return settings
 
 def get_security_settings():
     """Get security settings from the security_settings table."""
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT setting_name, value FROM security_settings")
-        return dict(c.fetchall())
+        settings_raw = c.fetchall()
+        settings = {}
+        for row in settings_raw:
+            try:
+                settings[row[0]] = row[1]
+            except Exception as e:
+                logger.error(f"Error processing security settings row: {e}, row: {row}")
+                continue
+        return settings
 
 def get_user_profile_data(user_id):
     """Fetch user profile data for the user profile component."""
@@ -1123,4 +1185,47 @@ def send_notification_with_email(user_id, message, type='info', subject=None):
                     smtp_password=smtp_password,
                     from_email=from_email
                 )
+        conn.commit()
+
+def create_default_packages():
+    """Create default vendor packages if they don't exist"""
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Check if packages already exist
+        c.execute("SELECT COUNT(*) FROM packages")
+        if c.fetchone()[0] > 0:
+            return  # Packages already exist
+        
+        # Create default packages
+        default_packages = [
+            {
+                'title': 'Starter',
+                'features': 'Basic listing, Standard support, Product images',
+                'product_limit': 10,
+                'price_usd': 0.0,
+                'free': 1
+            },
+            {
+                'title': 'Professional',
+                'features': 'Priority listing, Enhanced support, Featured products, Analytics',
+                'product_limit': 50,
+                'price_usd': 29.99,
+                'free': 0
+            },
+            {
+                'title': 'Enterprise',
+                'features': 'Unlimited products, Premium support, Featured placement, Advanced analytics, Custom branding',
+                'product_limit': 999,
+                'price_usd': 99.99,
+                'free': 0
+            }
+        ]
+        
+        for package in default_packages:
+            c.execute("""
+                INSERT INTO packages (title, features, product_limit, price_usd, free)
+                VALUES (?, ?, ?, ?, ?)
+            """, (package['title'], package['features'], package['product_limit'], package['price_usd'], package['free']))
+        
         conn.commit()

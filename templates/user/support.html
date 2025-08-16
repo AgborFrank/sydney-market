@@ -1,92 +1,98 @@
-{% extends "user/user_base.html" %}
-
-{% block user_content %}
+{% extends "user/user_base.html" %} {% block user_content %}
 <div class="bg-gray-900 min-h-screen text-gray-100">
   <div class="container mx-auto px-4 py-8">
-    <h1 class="text-lg leading-[16px] uppercase font-bold mb-2 text-white">Sydney Support</h1>
+    <h1 class="text-lg leading-[16px] uppercase font-bold mb-2 text-white">
+      Sydney Support
+    </h1>
 
     <!-- Support Ticket Form -->
-    <div class=" p-6 mb-8">
-      <h2 class="text-[18px] leading-[16px] uppercase font-bold mb-8 text-white">Submit a New Ticket</h2>
+    <div class="p-6 mb-8">
+      <h2
+        class="text-[18px] leading-[16px] uppercase font-bold mb-8 text-white"
+      >
+        Submit a New Ticket
+      </h2>
       <form method="POST" class="space-y-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <div class="flex items-center space-x-4">
-          <label for="subject" class="block text-sm font-medium text-gray-300">Subject</label>
-          <input type="text" name="subject" id="subject" required
-                 class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                 placeholder="Enter ticket subject">
+          <label for="subject" class="block text-sm font-medium text-gray-300"
+            >Subject</label
+          >
+          <input
+            type="text"
+            name="subject"
+            id="subject"
+            required
+            class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter ticket subject"
+          />
         </div>
         <div class="flex items-center space-x-4">
-          <label for="category" class="block text-sm font-medium text-gray-300">Category</label>
-          <select name="category" id="category" required
-                  class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            {% for category in categories %}
-            <option value="{{ category }}">{{ category }}</option>
+          <label for="category" class="block text-sm font-medium text-gray-300"
+            >Category</label
+          >
+          <select
+            name="category"
+            id="category"
+            required
+            class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {% for category in support_categories %}
+            <option value="{{ category }}" class="bg-black text-white">{{ category }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="flex items-center space-x-4">
-          <label for="priority" class="block text-sm font-medium text-gray-300">Priority</label>
-          <select name="priority" id="priority" required
-                  class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <label for="priority" class="block text-sm font-medium text-gray-300"
+            >Priority</label
+          >
+          <select
+            name="priority"
+            id="priority"
+            required
+            class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
             {% for priority in priorities %}
-            <option value="{{ priority }}">{{ priority }}</option>
+            <option value="{{ priority }}" class="bg-black text-white" {% if priority == 'Normal' %}selected{% endif %}>{{ priority }}</option>
             {% endfor %}
           </select>
         </div>
         <div class="flex items-center space-x-4">
-          <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
-          <textarea name="description" id="description" required rows="5"
-                    class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Describe your issue in detail"></textarea>
+          <label
+            for="description"
+            class="block text-sm font-medium text-gray-300"
+            >Description</label
+          >
+          <textarea
+            name="description"
+            id="description"
+            required
+            rows="5"
+            class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md px-4 py-2 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Describe your issue in detail. All communication is encrypted for your security."
+          ></textarea>
+        </div>
+        <div class="flex items-center space-x-2 text-sm text-gray-400">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span
+            >All ticket content is encrypted and secure. Communications between you and the support team are encrypted.</span
+          >
         </div>
         <div>
-          <button type="submit"
-                  class="bg-red-800 text-white px-6 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button
+            type="submit"
+            class="bg-red-800 text-white px-6 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             Submit Ticket
           </button>
         </div>
       </form>
-    </div>
-
-    <!-- Existing Tickets -->
-    <div class=" p-6">
-      <h2 class="text-2xl font-semibold mb-6 text-white">Your Tickets</h2>
-      {% if tickets %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-700">
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">ID</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Subject</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Category</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Priority</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Status</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Created</th>
-              <th class="border border-gray-600 px-4 py-2 text-left text-gray-200">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for ticket in tickets %}
-            <tr class="hover:bg-gray-600">
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.id }}</td>
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.subject }}</td>
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.category }}</td>
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.priority }}</td>
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.status|capitalize }}</td>
-              <td class="border border-gray-600 px-4 py-2">{{ ticket.created_at }}</td>
-              <td class="border border-gray-600 px-4 py-2">
-                <a href="{{ url_for('user.view_ticket', ticket_id=ticket.id) }}"
-                   class="text-blue-400 hover:text-blue-300">View</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-gray-400">You have no support tickets.</p>
-      {% endif %}
     </div>
   </div>
 </div>

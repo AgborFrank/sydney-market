@@ -68,7 +68,7 @@
     {% if stats is not defined %} {% set stats = {'items_bought': 0, 'paid_usd':
     0, 'in_escrow_usd': 0, 'total_purchases_usd': 0} %} {% endif %}
     <div
-      class="min-h-full w-full 2xl:max-w-screen-4xl  mx-auto"
+      class="min-h-full w-full 2xl:max-w-screen-4xl mx-auto"
       style="position: relative; z-index: 10"
     >
       <!-- Header -->
@@ -142,6 +142,15 @@
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('user.purchased_products') }}"
+                      >Purchased Products</a
+                    >
+                  </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
                       href="{{ url_for('user.favorites') }}"
                       >Favorites</a
                     >
@@ -170,7 +179,17 @@
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
                       href="{{ url_for('user.support') }}"
-                      >Feedback</a
+                      >Support</a
+                    >
+                  </div>
+                  {% if session['role'] == 'vendor' %}
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('vendor.products_index') }}"
+                      >My Products</a
                     >
                   </div>
                   <div
@@ -178,10 +197,20 @@
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
-                      href=""
-                      >Affiliate Stats</a
+                      href="{{ url_for('vendor.vendor_settings') }}"
+                      >Vendor Settings</a
                     >
                   </div>
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('vendor.vendor_support') }}"
+                      >Vendor Support</a
+                    >
+                  </div>
+                  {% endif %}
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >

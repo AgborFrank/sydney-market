@@ -43,6 +43,9 @@
 
     <form method="post" action="{{ url_for('user.login') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <!-- Debug: CSRF token available: {{ 'Yes' if csrf_token() else 'No' }} -->
+
+      <!-- CSRF token for Tor compatibility -->
       <div>
         <label for="username" class="block text-gray-500 font-semibold mb-2"
           >Username</label

@@ -1,18 +1,25 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from utils.database import get_db_connection
+from utils.database import get_db_connection, get_settings
 #from utils.security import validate_csrf_token
 from utils.auth import has_active_subscription
 from routes import require_role
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import generate_csrf
 import logging
 import os
 import datetime
 import requests
+import re
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 vendor_bp = Blueprint('vendor', __name__)
+
+@vendor_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
+
 # Directory for category images
 UPLOAD_FOLDER = 'static/uploads/categories'
 UPLOAD_FOLDER_LOGOS = 'static/uploads/logos'
@@ -110,6 +117,117 @@ def calculate_vendor_level(vendor_id):
         
         return level
 
+@vendor_bp.route('/support', methods=['GET', 'POST'])
+@require_vendor_role
+def vendor_support():
+    """Vendor support page to submit and view tickets."""
+    try:
+        from utils.support import secure_support
+        
+        user_id = session.get('user_id')
+        if not user_id:
+            flash("Please log in to access support.", 'error')
+            return redirect(url_for('user.login'))
+        
+        if request.method == 'POST':
+            subject = request.form.get('subject', '').strip()
+            category = request.form.get('category', '').strip()
+            priority = request.form.get('priority', '').strip()
+            description = request.form.get('description', '').strip()
+
+            if not all([subject, category, priority, description]):
+                flash("All fields are required.", 'error')
+            elif len(subject) > 255 or len(description) > 2000:
+                flash("Subject or description too long.", 'error')
+            elif category not in ['Vendor Support', 'Account', 'Payment', 'Dispute', 'Technical']:
+                flash("Invalid category.", 'error')
+            elif priority not in ['Low', 'Medium', 'High']:
+                flash("Invalid priority.", 'error')
+            else:
+                # Create secure ticket
+                ticket_id = secure_support.create_secure_ticket(
+                    user_id, subject, description, category, priority, 'vendor'
+                )
+                
+                if ticket_id:
+                    flash("Secure support ticket submitted successfully.", 'success')
+                    logger.info(f"Vendor {user_id} submitted secure ticket: {subject}")
+                    return redirect(url_for('vendor.vendor_support'))
+                else:
+                    flash("Failed to create ticket. Please try again.", 'error')
+
+        # Fetch vendor's tickets using secure system
+        tickets = secure_support.get_user_tickets(user_id, 'vendor')
+
+        # Available options for form
+        categories = ['Vendor Support', 'Account', 'Payment', 'Dispute', 'Technical']
+        priorities = ['Low', 'Medium', 'High']
+
+        logger.info(f"Vendor support page loaded successfully for vendor {user_id}")
+        
+        return render_template('vendor/support.html',
+                             tickets=tickets,
+                             categories=categories,
+                             priorities=priorities,
+                             settings=get_settings())
+                             
+    except Exception as e:
+        logger.error(f"Error in vendor support: {str(e)}")
+        flash("An error occurred. Please try again.", 'error')
+        return redirect(url_for('vendor.dashboard'))
+
+@vendor_bp.route('/support/ticket/<int:ticket_id>', methods=['GET', 'POST'])
+@require_vendor_role
+def vendor_view_ticket_details(ticket_id):
+    """View and respond to a specific support ticket."""
+    try:
+        from utils.support import secure_support
+        
+        user_id = session.get('user_id')
+        if not user_id:
+            flash("Please log in to view tickets.", 'error')
+            return redirect(url_for('user.login'))
+        
+        # Get ticket with responses using secure system
+        ticket, responses = secure_support.get_ticket_with_responses(ticket_id, user_id, 'vendor')
+        
+        if not ticket:
+            flash("Ticket not found or access denied.", 'error')
+            return redirect(url_for('vendor.vendor_support'))
+        
+        # Verify vendor owns this ticket
+        if ticket['user_id'] != user_id:
+            flash("Access denied.", 'error')
+            return redirect(url_for('vendor.vendor_support'))
+
+        if request.method == 'POST':
+            response_body = request.form.get('response_body', '').strip()
+            if not response_body:
+                flash("Response body is required.", 'error')
+            elif len(response_body) > 2000:
+                flash("Response is too long.", 'error')
+            else:
+                # Add secure response
+                success = secure_support.add_secure_response(
+                    ticket_id, user_id, response_body, 'vendor'
+                )
+                
+                if success:
+                    flash("Secure response submitted successfully.", 'success')
+                    logger.info(f"Vendor {user_id} responded to secure ticket #{ticket_id}")
+                    return redirect(url_for('vendor.vendor_view_ticket_details', ticket_id=ticket_id))
+                else:
+                    flash("Failed to submit response. Please try again.", 'error')
+
+        return render_template('vendor/ticket_details.html',
+                             ticket=ticket,
+                             responses=responses,
+                             settings=get_settings())
+    except Exception as e:
+        logger.error(f"Error handling vendor ticket #{ticket_id}: {str(e)}")
+        flash("An error occurred. Please try again.", 'error')
+        return redirect(url_for('vendor.vendor_support'))
+
 @vendor_bp.route('/stats')
 @require_vendor_role
 def vendor_stats():
@@ -190,11 +308,11 @@ def vendor_stats():
         
         # Recent Messages
         c.execute("""
-            SELECT m.id, m.subject, m.body, m.sent_at, u.pusername as sender
+            SELECT m.id, m.content, m.created_at, u.pusername as sender
             FROM messages m
             JOIN users u ON m.sender_id = u.id
-            WHERE m.recipient_id = ? AND m.recipient_type = 'vendor'
-            ORDER BY m.sent_at DESC LIMIT 5
+            WHERE m.recipient_id = ? AND m.trashed = 0
+            ORDER BY m.created_at DESC LIMIT 5
         """, (vendor_id,))
         recent_messages = [dict(row) for row in c.fetchall()]
 
@@ -251,7 +369,7 @@ def business_details():
                             user_id, business_name, description, support_contact, min_order_amount,
                             warehouse_address, shipping_details, processing_time, shipping_zones,
                             shipping_location, shipping_destinations, shipping_policy, return_policy, rules
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(user_id) DO UPDATE SET
                             business_name = excluded.business_name,
                             description = excluded.description,
@@ -332,6 +450,21 @@ def products_index():
         flash("Please log in to view your products.", 'error')
         return redirect(url_for('user.login'))
 
+    # Check if user is actually a vendor in the database
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT role, is_vendor FROM users WHERE id = ?", (session['user_id'],))
+        user_data = c.fetchone()
+        
+        if not user_data:
+            flash("User not found. Please log in again.", 'error')
+            session.clear()
+            return redirect(url_for('user.login'))
+        
+        if user_data['role'] != 'vendor' and not user_data['is_vendor']:
+            flash("You must be a vendor to access this page.", 'error')
+            return redirect(url_for('user.dashboard'))
+
     # Get filter parameters
     status_filter = request.args.get('status', 'all')
     category_id_filter = request.args.get('category_id', 'all')
@@ -341,43 +474,94 @@ def products_index():
     if status_filter not in valid_statuses:
         flash("Invalid status filter.", 'error')
         status_filter = 'all'
+    
+    logger.info(f"Vendor products request - user_id: {session['user_id']}, role: {session.get('role')}, status_filter: {status_filter}, category_filter: {category_id_filter}")
 
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
 
-            # Fetch categories for filter dropdown
-            c.execute("SELECT id, name FROM categories ORDER BY name")
-            categories = [dict(row) for row in c.fetchall()]
+            # Check if categories table exists and has data
+            try:
+                c.execute("SELECT id, name FROM categories ORDER BY name")
+                categories = [dict(row) for row in c.fetchall()]
+            except Exception as cat_error:
+                logger.warning(f"Categories table error: {str(cat_error)}")
+                categories = []
 
-            # Build query
-            query = """
-                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.rejection_reason, c.name as category_name
-                FROM products p
-                LEFT JOIN categories c ON p.category_id = c.id
-                WHERE p.vendor_id = ?
-            """
-            params = [session['user_id']]
+            # Build query with better error handling
+            try:
+                # Query with categories JOIN to get category names
+                query = """
+                    SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.rejection_reason,
+                           p.featured_image, c.name as category_name
+                    FROM products p
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE p.vendor_id = ?
+                """
+                params = [session['user_id']]
 
-            # Apply filters
-            if status_filter != 'all':
-                query += " AND p.status = ?"
-                params.append(status_filter)
-            if category_id_filter != 'all':
+                # Apply filters
+                if status_filter != 'all':
+                    query += " AND p.status = ?"
+                    params.append(status_filter)
+                if category_id_filter != 'all':
+                    try:
+                        category_id = int(category_id_filter)
+                        query += " AND p.category_id = ?"
+                        params.append(category_id)
+                    except ValueError:
+                        flash("Invalid category filter.", 'error')
+                        category_id_filter = 'all'
+
+                query += " ORDER BY p.created_at DESC"
+                logger.info(f"Executing query: {query} with params: {params}")
+                c.execute(query, params)
+                products = [dict(row) for row in c.fetchall()]
+                
+                # Set category_name to 'Uncategorized' if it's None
+                for product in products:
+                    if product['category_name'] is None:
+                        product['category_name'] = 'Uncategorized'
+                
+                logger.info(f"Successfully loaded {len(products)} products for vendor {session['user_id']}")
+                if products:
+                    logger.info(f"Sample product: {products[0]}")
+                else:
+                    # Check if there are any products for this vendor at all
+                    c.execute("SELECT COUNT(*) FROM products WHERE vendor_id = ?", [session['user_id']])
+                    total_count = c.fetchone()[0]
+                    logger.warning(f"No products found for vendor {session['user_id']}, but there are {total_count} products total for this vendor")
+                    
+                    # Check what products exist for this vendor
+                    c.execute("SELECT id, title, status FROM products WHERE vendor_id = ?", [session['user_id']])
+                    all_vendor_products = c.fetchall()
+                    logger.warning(f"All products for vendor {session['user_id']}: {all_vendor_products}")
+                
+            except Exception as query_error:
+                logger.error(f"Products query error: {str(query_error)}")
+                # Fallback to simpler query with categories
                 try:
-                    category_id = int(category_id_filter)
-                    query += " AND p.category_id = ?"
-                    params.append(category_id)
-                except ValueError:
-                    flash("Invalid category filter.", 'error')
-                    category_id_filter = 'all'
-
-            query += " ORDER BY p.created_at DESC"
-            c.execute(query, params)
-            products = [dict(row) for row in c.fetchall()]
+                    c.execute("""
+                        SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.rejection_reason,
+                               p.featured_image, c.name as category_name
+                        FROM products p
+                        LEFT JOIN categories c ON p.category_id = c.id
+                        WHERE p.vendor_id = ?
+                        ORDER BY p.created_at DESC
+                    """, [session['user_id']])
+                    products = [dict(row) for row in c.fetchall()]
+                    # Set category_name to 'Uncategorized' if it's None
+                    for product in products:
+                        if product['category_name'] is None:
+                            product['category_name'] = 'Uncategorized'
+                    logger.info(f"Fallback query loaded {len(products)} products")
+                except Exception as fallback_error:
+                    logger.error(f"Fallback query error: {str(fallback_error)}")
+                    products = []
 
     except Exception as e:
-        logger.error(f"Database error: {str(e)}")
+        logger.error(f"Database connection error: {str(e)}")
         flash("Unable to load products due to a database error. Please try again.", 'error')
         products = []
         categories = []
@@ -390,31 +574,76 @@ def products_index():
         category_id_filter=category_id_filter,
         title="Your Products - Sydney"
     )
+
+@vendor_bp.route('/debug')
+def debug_info():
+    """Debug route to check current user info"""
+    if 'user_id' not in session:
+        return "Not logged in"
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT id, username, role, is_vendor FROM users WHERE id = ?", (session['user_id'],))
+        user = c.fetchone()
+        
+        if not user:
+            return "User not found"
+        
+        # Check products for this user
+        c.execute("SELECT id, title, status FROM products WHERE vendor_id = ?", (session['user_id'],))
+        products = c.fetchall()
+        
+        # Test the exact query from the vendor products route
+        try:
+            c.execute("""
+                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.rejection_reason
+                FROM products p
+                WHERE p.vendor_id = ?
+                ORDER BY p.created_at DESC
+            """, (session['user_id'],))
+            route_products = c.fetchall()
+        except Exception as e:
+            route_products = []
+            error_msg = str(e)
+        
+        return f"""
+        <h2>Debug Info</h2>
+        <p>Session User ID: {session['user_id']}</p>
+        <p>Username: {user['username']}</p>
+        <p>Role: {user['role']}</p>
+        <p>Is Vendor: {user['is_vendor']}</p>
+        <p>Products for this user: {len(products)}</p>
+        <ul>
+        {''.join([f'<li>ID: {p[0]}, Title: {p[1]}, Status: {p[2]}</li>' for p in products])}
+        </ul>
+        
+        <h3>Route Query Test</h3>
+        <p>Products from route query: {len(route_products)}</p>
+        <ul>
+        {''.join([f'<li>ID: {p[0]}, Title: {p[1][:30]}..., Status: {p[4]}</li>' for p in route_products]) if route_products else f'<li>Error: {error_msg}</li>'}
+        </ul>
+        
+        <p><a href="/vendor/products">Go to Vendor Products Page</a></p>
+        """
 @vendor_bp.route('/products/create', methods=['GET', 'POST'])
+# Do NOT use @require_vendor_role here; we want to redirect non-vendors to the vendor subscription page, not the dashboard.
 def products_create():
     if 'user_id' not in session:
         flash("Please log in to create a product.", 'error')
         return redirect(url_for('user.login'))
 
-    # Enforce active subscription
-    if not has_active_subscription(session['user_id']):
-        flash("You must have an active vendor subscription to add products.", 'error')
-        return redirect(url_for('vendor.subscribe'))
-
-    # Verify vendor eligibility
+    user_id = session['user_id']
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT is_vendor, pgp_public_key, two_factor_secret FROM users WHERE id = ?", (session['user_id'],))
+        c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
         user = c.fetchone()
-        if not user or not user['is_vendor']:
-            flash("You must be a verified vendor to create products.", 'error')
-            return redirect(url_for('user.dashboard'))
-        if not user['pgp_public_key']:
-            flash("PGP public key is required to create products.", 'error')
-            return redirect(url_for('user.edit_profile'))
-        if not user['two_factor_secret']:
-            flash("2FA is mandatory to create products.", 'error')
-            return redirect(url_for('user.edit_profile'))
+        user_role = user['role'] if user else None
+
+    # If not vendor or no active subscription, redirect to subscribe
+    from utils.auth import has_active_subscription
+    if user_role != 'vendor' or not has_active_subscription(user_id):
+        flash("You must be a vendor with an active subscription to create products.", 'error')
+        return redirect(url_for('vendor.subscribe'))
 
     if request.method == 'POST':
         # Form fields
@@ -426,9 +655,9 @@ def products_create():
         stock = request.form.get('stock', '').strip()
         category_id = request.form.get('category_id', '').strip()
         sku = request.form.get('sku', '').strip()
-        shipping_weight = request.form.get('shipping_weight', '').strip()
+        weight_grams = request.form.get('weight_grams', '').strip()
         shipping_dimensions = request.form.get('shipping_dimensions', '').strip()
-        shipping_method = request.form.get('shipping_method', '').strip()
+        shipping_methods = request.form.get('shipping_methods', '').strip()
         shipping_origin = request.form.get('shipping_origin', '').strip()
         shipping_destinations = request.form.get('shipping_destinations', '').strip()
         moq = request.form.get('moq', '').strip()
@@ -437,6 +666,7 @@ def products_create():
         tags = request.form.get('tags', '').strip()
         product_type = request.form.get('product_type', '').strip()
         return_policy = request.form.get('return_policy', '').strip()
+        origin_country = request.form.get('origin_country', '').strip()
         featured_image = request.files.get('featured_image')
         additional_images = request.files.getlist('additional_images')
 
@@ -456,25 +686,24 @@ def products_create():
             stock = int(stock)
             category_id = int(category_id)
             original_price_usd = float(original_price_usd) if original_price_usd else None
-            shipping_weight = float(shipping_weight) if shipping_weight and product_type == 'physical' else None
+            weight_grams = float(weight_grams) if weight_grams and product_type == 'physical' else None
             moq = int(moq) if moq else 1
-            if price_usd <= 0 or stock < 0 or (original_price_usd and original_price_usd <= 0) or (shipping_weight and shipping_weight < 0) or moq < 1:
+            if price_usd <= 0 or stock < 0 or (original_price_usd and original_price_usd <= 0) or (weight_grams and weight_grams < 0) or moq < 1:
                 raise ValueError("Invalid numeric values")
         except ValueError:
             flash("Numeric fields must be valid and positive (except stock can be 0).", 'error')
             return render_template('user/products/create.html', form_data=request.form.to_dict())
 
-        # Validate product type and shipping
+        # Validate product type
         if product_type not in ['physical', 'digital']:
             flash("Product type must be physical or digital.", 'error')
             return render_template('user/products/create.html', form_data=request.form.to_dict())
-        if product_type == 'physical' and not shipping_method:
-            flash("Shipping method is required for physical products.", 'error')
-            return render_template('user/products/create.html', form_data=request.form.to_dict())
 
         # Calculate crypto prices
-        price_btc = price_usd / BTC_USD_RATE
-        price_xmr = price_usd / XMR_USD_RATE
+        btc_rate = get_crypto_price('BTC') or 70000  # Fallback rate
+        xmr_rate = get_crypto_price('XMR') or 150    # Fallback rate
+        price_btc = price_usd / btc_rate
+        price_xmr = price_usd / xmr_rate
 
         # Handle featured image
         featured_image_path = None
@@ -488,15 +717,15 @@ def products_create():
             c = conn.cursor()
             c.execute("""
                 INSERT INTO products (
-                    title, description, price_usd, price_btc, price_xmr, original_price_usd, discount_active,
-                    stock, category_id, vendor_id, sku, shipping_weight, shipping_dimensions, shipping_method,
-                    shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
+                    title, description, price_usd, price_btc, price_xmr, original_price_usd, origin_country,
+                    discount_active, stock, category_id, vendor_id, sku, weight_grams, shipping_dimensions,
+                    shipping_methods, shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
                     product_type, return_policy, status, featured_image
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                title, description, price_usd, price_btc, price_xmr, original_price_usd, discount_active,
-                stock, category_id, session['user_id'], sku, shipping_weight, shipping_dimensions, shipping_method,
-                shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
+                title, description, price_usd, price_btc, price_xmr, original_price_usd, origin_country,
+                discount_active, stock, category_id, session['user_id'], sku, weight_grams, shipping_dimensions,
+                shipping_methods, shipping_origin, shipping_destinations, moq, lead_time, packaging_details, tags,
                 product_type, return_policy, 'pending', featured_image_path
             ))
             product_id = c.lastrowid
@@ -537,7 +766,6 @@ def products_edit(product_id):
             return redirect(url_for('vendor.products_index'))
 
         if request.method == 'POST':
-            validate_csrf_token()
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
             price_usd = request.form.get('price_usd', type=float)
@@ -546,13 +774,15 @@ def products_edit(product_id):
             stock = request.form.get('stock', type=int)
             category_id = request.form.get('category_id', type=int)
             sku = request.form.get('sku', '').strip() or None
-            shipping_weight = request.form.get('shipping_weight', type=float)
+            weight_grams = request.form.get('weight_grams', type=float)
             shipping_dimensions = request.form.get('shipping_dimensions', '').strip() or None
-            shipping_method = request.form.get('shipping_method', '').strip() or None
+            shipping_methods = request.form.get('shipping_methods', '').strip() or None
             moq = request.form.get('moq', type=int, default=1)
             lead_time = request.form.get('lead_time', '').strip() or None
             packaging_details = request.form.get('packaging_details', '').strip() or None
             tags = request.form.get('tags', '').strip() or None
+            origin_country = request.form.get('origin_country', '').strip() or None
+            return_policy = request.form.get('return_policy', '').strip() or None
             status = request.form.get('status', 'active')
             featured_image = request.files.get('featured_image')
             additional_images = request.files.getlist('additional_images')
@@ -573,9 +803,9 @@ def products_edit(product_id):
                 stock = int(stock)
                 category_id = int(category_id)
                 original_price_usd = float(original_price_usd) if original_price_usd else None
-                shipping_weight = float(shipping_weight) if shipping_weight else None
+                weight_grams = float(weight_grams) if weight_grams else None
                 moq = int(moq) if moq else 1
-                if price_usd <= 0 or stock < 0 or (original_price_usd is not None and original_price_usd <= 0) or (shipping_weight is not None and shipping_weight < 0) or moq < 1:
+                if price_usd <= 0 or stock < 0 or (original_price_usd is not None and original_price_usd <= 0) or (weight_grams is not None and weight_grams < 0) or moq < 1:
                     raise ValueError("Invalid numeric values")
             except ValueError:
                 flash("Numeric fields must be valid and positive (except stock can be 0).", 'error')
@@ -583,9 +813,9 @@ def products_edit(product_id):
 
             c.execute("""
                     UPDATE products 
-                    SET title = ?, description = ?, price_usd = ?, original_price_usd = ?, discount_active = ?, stock = ?, category_id = ?, sku = ?, shipping_weight = ?, shipping_dimensions = ?, shipping_method = ?, moq = ?, lead_time = ?, packaging_details = ?, tags = ?, status = ?, featured_image = ?
+                    SET title = ?, description = ?, price_usd = ?, original_price_usd = ?, origin_country = ?, discount_active = ?, stock = ?, category_id = ?, sku = ?, weight_grams = ?, shipping_dimensions = ?, shipping_methods = ?, moq = ?, lead_time = ?, packaging_details = ?, tags = ?, return_policy = ?, status = ?, featured_image = ?
                     WHERE id = ? AND vendor_id = ?
-                """, (title, description, price_usd, original_price_usd, discount_active, stock, category_id, sku, shipping_weight, shipping_dimensions, shipping_method, moq, lead_time, packaging_details, tags, status, featured_image_path, product_id, session['user_id']))
+                """, (title, description, price_usd, original_price_usd, origin_country, discount_active, stock, category_id, sku, weight_grams, shipping_dimensions, shipping_methods, moq, lead_time, packaging_details, tags, return_policy, status, featured_image_path, product_id, session['user_id']))
             conn.commit()
             # Handle additional images (append new ones, keep existing unless deleted)
             for image in additional_images:
@@ -610,18 +840,39 @@ def delete_product(product_id):
         flash("You must be a vendor to access this page.", 'error')
         return redirect(url_for('user.login'))
     
-    
     with get_db_connection() as conn:
         c = conn.cursor()
-        c.execute("SELECT image_path FROM products WHERE id = ? AND vendor_id = ?", (product_id, session['user_id']))
+        # Get product details including featured image
+        c.execute("SELECT featured_image FROM products WHERE id = ? AND vendor_id = ?", (product_id, session['user_id']))
         product = c.fetchone()
         if not product:
             flash("Product not found or you don't have permission.", 'error')
             return redirect(url_for('vendor.products_index'))
         
-        if product['image_path'] and os.path.exists(product['image_path']):
-            os.remove(product['image_path'])
+        # Delete featured image file if it exists
+        if product['featured_image']:
+            try:
+                featured_image_path = os.path.join(UPLOAD_FOLDER_PRODUCTS, os.path.basename(product['featured_image']))
+                if os.path.exists(featured_image_path):
+                    os.remove(featured_image_path)
+            except OSError:
+                pass  # File might not exist, continue with deletion
         
+        # Get and delete additional images
+        c.execute("SELECT image_path FROM product_images WHERE product_id = ?", (product_id,))
+        additional_images = c.fetchall()
+        for img in additional_images:
+            try:
+                image_path = os.path.join(UPLOAD_FOLDER_PRODUCTS, os.path.basename(img['image_path']))
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+            except OSError:
+                pass  # File might not exist, continue with deletion
+        
+        # Delete additional images from database
+        c.execute("DELETE FROM product_images WHERE product_id = ?", (product_id,))
+        
+        # Delete the product
         c.execute("DELETE FROM products WHERE id = ? AND vendor_id = ?", (product_id, session['user_id']))
         conn.commit()
         flash("Product deleted successfully.", 'success')
@@ -670,7 +921,6 @@ def vendor_order_detail(order_id):
             return redirect(url_for('vendor.vendor_orders'))
 
         if request.method == 'POST':
-            validate_csrf_token()
             status = request.form.get('status', '').strip()
             escrow_status = request.form.get('escrow_status', '').strip()
 
@@ -716,7 +966,7 @@ def verify_xmr_payment(txid, amount_xmr, address):
 def subscribe():
     if 'user_id' not in session:
         flash("Please log in.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
 
     try:
         with get_db_connection() as conn:
@@ -724,8 +974,8 @@ def subscribe():
             c.execute("SELECT role FROM users WHERE id = ?", (session['user_id'],))
             user = c.fetchone()
             if not user or user['role'] != 'vendor':
-                flash("Only vendors can subscribe.", 'error')
-                return redirect(url_for('public.index'))
+                flash("You must be a vendor to access the subscription page.", 'error')
+                return redirect(url_for('user.become_vendor'))
 
             c.execute("SELECT * FROM vendor_subscriptions WHERE vendor_id = ? AND status = 'active'", (session['user_id'],))
             active_sub = c.fetchone()
@@ -778,13 +1028,13 @@ def subscribe():
     except Exception as e:
         print(f"Error in subscribe: {str(e)}")
         flash("An error occurred.", 'error')
-        return redirect(url_for('public.index'))
+        return redirect(url_for('user.become_vendor'))
 
 @vendor_bp.route('/vendor/confirm_payment/<int:package_id>/<crypto_currency>', methods=['GET', 'POST'])
 def confirm_payment(package_id, crypto_currency):
     if 'user_id' not in session:
         flash("Please log in.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
 
     try:
         with get_db_connection() as conn:
@@ -792,8 +1042,8 @@ def confirm_payment(package_id, crypto_currency):
             c.execute("SELECT role FROM users WHERE id = ?", (session['user_id'],))
             user = c.fetchone()
             if not user or user['role'] != 'vendor':
-                flash("Only vendors can confirm payment.", 'error')
-                return redirect(url_for('public.index'))
+                flash("You must be a vendor to confirm payment.", 'error')
+                return redirect(url_for('user.become_vendor'))
 
             c.execute("SELECT * FROM packages WHERE id = ?", (package_id,))
             package = dict(c.fetchone())
@@ -819,7 +1069,7 @@ def confirm_payment(package_id, crypto_currency):
                         if c.rowcount > 0:
                             conn.commit()
                             flash("Payment verified! Subscription activated.", 'success')
-                            return redirect(url_for('public.index'))
+                            return redirect(url_for('vendor.products_index'))
                         else:
                             flash("No pending subscription found.", 'error')
                     else:
@@ -830,4 +1080,80 @@ def confirm_payment(package_id, crypto_currency):
     except Exception as e:
         print(f"Error in confirm_payment: {str(e)}")
         flash("An error occurred.", 'error')
-        return redirect(url_for('public.index'))
+        return redirect(url_for('user.become_vendor'))
+
+@vendor_bp.route('/settings', methods=['GET', 'POST'])
+@require_vendor_role
+def vendor_settings():
+    if 'user_id' not in session:
+        flash("Please log in to access vendor settings.", 'error')
+        return redirect(url_for('user.login'))
+    user_id = session['user_id']
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        # Fetch vendor info (all fields)
+        c.execute("""
+            SELECT business_name, description, logo, banner, pgp_public_key, bond_status, verification_status, shipping_methods, vacation_mode, notify_orders, notify_messages, notify_disputes, btc_address, xmr_address, refund_policy
+            FROM vendor_settings WHERE user_id = ?
+        """, (user_id,))
+        vendor = c.fetchone()
+        if not vendor:
+            vendor = {
+                'business_name': '', 'description': '', 'logo': '', 'banner': '',
+                'pgp_public_key': '', 'bond_status': 'Not posted', 'verification_status': 'Unverified',
+                'shipping_methods': '', 'vacation_mode': 'off',
+                'notify_orders': 1, 'notify_messages': 1, 'notify_disputes': 1,
+                'btc_address': '', 'xmr_address': '', 'refund_policy': ''
+            }
+        else:
+            vendor = dict(vendor)
+        if request.method == 'POST':
+            # Get form data
+            business_name = request.form.get('store_name', '').strip()
+            description = request.form.get('store_description', '').strip()
+            refund_policy = request.form.get('refund_policy', '').strip()
+            pgp_public_key = request.form.get('pgp_public_key', '').strip()
+            shipping_methods = request.form.get('shipping_methods', '').strip()
+            vacation_mode = request.form.get('vacation_mode', 'off')
+            notify_orders = 1 if request.form.get('notify_orders') else 0
+            notify_messages = 1 if request.form.get('notify_messages') else 0
+            notify_disputes = 1 if request.form.get('notify_disputes') else 0
+            btc_address = request.form.get('btc_address', '').strip()
+            xmr_address = request.form.get('xmr_address', '').strip()
+            # File uploads (logo/banner)
+            logo_file = request.files.get('store_logo')
+            banner_file = request.files.get('store_banner')
+            logo = vendor.get('logo', '')
+            banner = vendor.get('banner', '')
+            if logo_file and logo_file.filename:
+                filename = secure_filename(logo_file.filename)
+                logo_path = os.path.join('static/uploads/avatar', filename)
+                logo_file.save(logo_path)
+                logo = filename
+            if banner_file and banner_file.filename:
+                filename = secure_filename(banner_file.filename)
+                banner_path = os.path.join('static/uploads/avatar', filename)
+                banner_file.save(banner_path)
+                banner = filename
+            # Update or insert
+            c.execute("SELECT id FROM vendor_settings WHERE user_id = ?", (user_id,))
+            exists = c.fetchone()
+            if exists:
+                c.execute("""
+                    UPDATE vendor_settings SET business_name=?, description=?, refund_policy=?, logo=?, banner=?, pgp_public_key=?, shipping_methods=?, vacation_mode=?, notify_orders=?, notify_messages=?, notify_disputes=?, btc_address=?, xmr_address=? WHERE user_id=?
+                """, (business_name, description, refund_policy, logo, banner, pgp_public_key, shipping_methods, vacation_mode, notify_orders, notify_messages, notify_disputes, btc_address, xmr_address, user_id))
+            else:
+                c.execute("""
+                    INSERT INTO vendor_settings (user_id, business_name, description, refund_policy, logo, banner, pgp_public_key, shipping_methods, vacation_mode, notify_orders, notify_messages, notify_disputes, btc_address, xmr_address)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user_id, business_name, description, refund_policy, logo, banner, pgp_public_key, shipping_methods, vacation_mode, notify_orders, notify_messages, notify_disputes, btc_address, xmr_address))
+            conn.commit()
+            flash('Settings saved.', 'success')
+            # Refresh vendor dict
+            c.execute("""
+                SELECT business_name, description, logo, banner, pgp_public_key, bond_status, verification_status, shipping_methods, vacation_mode, notify_orders, notify_messages, notify_disputes, btc_address, xmr_address, refund_policy
+                FROM vendor_settings WHERE user_id = ?
+            """, (user_id,))
+            vendor = dict(c.fetchone())
+        settings = get_settings()
+        return render_template('user/vendor_settings.html', vendor=vendor, settings=settings)

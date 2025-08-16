@@ -94,18 +94,13 @@ settings['site_name'] }}{% endblock %} {% block admin_content %}
     <tbody>
       {% for message in messages %}
       <tr class="border-b hover:bg-gray-50">
-        <td class="py-2 px-4">{{ message['sent_at'] }}</td>
+        <td class="py-2 px-4">{{ message['created_at'] }}</td>
         <td class="py-2 px-4">
-          {{ message['recipient_type']|replace('_', ' ')|title }} {% if
-          message['recipient_id'] %}(ID: {{ message['recipient_id'] }}){% endif
-          %}
+          {{ message['recipient_username'] or 'Unknown' }} (ID: {{
+          message['recipient_id'] }})
         </td>
-        <td class="py-2 px-4">{{ message['subject'] }}</td>
-        <td class="py-2 px-4">
-          {% if message['encrypted_body'] %}
-          <span class="text-gray-600 italic">Encrypted</span>
-          {% else %} {{ message['body']|truncate(50) }} {% endif %}
-        </td>
+        <td class="py-2 px-4">-</td>
+        <td class="py-2 px-4">{{ message['content']|truncate(50) }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -413,7 +413,7 @@
           <i class="gg-collage justify-self-center"></i> Favorites {% if
           favorites_count > 0 %}
           <span
-            class="relative -right-24 -top-8 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1"
+            class="relative -right-24 -top-8  text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1"
           >
             {{ favorites_count }}
           </span>
@@ -499,6 +499,13 @@
             href="{{ url_for('user.edit_profile') }}"
             >Edit Profile</a
           >
+          {% if session['role'] == 'vendor' %}
+          <a
+            class="text-left text-gray-100 block text-[13px] font-bold leading-[14px] py-[8px] px-[14px]  hover:text-white"
+            href="{{ url_for('vendor.vendor_settings') }}"
+            >Vendor Settings</a
+          >
+          {% endif %}
         </div>
       </div>
       <div

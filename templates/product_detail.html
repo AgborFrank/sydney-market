@@ -11,10 +11,17 @@ product.get('category_id') else None}, {'label': product.title} ] %} {% include
     <div class="flex flex-col items-center md:w-1/3">
       <div
         class="w-80 h-80 rounded-lg overflow-hidden border-1 border-[#1e3a4c] bg-[#1a2d3a] flex items-center justify-center"
+        id="main-image"
       >
-        {% if product.images %}
+        {% if product.featured_image %}
         <img
-          src="/static/uploads/products/{{ product.featured_image|basename if product.featured_image else 'product-placeholder.png' }}"
+          src="/static/uploads/products/{{ product.featured_image|basename }}"
+          alt="{{ product.title }}"
+          class="object-cover w-full h-full"
+        />
+        {% elif product.images %}
+        <img
+          src="/static/uploads/products/{{ product.images[0] }}"
           alt="{{ product.title }}"
           class="object-cover w-full h-full"
         />
@@ -22,8 +29,16 @@ product.get('category_id') else None}, {'label': product.title} ] %} {% include
         <span class="text-gray-400">No image available</span>
         {% endif %}
       </div>
+      {% if product.featured_image or product.images %}
       <div class="flex gap-2 mt-4">
-        {% for img in product.images[:6] %}
+        {% if product.featured_image %}
+        <img
+          src="/static/uploads/products/{{ product.featured_image|basename }}"
+          alt="Featured Image"
+          class="w-16 h-16 object-cover rounded border-2 border-blue-500 cursor-pointer hover:opacity-75"
+          onclick="changeImage('{{ product.featured_image|basename }}')"
+        />
+        {% endif %} {% for img in product.images[:5] %}
         <img
           src="/static/uploads/products/{{ img }}"
           alt="Thumbnail"
@@ -32,6 +47,7 @@ product.get('category_id') else None}, {'label': product.title} ] %} {% include
         />
         {% endfor %}
       </div>
+      {% endif %}
     </div>
     <!-- Right: Product Info -->
     <div class="flex-1">
@@ -371,7 +387,8 @@ product.get('category_id') else None}, {'label': product.title} ] %} {% include
   });
   // Image Gallery
   function changeImage(src) {
-    document.querySelector("#main-image img").src = src;
+    document.querySelector("#main-image img").src =
+      "/static/uploads/products/" + src;
   }
 </script>
 {% endblock %}

@@ -490,7 +490,7 @@ def manage_products():
             status = request.args.get('status')
             search = request.args.get('search', '').strip()
             page = request.args.get('page', 1, type=int)
-            per_page = 10
+            per_page = 20
             
             # Build query
             query = """
@@ -684,23 +684,41 @@ def delete_product(product_id):
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
-            # Delete associated images
+            
+            # Get product details including featured image
+            c.execute("SELECT featured_image FROM products WHERE id = ?", (product_id,))
+            product = c.fetchone()
+            if not product:
+                flash('Product not found.', 'error')
+                return redirect(url_for('admin.manage_products'))
+            
+            # Delete featured image file if it exists
+            if product['featured_image']:
+                try:
+                    featured_image_path = os.path.join(UPLOAD_FOLDER_PRODUCTS, os.path.basename(product['featured_image']))
+                    if os.path.exists(featured_image_path):
+                        os.remove(featured_image_path)
+                except OSError:
+                    pass  # File might not exist, continue with deletion
+            
+            # Delete associated additional images
             c.execute("SELECT image_path FROM product_images WHERE product_id = ?", (product_id,))
             images = c.fetchall()
             for img in images:
                 try:
-                    os.remove(os.path.join(UPLOAD_FOLDER_PRODUCTS, img['image_path'].replace('uploads/', '')))
+                    image_path = os.path.join(UPLOAD_FOLDER_PRODUCTS, os.path.basename(img['image_path']))
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
                 except OSError:
-                    pass
+                    pass  # File might not exist, continue with deletion
+            
+            # Delete additional images from database
             c.execute("DELETE FROM product_images WHERE product_id = ?", (product_id,))
             
             # Delete product
             c.execute("DELETE FROM products WHERE id = ?", (product_id,))
-            if c.rowcount == 0:
-                flash('Product not found.', 'error')
-            else:
-                conn.commit()
-                flash('Product deleted.', 'success')
+            conn.commit()
+            flash('Product deleted.', 'success')
     except Exception as e:
         logger.error(f"Error deleting product: {str(e)}")
         flash('Error deleting product.', 'error')
@@ -1883,9 +1901,11 @@ def messages():
         
         # Fetch sent messages
         c.execute("""
-            SELECT * FROM messages 
-            WHERE sender_id = ? 
-            ORDER BY sent_at DESC
+            SELECT m.*, u.pusername as recipient_username
+            FROM messages m
+            LEFT JOIN users u ON m.recipient_id = u.id
+            WHERE m.sender_id = ? 
+            ORDER BY m.created_at DESC
         """, (session['admin_id'],))
         messages = [dict(row) for row in c.fetchall()]
         
@@ -1928,13 +1948,13 @@ def messages():
             
             # Insert message
             c.execute("""
-                INSERT INTO messages (sender_id, recipient_type, recipient_id, subject, body, encrypted_body)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (session['admin_id'], recipient_type, recipient_id, subject, plaintext_body, encrypted_body))
+                INSERT INTO messages (sender_id, recipient_id, content)
+                VALUES (?, ?, ?)
+            """, (session['admin_id'], recipient_id, plaintext_body))
             conn.commit()
             
             flash("Message sent successfully.", 'success')
-            return redirect(url_for('admin.admin_messages'))
+            return redirect(url_for('admin.messages'))
         
         return render_template('admin/messages.html', messages=messages) 
 @admin_bp.route('/support', methods=['GET'])
@@ -1942,60 +1962,58 @@ def messages():
 def manage_support():
     """Display all support tickets with filtering and pagination."""
     try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            # Filters
-            status = request.args.get('status', '')
-            category = request.args.get('category', '')
-            search = request.args.get('search', '').strip()
-            page = request.args.get('page', 1, type=int)
-            per_page = 10
+        from utils.support import secure_support
+        
+        admin_id = session.get('admin_id')
+        if not admin_id:
+            flash("Admin session not found.", 'error')
+            return redirect(url_for('admin.login'))
+        
+        # Filters
+        status = request.args.get('status', '')
+        category = request.args.get('category', '')
+        search = request.args.get('search', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
 
-            # Build query
-            query = """
-                SELECT t.id, t.user_id, u.pusername, t.subject, t.category, t.priority, t.status, t.created_at, t.updated_at
-                FROM tickets t
-                JOIN users u ON t.user_id = u.id
-                WHERE 1=1
-            """
-            params = []
+        # Get all tickets using secure system
+        tickets = secure_support.get_user_tickets(admin_id, 'admin')
+        
+        # Apply filters
+        filtered_tickets = []
+        for ticket in tickets:
+            if status and ticket['status'] != status:
+                continue
+            if category and ticket['category'] != category:
+                continue
+            if search and (search.lower() not in ticket['subject'].lower() or 
+                          (ticket.get('description') and search.lower() not in ticket['description'].lower())):
+                continue
+            filtered_tickets.append(ticket)
+        
+        # Sort by updated_at
+        filtered_tickets.sort(key=lambda x: x['updated_at'], reverse=True)
+        
+        # Pagination
+        total = len(filtered_tickets)
+        total_pages = (total + per_page - 1) // per_page
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_tickets = filtered_tickets[start_idx:end_idx]
 
-            if status:
-                query += " AND t.status = ?"
-                params.append(status)
-            if category:
-                query += " AND t.category = ?"
-                params.append(category)
-            if search:
-                query += " AND (t.subject LIKE ? OR t.description LIKE ?)"
-                params.extend([f'%{search}%', f'%{search}%'])
+        # Get available categories and statuses
+        categories = list(set(ticket['category'] for ticket in tickets))
+        statuses = ['open', 'in-progress', 'closed']
 
-            # Count total for pagination
-            c.execute(f"SELECT COUNT(*) as total FROM ({query})", params)
-            total = c.fetchone()['total']
-            total_pages = (total + per_page - 1) // per_page
-
-            # Add pagination
-            query += " ORDER BY t.updated_at DESC LIMIT ? OFFSET ?"
-            params.extend([per_page, (page - 1) * per_page])
-
-            c.execute(query, params)
-            tickets = [dict(row) for row in c.fetchall()]
-
-            # Get available categories and statuses
-            c.execute("SELECT DISTINCT category FROM tickets")
-            categories = [row['category'] for row in c.fetchall()]
-            statuses = ['open', 'in-progress', 'closed']
-
-            return render_template('admin/support.html',
-                                 tickets=tickets,
-                                 categories=categories,
-                                 statuses=statuses,
-                                 page=page,
-                                 total_pages=total_pages,
-                                 status_filter=status,
-                                 category_filter=category,
-                                 search=search)
+        return render_template('admin/support.html',
+                             tickets=paginated_tickets,
+                             categories=categories,
+                             statuses=statuses,
+                             page=page,
+                             total_pages=total_pages,
+                             status_filter=status,
+                             category_filter=category,
+                             search=search)
     except Exception as e:
         logger.error(f"Error fetching support tickets: {str(e)}")
         flash("Error loading support tickets.", 'error')
@@ -2006,54 +2024,45 @@ def manage_support():
 def view_ticket(ticket_id):
     """View and respond to a specific support ticket."""
     try:
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("""
-                SELECT t.id, t.user_id, u.pusername, t.subject, t.description, t.category, t.priority, t.status, t.created_at, t.updated_at
-                FROM tickets t
-                JOIN users u ON t.user_id = u.id
-                WHERE t.id = ?
-            """, (ticket_id,))
-            ticket = c.fetchone()
-            if not ticket:
-                flash("Ticket not found.", 'error')
-                return redirect(url_for('admin.manage_support'))
+        from utils.support import secure_support
+        
+        admin_id = session.get('admin_id')
+        if not admin_id:
+            flash("Admin session not found.", 'error')
+            return redirect(url_for('admin.login'))
+        
+        # Get ticket with responses using secure system
+        ticket, responses = secure_support.get_ticket_with_responses(ticket_id, admin_id, 'admin')
+        
+        if not ticket:
+            flash("Ticket not found.", 'error')
+            return redirect(url_for('admin.manage_support'))
 
-            ticket = dict(ticket)
+        if request.method == 'POST':
+            action = request.form.get('action')
+            response_body = request.form.get('response_body', '').strip()
 
-            # Fetch ticket responses
-            c.execute("""
-                SELECT tr.id, tr.sender_id, u.pusername, tr.body, tr.created_at
-                FROM ticket_responses tr
-                JOIN users u ON tr.sender_id = u.id
-                WHERE tr.ticket_id = ?
-                ORDER BY tr.created_at
-            """, (ticket_id,))
-            responses = [dict(row) for row in c.fetchall()]
-
-            if request.method == 'POST':
-                action = request.form.get('action')
-                response_body = request.form.get('response_body', '').strip()
-
-                if action == 'respond' and response_body:
-                    c.execute("""
-                        INSERT INTO ticket_responses (ticket_id, sender_id, body, created_at)
-                        VALUES (?, ?, ?, ?)
-                    """, (ticket_id, session['user_id'], response_body, datetime.utcnow()))
-                    c.execute("""
-                        UPDATE tickets SET updated_at = ?, status = ?
-                        WHERE id = ?
-                    """, (datetime.utcnow(), 'in-progress', ticket_id))
-                    conn.commit()
-                    flash("Response added successfully.", 'success')
-                    logger.info(f"Admin responded to ticket #{ticket_id}")
+            if action == 'respond' and response_body:
+                # Add secure response
+                success = secure_support.add_secure_response(
+                    ticket_id, admin_id, response_body, 'admin'
+                )
+                
+                if success:
+                    flash("Secure response added successfully.", 'success')
+                    logger.info(f"Admin responded to secure ticket #{ticket_id}")
                     return redirect(url_for('admin.view_ticket', ticket_id=ticket_id))
+                else:
+                    flash("Failed to add response. Please try again.", 'error')
 
-                elif action == 'update_status':
-                    new_status = request.form.get('status')
-                    if new_status not in ['open', 'in-progress', 'closed']:
-                        flash("Invalid status.", 'error')
-                    else:
+            elif action == 'update_status':
+                new_status = request.form.get('status')
+                if new_status not in ['open', 'in-progress', 'closed']:
+                    flash("Invalid status.", 'error')
+                else:
+                    # Update ticket status
+                    with get_db_connection() as conn:
+                        c = conn.cursor()
                         c.execute("""
                             UPDATE tickets SET status = ?, updated_at = ?
                             WHERE id = ?
@@ -2063,13 +2072,13 @@ def view_ticket(ticket_id):
                         logger.info(f"Ticket #{ticket_id} status updated to {new_status}")
                         return redirect(url_for('admin.view_ticket', ticket_id=ticket_id))
 
-                else:
-                    flash("Response body is required to respond.", 'error')
+            else:
+                flash("Response body is required to respond.", 'error')
 
-            return render_template('admin/ticket.html',
-                                 ticket=ticket,
-                                 responses=responses,
-                                 statuses=['open', 'in-progress', 'closed'])
+        return render_template('admin/ticket.html',
+                             ticket=ticket,
+                             responses=responses,
+                             statuses=['open', 'in-progress', 'closed'])
     except Exception as e:
         logger.error(f"Error handling ticket #{ticket_id}: {str(e)}")
         flash("Error handling ticket.", 'error')
@@ -3821,7 +3830,7 @@ def wallet_audit_log():
 def admin_deposits():
     if 'user_id' not in session:
         flash('Please log in as an admin.', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
     with get_db_connection() as conn:
         c = conn.cursor()
         user_filter = request.args.get('user_id')

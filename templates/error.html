@@ -1,0 +1,41 @@
+{% extends 'base.html' %} {% block title %}Error - {{ settings['site_name'] }}{%
+endblock %} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-md mx-auto bg-card rounded-lg shadow-lg p-6">
+    <div class="text-center">
+      <div class="text-red-500 text-6xl mb-4">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-white mb-4">Error</h1>
+      <p class="text-gray-300 mb-6">
+        {{ message or "An unexpected error occurred." }}
+      </p>
+
+      {% if is_tor %}
+      <div class="bg-yellow-900 border border-yellow-700 rounded p-4 mb-6">
+        <p class="text-yellow-200 text-sm">
+          <i class="fas fa-info-circle mr-2"></i>
+          This error occurred while accessing the site through Tor. Some
+          features may be temporarily unavailable.
+        </p>
+      </div>
+      {% endif %}
+
+      <div class="space-y-3">
+        <a
+          href="{{ url_for('public.index') }}"
+          class="block w-full bg-sydney text-white py-2 px-4 rounded hover:bg-sydney2 transition-colors"
+        >
+          Return to Homepage
+        </a>
+        <a
+          href="javascript:history.back()"
+          class="block w-full bg-gray-700 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors"
+        >
+          Go Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

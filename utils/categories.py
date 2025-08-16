@@ -23,7 +23,6 @@ def get_categories_with_counts():
                 ORDER BY c.name
             """)
             categories = [dict(row) for row in c.fetchall()]
-            logger.info(f"Fetched categories: {categories}")
             
             if not categories:
                 logger.warning("No categories found in database.")
@@ -32,14 +31,12 @@ def get_categories_with_counts():
             # Initialize 'children' for all categories
             for cat in categories:
                 cat['children'] = []
-            logger.debug(f"Initialized children for categories: {len(categories)}")
             
             # Build hierarchical structure
             parent_cats = []
             cat_map = {cat['id']: cat for cat in categories}
             
             for cat in categories:
-                logger.debug(f"Processing category: {cat['name']} (ID: {cat['id']})")
                 if cat['parent_id'] is None:
                     parent_cats.append(cat)
                 else:
@@ -59,8 +56,6 @@ def get_categories_with_counts():
             
             for parent in parent_cats:
                 aggregate_product_counts(parent)
-            
-            logger.info(f"Parent categories with aggregated counts: {parent_cats}")
             return parent_cats
     except Exception as e:
         logger.error(f"Error fetching categories: {str(e)}", exc_info=True)

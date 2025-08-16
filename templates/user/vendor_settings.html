@@ -1,0 +1,133 @@
+{% extends 'user/user_base.html' %}
+{% block title %}Vendor Settings - {{ settings['site_name'] }}{% endblock %}
+{% block user_content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 2xl:w-auto">Vendor Settings</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white 2xl:text-left font-bold">
+    Configure your vendor profile, store details, security, and payout settings. Changes are saved automatically.
+  </h3>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 w-full mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <form method="POST" enctype="multipart/form-data" class="w-full mx-auto bg-card bg-opacity-10 rounded-md p-6 border border-sydney space-y-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <!-- Store Info -->
+    <div class="flex flex-col gap-4">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Store Information</h2>
+      <div>
+        <label class="font-bold text-white">Store Name</label>
+        <input type="text" name="store_name" value="{{ vendor['business_name'] }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" maxlength="50" required>
+      </div>
+      <div>
+        <label class="font-bold text-white">Store Description</label>
+        <textarea name="store_description" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" rows="4" maxlength="1000">{{ vendor['description'] }}</textarea>
+      </div>
+      <div>
+        <label class="font-bold text-white">Store Refund Policy</label>
+        <textarea name="refund_policy" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" rows="3" maxlength="1000">{{ vendor['refund_policy'] or '' }}</textarea>
+        <span class="text-xs text-gray-400">Describe your refund policy for buyers. Be clear and concise.</span>
+      </div>
+      <div>
+        <label class="font-bold text-white">Store Logo</label>
+        <input type="file" name="store_logo" class="rounded-md px-2 py-[4px] hover:border-sydney text-sydney w-full" accept="image/png,image/jpeg">
+        {% if vendor['logo'] %}
+          <img src="{{ url_for('static', filename='uploads/avatar/' ~ vendor['logo']) }}" alt="Store Logo" class="h-16 mt-2 rounded">
+        {% endif %}
+      </div>
+      <div>
+        <label class="font-bold text-white">Store Banner (Optional)</label>
+        <input type="file" name="store_banner" class="rounded-md px-2 py-[4px] hover:border-sydney text-sydney w-full" accept="image/png,image/jpeg">
+        {% if vendor['banner'] %}
+          <img src="{{ url_for('static', filename='uploads/avatar/' ~ vendor['banner']) }}" alt="Store Banner" class="h-16 mt-2 rounded">
+        {% endif %}
+      </div>
+    </div>
+    <!-- Security -->
+    <div class="flex flex-col gap-4 pt-6 border-t border-sydney">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Security</h2>
+      <div>
+        <label class="font-bold text-white">PGP Public Key</label>
+        <textarea name="pgp_public_key" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" rows="6">{{ vendor['pgp_public_key'] or '' }}</textarea>
+        <span class="text-xs text-gray-400">Used for encrypted communication and verification.</span>
+      </div>
+    </div>
+    <!-- Bond/Verification Status -->
+    <div class="flex flex-col gap-4 pt-6 border-t border-sydney">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Bond & Verification</h2>
+      <div>
+        <label class="font-bold text-white">Bond Status</label>
+        <input type="text" value="{{ vendor['bond_status'] }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] text-sydney w-full bg-gray-800" readonly>
+      </div>
+      <div>
+        <label class="font-bold text-white">Verification Status</label>
+        <input type="text" value="{{ vendor['verification_status'] }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] text-sydney w-full bg-gray-800" readonly>
+      </div>
+    </div>
+    <!-- Shipping Options -->
+    <div class="flex flex-col gap-4 pt-6 border-t border-sydney">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Default Shipping Options</h2>
+      <div>
+        <label class="font-bold text-white">Default Shipping Methods</label>
+        <input type="text" name="shipping_methods" value="{{ vendor['shipping_methods'] }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" maxlength="200" placeholder="e.g., Standard, Express, Overnight">
+      </div>
+      <div>
+        <label class="font-bold text-white">Vacation Mode</label>
+        <select name="vacation_mode" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full">
+          <option value="off" {% if vendor['vacation_mode'] == 'off' %}selected{% endif %} class="text-gray-100 bg-card">Off</option>
+          <option value="on" {% if vendor['vacation_mode'] == 'on' %}selected{% endif %} class="text-gray-100 bg-card">On</option>
+        </select>
+        <span class="text-xs text-gray-400">Enable vacation mode to temporarily hide your store and listings.</span>
+      </div>
+    </div>
+    <!-- Notification Preferences -->
+    <div class="flex flex-col gap-4 pt-6 border-t border-sydney">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Notification Preferences</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center">
+          <input type="checkbox" name="notify_orders" id="notify_orders" class="mr-2" {% if vendor['notify_orders'] %}checked{% endif %}>
+          <label for="notify_orders" class="font-bold text-white">Order Updates</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" name="notify_messages" id="notify_messages" class="mr-2" {% if vendor['notify_messages'] %}checked{% endif %}>
+          <label for="notify_messages" class="font-bold text-white">Messages</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" name="notify_disputes" id="notify_disputes" class="mr-2" {% if vendor['notify_disputes'] %}checked{% endif %}>
+          <label for="notify_disputes" class="font-bold text-white">Disputes</label>
+        </div>
+      </div>
+      <div class="text-xs text-gray-400">
+        <p>• Order Updates: Get notified about new and updated orders.</p>
+        <p>• Messages: Receive alerts for new messages from buyers.</p>
+        <p>• Disputes: Get notified about dispute activity.</p>
+      </div>
+    </div>
+    <!-- Withdrawal Addresses -->
+    <div class="flex flex-col gap-4 pt-6 border-t border-sydney">
+      <h2 class="text-white text-lg font-bold border-b border-sydney pb-2">Withdrawal Addresses</h2>
+      <div>
+        <label class="font-bold text-white">BTC Withdrawal Address</label>
+        <input type="text" name="btc_address" value="{{ vendor['btc_address'] or '' }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full">
+        <span class="text-xs text-gray-400">Your Bitcoin address for withdrawals. Double-check—errors are irreversible.</span>
+      </div>
+      <div>
+        <label class="font-bold text-white">XMR Withdrawal Address</label>
+        <input type="text" name="xmr_address" value="{{ vendor['xmr_address'] or '' }}" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full">
+        <span class="text-xs text-gray-400">Your Monero address for withdrawals. Double-check—errors are irreversible.</span>
+      </div>
+    </div>
+    <!-- Save Button -->
+    <div class="w-full mt-8">
+      <button type="submit" class="bg-yellow-400 text-gray-100 font-semibold py-2 px-6 rounded-md hover:bg-yellow-500 transition duration-200">Save All Changes</button>
+    </div>
+  </form>
+</div>
+{% endblock %} 

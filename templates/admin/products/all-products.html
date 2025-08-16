@@ -92,14 +92,16 @@
           </td>
           <td class="py-2 px-4 space-y-1">
             <!-- Change Status -->
-            <form method="POST" action="{{ url_for('admin.change_product_status', product_id=product.id) }}">
+            {% for s in ['pending', 'active', 'rejected', 'disabled'] %}
+            <form method="POST" action="{{ url_for('admin.change_product_status', product_id=product.id) }}" class="mb-1">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <select name="status" class="w-full border rounded text-xs" onchange="this.form.submit()">
-                {% for s in ['pending', 'active', 'rejected', 'disabled'] %}
-                <option value="{{ s }}" {% if product.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
-                {% endfor %}
-              </select>
+              <input type="hidden" name="status" value="{{ s }}">
+              <button type="submit"
+                class="w-full text-xs px-2 py-1 rounded {{ 'bg-green-500 text-white' if product.status == s else 'bg-gray-300 text-gray-700 hover:bg-gray-400' }}">
+                {{ s|capitalize }}
+              </button>
             </form>
+            {% endfor %}
 
             <!-- Toggle Featured -->
             <form method="POST" action="{{ url_for('admin.toggle_featured', product_id=product.id) }}">

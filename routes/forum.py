@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from utils.database import get_db_connection
 #from utils.security import validate_csrf_token
+from flask_wtf.csrf import generate_csrf
 import sqlite3
 import logging
 
@@ -8,6 +9,10 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 forum_bp = Blueprint('forum', __name__)
+
+@forum_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
 
 def require_login(func):
     def wrapper(*args, **kwargs):
@@ -69,7 +74,6 @@ def category(category_id):
 @require_login
 def thread(thread_id):
     if request.method == 'POST':
-        validate_csrf_token()
         content = request.form.get('content', '').strip()
         if not content:
             flash("Post content cannot be empty.", 'error')
@@ -115,7 +119,6 @@ def thread(thread_id):
 @require_login
 def new_category():
     if request.method == 'POST':
-        validate_csrf_token()
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
         
@@ -144,7 +147,6 @@ def new_thread(category_id):
             return redirect(url_for('forum.index'))
     
     if request.method == 'POST':
-        validate_csrf_token()
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
         

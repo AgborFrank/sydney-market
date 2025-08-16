@@ -1,0 +1,24 @@
+
+# Rate Limit Bypass Instructions
+# 
+# The issue is that the DDoS protection system is blocking your requests.
+# Here are several ways to fix this:
+
+# Method 1: Restart Flask with rate limiting disabled
+# Add this to your .env file:
+DDOS_ENABLED=false
+RATE_LIMIT_ENABLED=false
+
+# Method 2: Increase rate limits in .env file:
+DDOS_MAX_REQUESTS_PER_MINUTE=10000
+DDOS_MAX_REQUESTS_PER_HOUR=50000
+DDOS_MAX_REQUESTS_PER_DAY=100000
+DDOS_BURST_LIMIT=1000
+
+# Method 3: Add your IP to whitelist in .env file:
+DDOS_WHITELIST_IPS=127.0.0.1,::1,YOUR_IP_ADDRESS
+
+# Method 4: Clear Redis manually:
+# redis-cli FLUSHALL
+
+# After making changes, restart your Flask application.

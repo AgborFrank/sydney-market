@@ -180,6 +180,17 @@
                       >Feedback</a
                     >
                   </div>
+                   {% if session['role'] == 'vendor' %}
+                  <div
+                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                  >
+                    <a
+                      class="px-2 py-[3px] group-hover:text-white rounded-md"
+                      href="{{ url_for('vendor.vendor_settings') }}"
+                      >Vendor Settings</a
+                    >
+                  </div>
+                  {% endif %}
                   {#
                   <div
                     class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"

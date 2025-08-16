@@ -1,63 +1,124 @@
 {% extends 'user/user_base.html' %} {% block title %}Dashboard - {{
-    settings['site_name'] }}{% endblock %} {% block user_content %}
-    <div class="container gap-2 px-6 py-6">
-       
-     
-          <div class="w-full flex flex-col gap-1">
-             <p class="disablejs">
-                We highly recommend that you disable Javascript when viewing the
-                marketplace for better security.
-             </p>
-             <span>
-                <style>
-                   .disablejs {
-                   display: none !important;
-                   }
-                </style>
-             </span>
-          </div>
-      <!-- Recent Orders -->
-      <div class="mb-8 w-full">
-         <h2 class="text-xl font-bold text-white mb-4">Recent Orders</h2>
-         {% if orders %}
-             <div class="bg-gray-800 p-4 rounded-md text-white">
-                 {% for order in orders %}
-                     <div class="flex justify-between py-2 border-b border-gray-700">
-                         <div>
-                             <p><strong>{{ order.title }}</strong></p>
-                             <p>Vendor: {{ order.vendor_username }}</p>
-                         </div>
-                         <p>{{ order.created_at }}</p>
-                     </div>
-                 {% endfor %}
-             </div>
-         {% else %}
-             <p class="text-white">No recent orders.</p>
-         {% endif %}
-     </div>
-     
-     <!-- Recent Reports -->
-     <div class="w-full">
-         <h2 class="text-xl font-bold text-white mb-4">Recent Reports</h2>
-         {% if reports %}
-             <div class="bg-gray-800 p-4 rounded-md text-white">
-                 {% for report in reports %}
-                     <div class="flex justify-between py-2 border-b border-gray-700">
-                         <div>
-                             <p><strong>Report ID: {{ report.id }}</strong></p>
-                             {% if report.vendor_username %}
-                                 <p>Vendor: {{ report.vendor_username }}</p>
-                             {% else %}
-                                 <p>No vendor specified</p>
-                             {% endif %}
-                         </div>
-                         <p>{{ report.created_at }}</p>
-                     </div>
-                 {% endfor %}
-             </div>
-         {% else %}
-             <p class="text-white">No recent reports.</p>
-         {% endif %}
-     </div>
+settings['site_name'] }}{% endblock %} {% block user_content %}
+<div class="container gap-2 px-6 py-6">
+  {% if session['role'] == 'vendor' and not
+  settings['vendor_settings_completed'] %}
+  <div class="w-full flex flex-col gap-1 bg-blue-600 px-4 py-2 rounded-md mb-6">
+    <p class="text-white">
+      Congratulations! You are now a vendor. Please check your
+      <a
+        href="{{ url_for('vendor.vendor_settings') }}"
+        class="text-blue-900 font-bold"
+        >Vendor Settings</a
+      >
+      to complete your profile and get started with selling on {{
+      settings['site_name'] }}.
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="w-full flex flex-col gap-1">
+    <p class="disablejs">
+      We highly recommend that you disable Javascript when viewing the
+      marketplace for better security.
+    </p>
+    <span>
+      <style>
+        .disablejs {
+          display: none !important;
+        }
+      </style>
+    </span>
+  </div>
+  <!-- Recent Orders -->
+  <div class="mb-8 w-full">
+    <h2 class="text-xl font-bold text-white mb-4">Recent Orders</h2>
+    {% if orders %}
+    <div class="bg-gray-800 p-4 rounded-md text-white">
+      {% for order in orders %}
+      <div class="flex justify-between py-2 border-b border-gray-700">
+        <div>
+          <p><strong>{{ order.title }}</strong></p>
+          <p>Vendor: {{ order.vendor_username }}</p>
+        </div>
+        <p>{{ order.created_at }}</p>
+      </div>
+      {% endfor %}
     </div>
-    {% endblock %}
+    {% else %}
+    <p class="text-white">No recent orders.</p>
+    {% endif %}
+  </div>
+
+  <!-- Recent Reports -->
+  <div class="w-full">
+    <h2 class="text-xl font-bold text-white mb-4">Recent Reports</h2>
+    {% if reports %}
+    <div class="bg-gray-800 p-4 rounded-md text-white">
+      {% for report in reports %}
+      <div class="flex justify-between py-2 border-b border-gray-700">
+        <div>
+          <p><strong>Report ID: {{ report.id }}</strong></p>
+          {% if report.vendor_username %}
+          <p>Vendor: {{ report.vendor_username }}</p>
+          {% else %}
+          <p>No vendor specified</p>
+          {% endif %}
+        </div>
+        <p>{{ report.created_at }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-white">No recent reports.</p>
+    {% endif %}
+  </div>
+
+  <!-- Purchased Products Preview -->
+  {% if purchased_products %}
+  <div class="w-full mt-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-white">Recent Purchases</h2>
+      <a
+        href="{{ url_for('user.purchased_products') }}"
+        class="text-blue-400 hover:text-blue-300 text-sm"
+      >
+        View All Purchased Products →
+      </a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for product in purchased_products[:3] %}
+      <div class="bg-gray-800 p-4 rounded-md text-white">
+        <div class="flex items-center space-x-3">
+          {% if product.featured_image %}
+          <img
+            src="{{ url_for('static', filename=product.featured_image) }}"
+            alt="{{ product.title }}"
+            class="w-16 h-16 object-cover rounded"
+          />
+          {% else %}
+          <div
+            class="w-16 h-16 bg-gray-600 rounded flex items-center justify-center"
+          >
+            <span class="text-gray-400 text-xs">No Image</span>
+          </div>
+          {% endif %}
+          <div class="flex-1">
+            <h3 class="font-semibold text-sm truncate">{{ product.title }}</h3>
+            <p class="text-gray-400 text-xs">{{ product.vendor_username }}</p>
+            <p class="text-green-400 text-sm font-bold">
+              ${{ "%.2f"|format(product.amount_usd) }}
+            </p>
+            <p class="text-gray-500 text-xs">
+              {{ product.purchase_date[:10] if product.purchase_date else 'N/A'
+              }}
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

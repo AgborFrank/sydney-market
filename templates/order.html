@@ -6,6 +6,15 @@ block content %}
     Order: {{ product['title'] }}
   </h1>
   <div class="bg-white p-6 rounded-lg shadow-md">
+    {% if not btc_available and not monero_available %}
+    <div
+      class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4"
+    >
+      <strong>Payment Services Unavailable:</strong> Cryptocurrency payment
+      services are currently unavailable. Please try again later or contact
+      support.
+    </div>
+    {% endif %}
     <form method="POST">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div class="mb-4">
@@ -16,7 +25,7 @@ block content %}
           type="number"
           name="quantity"
           id="quantity"
-          value="1"
+          value="{{ pre_filled_quantity|default(1) }}"
           min="1"
           max="{{ product['stock'] }}"
           class="w-24 px-2 py-1 border rounded"
@@ -32,17 +41,31 @@ block content %}
           id="currency"
           class="w-32 px-2 py-1 border rounded"
         >
-          <option value="BTC">BTC</option>
-          {% if monero_available %}
-          <option value="XMR">XMR</option>
+          {% if btc_available %}
+          <option value="BTC" {% if pre_filled_currency|default('BTC') == 'BTC' %}selected{% endif %}>BTC</option>
+          {% endif %} {% if monero_available %}
+          <option value="XMR" {% if pre_filled_currency|default('BTC') == 'XMR' %}selected{% endif %}>XMR</option>
+          {% endif %} {% if not btc_available and not monero_available %}
+          <option value="" disabled>No payment methods available</option>
           {% endif %}
         </select>
       </div>
       <button
         type="submit"
-        class="bg-green-700 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-800 transition duration-200"
+        class="bg-green-700 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-800 transition duration-200 {% if not btc_available and not monero_available %}opacity-50 cursor-not-allowed{% endif %}"
+        {%
+        if
+        not
+        btc_available
+        and
+        not
+        monero_available
+        %}disabled{%
+        endif
+        %}
       >
-        Proceed to Payment
+        {% if btc_available or monero_available %} Proceed to Payment {% else %}
+        Payment Unavailable {% endif %}
       </button>
     </form>
   </div>

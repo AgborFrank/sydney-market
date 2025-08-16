@@ -13,9 +13,15 @@ from pytz import timezone
 import json
 from utils.monero import generate_monero_address
 from utils.database import send_notification_with_email
+from flask_wtf.csrf import generate_csrf
+from config import Config
 
 public_bp = Blueprint('public', __name__, url_prefix='')
 logger = logging.getLogger(__name__)
+
+@public_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
 
 def get_product_rating(product_id, cursor):
     """Fetch average rating and review count for a product."""
@@ -67,9 +73,10 @@ def product_detail(product_id):
 
     # Fetch product details
     product = db.execute(
-        "SELECT p.*, u.pusername as vendor_username "
+        "SELECT p.*, u.pusername as vendor_username, c.name as category_name "
         "FROM products p "
         "LEFT JOIN users u ON p.vendor_id = u.id "
+        "LEFT JOIN categories c ON p.category_id = c.id "
         "WHERE p.id = ?",
         (product_id,)
     ).fetchone()
@@ -83,8 +90,8 @@ def product_detail(product_id):
     rates = get_exchange_rates() 
     price_usd = product_dict.get('price_usd', 0.0)
 
-    btc_usd_rate = rates.get('bitcoin', {}).get('usd', 0)
-    xmr_usd_rate = rates.get('monero', {}).get('usd', 0)
+    btc_usd_rate = rates.get('BTC/USD', {}).get('rate', 0)
+    xmr_usd_rate = rates.get('XMR/USD', {}).get('rate', 0)
 
     product_dict['dynamic_price_btc'] = (price_usd / btc_usd_rate) if btc_usd_rate > 0 else 0
     product_dict['dynamic_price_xmr'] = (price_usd / xmr_usd_rate) if xmr_usd_rate > 0 else 0
@@ -121,7 +128,7 @@ def product_detail(product_id):
 
     # Fetch vendor details
     vendor = db.execute(
-        "SELECT id, pusername as username, last_login, level, pgp_key, pgp_public_key, avatar "
+        "SELECT id, pusername as username, last_login, level, avatar "
         "FROM users WHERE id = ?",
         (product_dict['vendor_id'],)
     ).fetchone()
@@ -132,6 +139,10 @@ def product_detail(product_id):
 
     # Convert vendor to dict for easier manipulation
     vendor_dict = dict(vendor)
+
+    # Fetch vendor PGP key from vendor_settings
+    vendor_settings = db.execute("SELECT pgp_key FROM vendor_settings WHERE user_id = ?", (product_dict['vendor_id'],)).fetchone()
+    vendor_dict['pgp_public_key'] = vendor_settings['pgp_key'] if vendor_settings and vendor_settings['pgp_key'] else None
 
     # Avatar URL logic
     if vendor_dict.get('avatar'):
@@ -269,8 +280,9 @@ def product_detail(product_id):
 
     # Fetch similar products by the same vendor (excluding this product)
     similar_products = db.execute(
-        "SELECT p.*, u.pusername as vendor_username FROM products p "
+        "SELECT p.*, u.pusername as vendor_username, c.name as category_name FROM products p "
         "LEFT JOIN users u ON p.vendor_id = u.id "
+        "LEFT JOIN categories c ON p.category_id = c.id "
         "WHERE p.vendor_id = ? AND p.id != ? AND p.status = 'active' "
         "ORDER BY p.created_at DESC LIMIT 6",
         (product_dict['vendor_id'], product_id)
@@ -300,7 +312,7 @@ def vendor_profile(vendor_id):
 
     # Fetch vendor details
     vendor = db.execute(
-        "SELECT id, pusername as username, last_login, level, pgp_key, pgp_public_key, avatar "
+        "SELECT id, pusername as username, last_login, level, avatar "
         "FROM users WHERE id = ?",
         (vendor_id,)
     ).fetchone()
@@ -311,6 +323,10 @@ def vendor_profile(vendor_id):
 
     # Convert vendor to dict for easier manipulation
     vendor_dict = dict(vendor)
+
+    # Fetch vendor PGP key from vendor_settings
+    vendor_settings = db.execute("SELECT pgp_key FROM vendor_settings WHERE user_id = ?", (vendor_id,)).fetchone()
+    vendor_dict['pgp_public_key'] = vendor_settings['pgp_key'] if vendor_settings and vendor_settings['pgp_key'] else None
 
     # Avatar URL logic
     if vendor_dict.get('avatar'):
@@ -386,8 +402,10 @@ def vendor_profile(vendor_id):
     products = db.execute(
         "SELECT p.*, "
         "(SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as reviews_count, "
-        "(SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating "
+        "(SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id) as avg_rating, "
+        "c.name as category_name "
         "FROM products p "
+        "LEFT JOIN categories c ON p.category_id = c.id "
         "WHERE p.vendor_id = ? AND p.status = 'active' "
         "ORDER BY p.created_at DESC",
         (vendor_id,)
@@ -546,7 +564,7 @@ def category_products(category_id):
         return redirect(url_for('public.index'))
 
     return render_template('category.html', category=category, products=products, 
-                         top_level_categories=top_level_categories, sponsored_products=[])
+                         top_level_categories=top_level_categories, sponsored_products=[], settings=get_settings())
 
 @public_bp.route('/advertise')
 def advertise():
@@ -576,83 +594,97 @@ def search_products():
         flash('Please log in to access the marketplace.', 'error')
         return redirect(url_for('user.login'))
     
-    query = request.args.get('q', '').strip()
-    category_id = request.args.get('category_id', type=int)
-    min_price = request.args.get('min_price', type=float)
-    max_price = request.args.get('max_price', type=float)
-    min_rating = request.args.get('min_rating', type=float)
-    sort_by = request.args.get('sort_by', 'relevance')
+    try:
+        query = request.args.get('q', '').strip()
+        # Handle both category_id and fcats[] parameters
+        category_id = request.args.get('category_id', type=int)
+        if category_id is None:
+            fcats = request.args.getlist('fcats[]')
+            if fcats:
+                try:
+                    category_id = int(fcats[0])  # Use the first category if multiple are selected
+                except (ValueError, IndexError):
+                    category_id = None
+        
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        min_rating = request.args.get('min_rating', type=float)
+        sort_by = request.args.get('sort_by', 'relevance')
     
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        sql = """
-            SELECT p.*, AVG(r.rating) as avg_rating,
-                   vl.level as vendor_level,
-                   vl.positive_feedback_percentage as vendor_positive_feedback_percentage,
-                   vl.sales_count as vendor_sales_count,
-                   c.name as category_name,
-                   u.pusername as vendor_username
-            FROM products p
-            LEFT JOIN reviews r ON p.id = r.product_id
-            LEFT JOIN vendor_levels vl ON p.vendor_id = vl.vendor_id
-            LEFT JOIN categories c ON p.category_id = c.id
-            LEFT JOIN users u ON p.vendor_id = u.id
-            WHERE p.stock > 0
-        """
-        params = []
-        
-        if query:
-            sql += " AND (p.title LIKE ? OR p.description LIKE ?)"
-            params.extend([f"%{query}%", f"%{query}%"])
-        
-        if category_id:
-            sql += " AND p.category_id = ?"
-            params.append(category_id)
-        
-        if min_price is not None:
-            sql += " AND p.price_usd >= ?"
-            params.append(min_price)
-        
-        if max_price is not None:
-            sql += " AND p.price_usd <= ?"
-            params.append(max_price)
-        
-        if min_rating is not None:
-            sql += " AND (AVG(r.rating) >= ? OR AVG(r.rating) IS NULL)"
-            params.append(min_rating)
-        
-        sql += " GROUP BY p.id"
-        
-        if sort_by == 'price_asc':
-            sql += " ORDER BY p.price_usd ASC"
-        elif sort_by == 'price_desc':
-            sql += " ORDER BY p.price_usd DESC"
-        elif sort_by == 'rating_desc':
-            sql += " ORDER BY avg_rating DESC NULLS LAST"
-        else:
-            sql += " ORDER BY p.created_at DESC"
-        
-        c.execute(sql, params)
-        products = [dict(row) for row in c.fetchall()]
-        
-        # Add favorite status for each product
-        user_id = session['user_id']
-        for product in products:
-            # Check if product is favorited
-            c.execute("SELECT id FROM favorites WHERE user_id = ? AND product_id = ?", (user_id, product['id']))
-            product['is_favorited'] = c.fetchone() is not None
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            sql = """
+                SELECT p.*, AVG(r.rating) as avg_rating,
+                       vl.level as vendor_level,
+                       vl.positive_feedback_percentage as vendor_positive_feedback_percentage,
+                       vl.sales_count as vendor_sales_count,
+                       c.name as category_name,
+                       u.pusername as vendor_username
+                FROM products p
+                LEFT JOIN reviews r ON p.id = r.product_id
+                LEFT JOIN vendor_levels vl ON p.vendor_id = vl.vendor_id
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN users u ON p.vendor_id = u.id
+                WHERE p.stock > 0
+            """
+            params = []
             
-            # Ensure price_usd is not None
-            if product.get('price_usd') is None:
-                product['price_usd'] = 0.0
-    
-    rates_flat = get_exchange_rates()
-    # Convert to nested dict for template compatibility
-    rates = {
-        'bitcoin': {'usd': rates_flat.get('BTC/USD', {}).get('rate', 0)},
-        'monero': {'usd': rates_flat.get('XMR/USD', {}).get('rate', 0)}
-    }
-    return render_template('search_results.html', products=products, query=query, filters=request.args, rates=rates)
+            if query:
+                sql += " AND (p.title LIKE ? OR p.description LIKE ?)"
+                params.extend([f"%{query}%", f"%{query}%"])
+            
+            if category_id:
+                sql += " AND p.category_id = ?"
+                params.append(category_id)
+            
+            if min_price is not None:
+                sql += " AND p.price_usd >= ?"
+                params.append(min_price)
+            
+            if max_price is not None:
+                sql += " AND p.price_usd <= ?"
+                params.append(max_price)
+            
+            if min_rating is not None:
+                sql += " AND (AVG(r.rating) >= ? OR AVG(r.rating) IS NULL)"
+                params.append(min_rating)
+            
+            sql += " GROUP BY p.id"
+            
+            if sort_by == 'price_asc':
+                sql += " ORDER BY p.price_usd ASC"
+            elif sort_by == 'price_desc':
+                sql += " ORDER BY p.price_usd DESC"
+            elif sort_by == 'rating_desc':
+                sql += " ORDER BY avg_rating DESC NULLS LAST"
+            else:
+                sql += " ORDER BY p.created_at DESC"
+            
+            c.execute(sql, params)
+            products = [dict(row) for row in c.fetchall()]
+            
+            # Add favorite status for each product
+            user_id = session['user_id']
+            for product in products:
+                # Check if product is favorited
+                c.execute("SELECT id FROM favorites WHERE user_id = ? AND product_id = ?", (user_id, product['id']))
+                product['is_favorited'] = c.fetchone() is not None
+                
+                # Ensure price_usd is not None
+                if product.get('price_usd') is None:
+                    product['price_usd'] = 0.0
+        
+        rates_flat = get_exchange_rates()
+        # Convert to nested dict for template compatibility
+        rates = {
+            'bitcoin': {'usd': rates_flat.get('BTC/USD', {}).get('rate', 0)},
+            'monero': {'usd': rates_flat.get('XMR/USD', {}).get('rate', 0)}
+        }
+        return render_template('search_results.html', products=products, query=query, filters=request.args, rates=rates)
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}")
+        flash("An error occurred while searching. Please try again.", 'error')
+        return render_template('search_results.html', products=[], query=query, filters=request.args, rates={})
 
 @public_bp.route('/privacy-policy')
 def privacy_policy():
@@ -681,9 +713,11 @@ def how_to_pay():
 def place_order(product_id):
     if 'user_id' not in session:
         flash("Please log in to place an order.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
+    
     from utils.bitcoin import generate_btc_address
     from utils.monero import generate_monero_address
+    
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
@@ -698,55 +732,187 @@ def place_order(product_id):
         if session['user_id'] == product['vendor_id']:
             flash("Vendors cannot place orders for their own products.", 'error')
             return redirect(url_for('public.product_detail', product_id=product_id))
+        
+        # Allow vendors to order from other vendors (this is normal marketplace behavior)
+        # The restriction above only prevents self-ordering
+        
+        # Debug logging
+        logger.info(f"User {session['user_id']} attempting to order product {product_id} from vendor {product['vendor_id']}")
+        logger.info(f"User role: {session.get('role', 'unknown')}")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request args: {dict(request.args)}")
+        logger.info(f"Request form: {dict(request.form)}")
 
-        # Check Monero health
-        monero_address = generate_monero_address(session['user_id'])
-        monero_available = monero_address is not None
+        # Check cryptocurrency availability
+        btc_available = True
+        monero_available = True
+        
+        try:
+            # Test BTC address generation
+            test_btc_address = generate_btc_address(session['user_id'])
+            btc_available = test_btc_address is not None
+        except Exception as e:
+            logger.warning(f"BTC address generation failed: {str(e)}")
+            btc_available = False
+        
+        try:
+            # Test Monero address generation
+            test_monero_address = generate_monero_address(session['user_id'])
+            monero_available = test_monero_address is not None
+        except Exception as e:
+            logger.warning(f"Monero address generation failed: {str(e)}")
+            monero_available = False
 
         if request.method == 'POST':
             quantity = int(request.form.get('quantity', 1))
             currency = request.form.get('currency', 'BTC')
+            
             if quantity < 1 or quantity > product['stock']:
                 flash("Invalid quantity.", 'error')
                 return redirect(url_for('public.product_detail', product_id=product_id))
+            
+            # Validate currency availability
+            if currency == 'BTC' and not btc_available:
+                flash("Bitcoin payments are currently unavailable. Please try again later or contact support.", 'error')
+                return redirect(url_for('public.product_detail', product_id=product_id))
+            elif currency == 'XMR' and not monero_available:
+                flash("Monero payments are currently unavailable. Please try again later or contact support.", 'error')
+                return redirect(url_for('public.product_detail', product_id=product_id))
+            
             # Calculate price
             settings = get_settings()
-            btc_escrow_wallet = settings.get('btc_escrow_wallet', '')
-            xmr_escrow_wallet = settings.get('xmr_escrow_wallet', '')
             escrow_fee_percent = float(settings.get('escrow_fee_percent', 2.5))
             price_usd = product['price_usd'] * quantity
-            rates = get_exchange_rates()
-            btc_usd_rate = rates.get('bitcoin', {}).get('usd', 0)
-            xmr_usd_rate = rates.get('monero', {}).get('usd', 0)
-            amount_btc = price_usd / btc_usd_rate if btc_usd_rate > 0 else 0
-            amount_xmr = price_usd / xmr_usd_rate if xmr_usd_rate > 0 else 0
-            # Generate payment address
-            if currency == 'BTC':
-                payment_address = generate_btc_address(session['user_id'])
-            elif currency == 'XMR' and monero_available:
-                payment_address = monero_address
-            else:
-                flash("Selected currency is not available.", 'error')
+            logger.info(f"Price calculation: product_price={product['price_usd']}, quantity={quantity}, total_price_usd={price_usd}")
+            
+            # Get exchange rates
+            try:
+                rates = get_exchange_rates()
+                logger.info(f"Exchange rates: {rates}")
+                if not rates:
+                    logger.error("No exchange rates returned")
+                    flash("Unable to fetch exchange rates. Please try again later.", 'error')
+                    return redirect(url_for('public.product_detail', product_id=product_id))
+                
+                btc_usd_rate = rates.get('BTC/USD', {}).get('rate', 0)
+                xmr_usd_rate = rates.get('XMR/USD', {}).get('rate', 0)
+                logger.info(f"Rates: BTC={btc_usd_rate}, XMR={xmr_usd_rate}")
+                
+                if btc_usd_rate <= 0 or xmr_usd_rate <= 0:
+                    logger.error(f"Invalid exchange rates: BTC={btc_usd_rate}, XMR={xmr_usd_rate}")
+                    flash("Exchange rates are currently unavailable. Please try again later.", 'error')
+                    return redirect(url_for('public.product_detail', product_id=product_id))
+                
+                amount_btc = price_usd / btc_usd_rate
+                amount_xmr = price_usd / xmr_usd_rate
+                logger.info(f"Calculated amounts: BTC={amount_btc}, XMR={amount_xmr}")
+            except Exception as e:
+                logger.error(f"Error fetching exchange rates: {str(e)}")
+                logger.error(f"Exception type: {type(e).__name__}")
+                flash("Unable to calculate cryptocurrency amounts. Please try again later.", 'error')
                 return redirect(url_for('public.product_detail', product_id=product_id))
-            # Create order and escrow records (simplified, add more fields as needed)
-            with get_db_connection() as conn:
-                c = conn.cursor()
-                c.execute("""
-                    INSERT INTO orders (user_id, product_id, vendor_id, amount_usd, status, escrow_status, crypto_currency, item_count, created_at)
-                    VALUES (?, ?, ?, ?, 'pending', 'pending', ?, ?, datetime('now'))
-                """, (session['user_id'], product_id, product['vendor_id'], price_usd, currency, quantity))
-                order_id = c.lastrowid
-                c.execute("""
-                    INSERT INTO escrow (order_id, status, amount_btc, amount_xmr, multisig_address, created_at)
-                    VALUES (?, 'pending', ?, ?, ?, datetime('now'))
-                """, (order_id, amount_btc, amount_xmr, payment_address))
-                conn.commit()
-            return redirect(url_for('public.order_payment', order_id=order_id))
-        # GET: Show order form
-        return render_template('order.html', product=product, monero_available=monero_available)
+            
+            # Generate payment address
+            payment_address = None
+            try:
+                logger.info(f"Generating {currency} address for user {session['user_id']}")
+                if currency == 'BTC':
+                    payment_address = generate_btc_address(session['user_id'])
+                    logger.info(f"Generated BTC address: {payment_address}")
+                elif currency == 'XMR':
+                    payment_address = generate_monero_address(session['user_id'])
+                    logger.info(f"Generated XMR address: {payment_address}")
+                
+                if not payment_address:
+                    logger.error(f"Failed to generate {currency} address for user {session['user_id']}")
+                    flash(f"Unable to generate {currency} payment address. Please try again later.", 'error')
+                    return redirect(url_for('public.product_detail', product_id=product_id))
+            except Exception as e:
+                logger.error(f"Error generating {currency} address: {str(e)}")
+                logger.error(f"Exception type: {type(e).__name__}")
+                flash(f"Unable to generate {currency} payment address. Please try again later.", 'error')
+                return redirect(url_for('public.product_detail', product_id=product_id))
+            
+            # Create order and escrow records
+            try:
+                logger.info(f"Creating order for user {session['user_id']}, product {product_id}, vendor {product['vendor_id']}")
+                logger.info(f"Order details: quantity={quantity}, currency={currency}, price_usd={price_usd}")
+                logger.info(f"Amounts: BTC={amount_btc}, XMR={amount_xmr}")
+                
+                with get_db_connection() as conn:
+                    c = conn.cursor()
+                    # For orders table, we store the amount in the selected currency
+                    # If BTC, store in amount_btc, if XMR, we'll store 0 in amount_btc and the XMR amount in escrow table
+                    order_amount_btc = amount_btc if currency == 'BTC' else 0
+                    
+                    c.execute("""
+                        INSERT INTO orders (user_id, product_id, vendor_id, amount_usd, amount_btc, status, escrow_status, crypto_currency, item_count, created_at)
+                        VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?, ?, datetime('now'))
+                    """, (session['user_id'], product_id, product['vendor_id'], price_usd, order_amount_btc, currency, quantity))
+                    order_id = c.lastrowid
+                    
+                    # Generate addresses for escrow - per-order payment destination
+                    buyer_address = payment_address
+                    
+                    # For vendor address, try to generate one, but fall back to None (no admin direct payments)
+                    try:
+                        vendor_address = generate_btc_address(product['vendor_id']) if currency == 'BTC' else generate_monero_address(product['vendor_id'])
+                        logger.info(f"Generated vendor {currency} address: {vendor_address}")
+                    except Exception as e:
+                        logger.warning(f"Failed to generate vendor {currency} address: {str(e)}")
+                        vendor_address = None
+                    
+                    # Create the actual escrow deposit address for this order
+                    escrow_address = None
+                    multisig_or_deposit_address = None
+                    if currency == 'BTC':
+                        from utils.bitcoin import generate_btc_escrow_address
+                        multisig_or_deposit_address = generate_btc_escrow_address(order_id)
+                        escrow_address = multisig_or_deposit_address
+                    else:
+                        # For XMR, use buyer payment subaddress as deposit address (RPC wallet will segregate funds)
+                        multisig_or_deposit_address = buyer_address
+                        escrow_address = buyer_address
+                    
+                    c.execute("""
+                        INSERT INTO escrow (order_id, multisig_address, buyer_address, vendor_address, escrow_address, amount_usd, amount_btc, amount_xmr, crypto_currency, status, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'))
+                    """, (order_id, multisig_or_deposit_address, buyer_address, vendor_address or '', escrow_address, price_usd, amount_btc, amount_xmr, currency))
+                    conn.commit()
+                
+                logger.info(f"Order created successfully! Order ID: {order_id}")
+                flash("Order created successfully! Please proceed to payment.", 'success')
+                return redirect(url_for('public.order_payment', order_id=order_id))
+                
+            except Exception as e:
+                logger.error(f"Error creating order: {str(e)}")
+                logger.error(f"Exception type: {type(e).__name__}")
+                logger.error(f"Exception details: {e}")
+                flash("An error occurred while creating the order. Please try again.", 'error')
+                return redirect(url_for('public.product_detail', product_id=product_id))
+        
+        # GET: Show order form with pre-filled values from query parameters
+        quantity = request.args.get('quantity', 1, type=int)
+        currency = request.args.get('currency', 'BTC')
+        
+        # Validate quantity
+        if quantity < 1 or quantity > product['stock']:
+            quantity = 1
+        
+        # Validate currency
+        if currency not in ['BTC', 'XMR']:
+            currency = 'BTC'
+        
+        return render_template('order.html', 
+                             product=product, 
+                             btc_available=btc_available,
+                             monero_available=monero_available,
+                             pre_filled_quantity=quantity,
+                             pre_filled_currency=currency)
+                             
     except Exception as e:
-        print(f"Error in place_order: {str(e)}")
-        flash("An error occurred while placing the order.", 'error')
+        logger.error(f"Error in place_order: {str(e)}")
+        flash("An error occurred while processing your request. Please try again later.", 'error')
         return redirect(url_for('public.product_detail', product_id=product_id))
 
 # Add order_payment route for order confirmation/payment instructions
@@ -754,27 +920,30 @@ def place_order(product_id):
 def order_payment(order_id):
     if 'user_id' not in session:
         flash("Please log in to view your order.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT o.*, e.multisig_address, e.amount_btc, e.amount_xmr FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.id = ? AND o.user_id = ?", (order_id, session['user_id']))
+            c.execute("SELECT o.*, e.multisig_address, e.escrow_address, e.amount_btc, e.amount_xmr, e.crypto_currency as escrow_crypto_currency FROM orders o JOIN escrow e ON o.id = e.order_id WHERE o.id = ? AND o.user_id = ?", (order_id, session['user_id']))
             order = c.fetchone()
             if not order:
                 flash("Order not found.", 'error')
-                return redirect(url_for('public.orders'))
+                return redirect(url_for('user.orders'))
             product = c.execute("SELECT * FROM products WHERE id = ?", (order['product_id'],)).fetchone()
+        logger.info(f"Rendering order_payment template for order {order_id}")
+        logger.info(f"Order data: {dict(order) if order else 'None'}")
+        logger.info(f"Product data: {dict(product) if product else 'None'}")
         return render_template('order_payment.html', order=order, product=product)
     except Exception as e:
         print(f"Error in order_payment: {str(e)}")
         flash("An error occurred while loading the order.", 'error')
-        return redirect(url_for('public.orders'))
+        return redirect(url_for('user.orders'))
 
 @public_bp.route('/review_product/<int:product_id>', methods=['GET', 'POST'])
 def review_product(product_id):
     if 'user_id' not in session:
         flash("Please log in to write a review.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
     
     if request.method == 'POST':
         rating = request.form.get('rating', type=int)
@@ -943,7 +1112,7 @@ def vendor_shop(vendor_id):
 
     # Fetch vendor details
     vendor = db.execute(
-        "SELECT id, pusername as username, last_login, level, pgp_key, pgp_public_key, avatar "
+        "SELECT id, pusername as username, last_login, level, avatar "
         "FROM users WHERE id = ? AND role = 'vendor'",
         (vendor_id,)
     ).fetchone()
@@ -954,6 +1123,10 @@ def vendor_shop(vendor_id):
 
     # Convert vendor to dict for easier manipulation
     vendor_dict = dict(vendor)
+
+    # Fetch vendor PGP key from vendor_settings
+    vendor_settings = db.execute("SELECT pgp_key FROM vendor_settings WHERE user_id = ?", (vendor_id,)).fetchone()
+    vendor_dict['pgp_public_key'] = vendor_settings['pgp_key'] if vendor_settings and vendor_settings['pgp_key'] else None
 
     # Avatar URL logic
     if vendor_dict.get('avatar'):
@@ -1071,33 +1244,110 @@ def vendor_shop(vendor_id):
     )
 
 
+@public_bp.route('/test-tor')
+def test_tor():
+    """Test Tor detection and CSRF functionality."""
+    from config import Config
+    from flask_wtf.csrf import generate_csrf
+    
+    # Check if request is coming from Tor
+    is_tor_request = request.headers.get('X-Forwarded-For', '').endswith('.onion') or \
+                    request.headers.get('Host', '').endswith('.onion') or \
+                    '.onion' in request.headers.get('Host', '')
+    
+    config = Config()
+    
+    return {
+        'is_tor_request': is_tor_request,
+        'headers': dict(request.headers),
+        'host': request.headers.get('Host', ''),
+        'x_forwarded_for': request.headers.get('X-Forwarded-For', ''),
+        'csrf_token': generate_csrf(),
+        'tor_csrf_disabled': config.TOR_CSRF_DISABLED,
+        'tor_csrf_lenient': config.TOR_CSRF_LENIENT,
+        'session_id': session.get('_id', 'No session ID')
+    }
+
+@public_bp.route('/test_csrf', methods=['GET', 'POST'])
+def test_csrf():
+    from config import Config
+    from flask_wtf.csrf import generate_csrf, validate_csrf
+    
+    if request.method == 'POST':
+        try:
+            validate_csrf(request.form.get('csrf_token'))
+            flash("CSRF token is working correctly!", 'success')
+            return render_template('test_csrf.html', message="CSRF token validation successful!", config=Config)
+        except Exception as e:
+            flash(f"CSRF validation failed: {str(e)}", 'error')
+            return render_template('test_csrf.html', error=f"CSRF validation failed: {str(e)}", config=Config)
+    
+    # Debug information
+    debug_info = {
+        'csrf_token': generate_csrf(),
+        'session_id': session.get('_id', 'No session ID'),
+        'secret_key_configured': bool(Config.SECRET_KEY),
+        'csrf_enabled': True
+    }
+    
+    return render_template('test_csrf.html', config=Config, debug_info=debug_info)
+
 @public_bp.route('/order/confirm/<int:order_id>', methods=['POST'])
 def confirm_order(order_id):
     if 'user_id' not in session:
         return redirect(url_for('user.login'))
+    
     from utils.bitcoin import check_payment
     from utils.monero import check_monero_payment
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM orders WHERE id = ? AND user_id = ?", (order_id, session['user_id']))
-        order = c.fetchone()
-        if not order or order['escrow_status'] != 'pending':
-            return redirect(url_for('public.orders', error="Invalid order"))
-        c.execute("SELECT * FROM escrow WHERE order_id = ?", (order_id,))
-        escrow = c.fetchone()
-        txid = None
-        if order['crypto_currency'] == 'BTC':
-            txid = check_payment(escrow['multisig_address'], escrow['amount_btc'])
-        elif order['crypto_currency'] == 'XMR':
-            txid = check_monero_payment(escrow['multisig_address'], escrow['amount_xmr'])
-        if txid:
-            c.execute("UPDATE orders SET status = 'paid', escrow_status = 'held' WHERE id = ?", (order_id,))
-            c.execute("UPDATE escrow SET status = 'held', txid = ?, created_at = CURRENT_TIMESTAMP WHERE order_id = ?", (txid, order_id))
-            conn.commit()
-            flash("Payment confirmed, order in escrow", 'success')
-            return redirect(url_for('public.orders'))
-        flash("Payment not received", 'error')
-        return redirect(url_for('public.orders'))
+    
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM orders WHERE id = ? AND user_id = ?", (order_id, session['user_id']))
+            order = c.fetchone()
+            if not order or order['escrow_status'] != 'pending':
+                flash("Invalid order or order not in pending status", 'error')
+                return redirect(url_for('user.orders'))
+            
+            c.execute("SELECT * FROM escrow WHERE order_id = ?", (order_id,))
+            escrow = c.fetchone()
+            if not escrow:
+                flash("Escrow information not found", 'error')
+                return redirect(url_for('user.orders'))
+            
+            txid = None
+            try:
+                if escrow['crypto_currency'] == 'BTC':
+                    if not escrow['multisig_address']:
+                        raise ValueError('Missing BTC escrow address for order')
+                    txid = check_payment(escrow['multisig_address'], escrow['amount_btc'])
+                elif escrow['crypto_currency'] == 'XMR':
+                    if not escrow['multisig_address'] and not escrow['escrow_address']:
+                        raise ValueError('Missing XMR escrow address for order')
+                    # Prefer multisig_address field; fallback to escrow_address if needed
+                    xmr_addr = escrow['multisig_address'] or escrow['escrow_address']
+                    txid = check_monero_payment(xmr_addr, escrow.get('amount_xmr', 0))
+                else:
+                    flash("Unsupported cryptocurrency", 'error')
+                    return redirect(url_for('user.orders'))
+            except Exception as e:
+                logger.error(f"Error checking payment for order {order_id}: {str(e)}")
+                flash("Unable to verify payment at this time. Please try again later or contact support.", 'error')
+                return redirect(url_for('user.orders'))
+            
+            if txid:
+                c.execute("UPDATE orders SET status = 'paid', escrow_status = 'held' WHERE id = ?", (order_id,))
+                c.execute("UPDATE escrow SET status = 'held', txid = ?, created_at = CURRENT_TIMESTAMP WHERE order_id = ?", (txid, order_id))
+                conn.commit()
+                flash("Payment confirmed, order in escrow", 'success')
+                return redirect(url_for('user.orders'))
+            else:
+                flash("Payment not received. Please ensure you have sent the correct amount to the provided address.", 'error')
+                return redirect(url_for('user.orders'))
+    except Exception as e:
+        logger.error(f"Error in confirm_order for order {order_id}: {str(e)}")
+        flash("An error occurred while processing your request. Please try again later.", 'error')
+        return redirect(url_for('user.orders'))
 
 @public_bp.route('/release_escrow/<int:order_id>', methods=['POST'])
 def release_escrow(order_id):
@@ -1107,7 +1357,7 @@ def release_escrow(order_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT o.*, e.status as escrow_status, e.amount_btc, e.vendor_address
+            SELECT o.*, e.status as escrow_status, e.amount_btc, e.vendor_address, e.crypto_currency
             FROM orders o
             JOIN escrow e ON o.id = e.order_id
             WHERE o.id = ? AND o.user_id = ? AND o.status = 'shipped'
@@ -1115,10 +1365,10 @@ def release_escrow(order_id):
         order = c.fetchone()
         if not order:
             flash("Order not found or not eligible for release", 'error')
-            return redirect(url_for('public.orders'))
+            return redirect(url_for('user.orders'))
         if order['escrow_status'] != 'held':
             flash("Escrow is not in held status", 'error')
-            return redirect(url_for('public.orders'))
+            return redirect(url_for('user.orders'))
         # Check if vendor is trusted for early finalization
         c.execute("""
             SELECT vl.level, vl.positive_feedback_percentage, vl.sales_count
@@ -1158,7 +1408,7 @@ def release_escrow(order_id):
             send_notification_with_email(order['vendor_id'], f'Buyer has requested escrow release for order #{order_id}. Awaiting admin review.', 'info', subject='Escrow Release Requested')
             send_notification_with_email(1, f'Escrow release requested for order #{order_id}. Please review.', 'info', subject='Escrow Release Requested')
             flash("Escrow release requested. Admin will review and finalize within 24 hours.", 'success')
-        return redirect(url_for('public.orders'))
+        return redirect(url_for('user.orders'))
 
 @public_bp.route('/dispute_order/<int:order_id>', methods=['POST'])
 def dispute_order(order_id):
@@ -1168,11 +1418,11 @@ def dispute_order(order_id):
     reason = request.form.get('reason', '').strip()
     if not reason:
         flash("Please provide a reason for the dispute", 'error')
-        return redirect(url_for('public.orders'))
+        return redirect(url_for('user.orders'))
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT o.*, e.status as escrow_status
+            SELECT o.*, e.status as escrow_status, e.crypto_currency
             FROM orders o
             JOIN escrow e ON o.id = e.order_id
             WHERE o.id = ? AND o.user_id = ? AND e.status = 'held'
@@ -1180,13 +1430,13 @@ def dispute_order(order_id):
         order = c.fetchone()
         if not order:
             flash("Order not found or not eligible for dispute", 'error')
-            return redirect(url_for('public.orders'))
+            return redirect(url_for('user.orders'))
         # Check if dispute already exists
         c.execute("SELECT id FROM disputes WHERE order_id = ?", (order_id,))
         existing_dispute = c.fetchone()
         if existing_dispute:
             flash("Dispute already exists for this order", 'error')
-            return redirect(url_for('public.orders'))
+            return redirect(url_for('user.orders'))
         # Create dispute
         c.execute("""
             INSERT INTO disputes (order_id, submitted_by, reason, status, created_at)
@@ -1201,7 +1451,7 @@ def dispute_order(order_id):
         send_notification_with_email(order['vendor_id'], f'A dispute has been opened for order #{order_id} by the buyer.', 'warning', subject='Dispute Created')
         send_notification_with_email(1, f'Dispute opened for order #{order_id}. Please review and resolve.', 'info', subject='Dispute Created')
         flash("Dispute created successfully. Admin will review and resolve.", 'success')
-        return redirect(url_for('public.orders'))
+        return redirect(url_for('user.orders'))
     
 def check_expired_orders():
     from utils.database import send_notification_with_email

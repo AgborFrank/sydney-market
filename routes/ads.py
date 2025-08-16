@@ -11,9 +11,14 @@ from werkzeug.utils import secure_filename
 from utils.database import get_db_connection
 from utils.auth import require_vendor_role, login_required
 from utils.crypto import get_btc_price, get_xmr_price
+from flask_wtf.csrf import generate_csrf
 #from utils.security import validate_csrf_token
 
 ads_bp = Blueprint('ads', __name__)
+
+@ads_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
 
 # Ad placement types and their base costs
 AD_PLACEMENTS = {

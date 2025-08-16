@@ -1,52 +1,374 @@
-{% extends 'user/user_base.html' %}
-{% block title %}Become a Vendor - {{ settings['site_name'] }}{% endblock %}
+{% extends "user/user_base.html" %} {% block title %}{{ title }}{% endblock %}
 {% block user_content %}
-<div class="container mx-auto p-6">
-  <h1 class="text-2xl font-bold 2xl:text-3xl text-white">Become a Vendor</h1>
-  <h3 class="px-2 py-1 border-solid border-0 text-white border-b border-sydney text-center 2xl:text-left font-bold">
-    Here you can activate your vendor account. Take time to read the vendor rules below, and click on accept. After that, you will be able to create listings and start selling here. Be careful to acknowledge the rules, as breaching them may result in account suspension.
-  </h3>
-  <div class="px-2 pt-10 text-sydney">
-    #1: FE (Finalized Early) is not permitted unless you get explicit permission later. You will get banned without refund if you ask for FE without permission.<br><br>
-    #2: The default auto-finalize for digital orders are 48 hours and 7 days for physical orders. Still you will be able to modify default values from your vendor panel.<br><br>
-    #3: If you get too many scam reports, we may revoke your vendor account at any time.<br><br>
-    #4: There is a vendor bond non refundable of USD $200 ({{ bond.btc|default('0.01331861') }} BTC / {{ bond.xmr|default('5.45994597') }} XMR).<br><br>
-    #5: All sellers must have a PGP key in their profile before starting to sell.<br><br>
-    #6: Fentanyl, prostitution, child porn, murder services, poisons and weapons are not permitted.<br><br>
-    #7: Any dox threat will result in an immediate ban.<br><br>
-    #8: Two-factor authentication (2FA) is mandatory for all vendors.<br><br>
-    #9: Describe properly, do not put products in wrong cats, creating duplicates can lead to permanent bans.<br><br>
-    #10: If you redirect users to any platforms like Telegram, WhatsApp, Signal, Email or any other external platform outside of Sydney Market, to proceed with DD you will be permanently banned.<br><br>
-    #11: If you wish you change your public username you must open a ticket BEFORE upgrading your account. Make sure everything is right, we do not allow changes later.<br><br>
-    #12: You cannot upgrade your account if you already did some purchases (even if you have one unpaid or canceled orders you cannot upgrade your account). Just create a new account.<br><br>
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-medium text-gray-100 mb-4">Become a Sydney Marketplace Vendor</h1>
+      <p class="text-sm text-gray-400 max-w-2xl mx-auto">
+        Start selling on Sydney Marketplace with our flexible vendor packages.
+        Choose the plan that best fits your business needs.
+      </p>
   </div>
 
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mt-4 max-w-3xl mx-auto">
-        {% for category, message in messages %}
-          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-            {{ message }}
+    <!-- Existing Subscription Alert -->
+    {% if existing_subscription %}
+    <div class="bg-red-900 border border-red-700 rounded-lg p-6 mb-8">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg
+            class="h-5 w-5 text-blue-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-300">
+            Subscription Status: {{ existing_subscription.status|title }}
+          </h3>
+          <div class="mt-2 text-sm text-blue-200">
+            <p>
+              <strong>Package:</strong> {{ existing_subscription.package_title
+              }}
+            </p>
+            <p>
+              <strong>Price:</strong> ${{
+              "%.2f"|format(existing_subscription.price_usd) }}
+            </p>
+            {% if existing_subscription.status == 'pending' %}
+            <p class="mt-2 text-yellow-300">
+              <strong>Action Required:</strong> Please complete your payment to
+              activate your vendor account.
+            </p>
+            {% endif %}
           </div>
-        {% endfor %}
+        </div>
+      </div>
       </div>
     {% endif %}
-  {% endwith %}
 
-  <form action="" method="post" class="rounded-md p-4 space-y-2 w-max mx-auto bg-sydney bg-opacity-10">
-    <div class="flex items-center gap-2 font-bold text-white">
-      <input name="accept_terms" type="checkbox" value="yes" required>
-      I have read and accept the rules mentioned above.
+    <!-- Vendor Benefits -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-8">
+      <h2 class="text-2xl font-semibold text-gray-100 mb-4">Vendor Benefits</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="text-center">
+          <div
+            class="bg-red-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-100 mb-2">Secure Escrow</h3>
+          <p class="text-gray-400">
+            All transactions protected by our secure escrow system
+          </p>
+        </div>
+        <div class="text-center">
+          <div
+            class="bg-green-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-100 mb-2">
+            Privacy Focused
+          </h3>
+          <p class="text-gray-400">
+            Anonymous transactions with cryptocurrency payments
+          </p>
+        </div>
+        <div class="text-center">
+          <div
+            class="bg-purple-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3"
+          >
+            <svg
+              class="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-100 mb-2">Global Reach</h3>
+          <p class="text-gray-400">
+            Access customers worldwide with our secure marketplace
+          </p>
+        </div>
+      </div>
     </div>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="flex flex-col 2xl:flex-row gap-2 items-center justify-center 2xl:justify-start">
-      <select name="e_crypto" class="std">
-        <option value="btc" selected>Bitcoin - {{ bond.btc|default('0.01331861') }} BTC</option>
-        <option value="xmr">Monero - {{ bond.xmr|default('5.45994597') }} XMR</option>
+
+    <!-- Subscription Packages -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-2 gap-6 mb-8">
+      {% for package in packages %}
+      <div
+        class="bg-card rounded-lg border border-gray-700 p-6 hover:border-red-500 transition-colors"
+      >
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-semibold text-gray-100 mb-2">
+            {{ package.title }}
+          </h3>
+          <div class="text-3xl font-bold text-blue-400 mb-1">
+            {% if package.free %}
+            <span class="text-green-400">FREE</span>
+            {% else %} ${{ "%.2f"|format(package.price_usd) }} {% endif %}
+          </div>
+          <p class="text-gray-400 text-sm">per month</p>
+        </div>
+
+        <div class="mb-6">
+          <div class="flex items-center mb-3">
+            <svg
+              class="w-5 h-5 text-green-400 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            <span class="text-gray-300"
+              >Up to {{ package.product_limit }} products</span
+            >
+          </div>
+
+          {% if package.features %} {% for feature in
+          package.features.split(',') %}
+          <div class="flex items-center mb-2">
+            <svg
+              class="w-4 h-4 text-green-400 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            <span class="text-gray-300 text-sm">{{ feature.strip() }}</span>
+          </div>
+          {% endfor %} {% endif %}
+        </div>
+
+        <!-- Crypto Prices -->
+        {% if not package.free and btc_price and xmr_price %}
+        <div class="mb-6 p-3 bg-gray-700 rounded">
+          <p class="text-xs text-gray-400 mb-2">Pay with:</p>
+          <div class="text-sm">
+            <div class="flex justify-between mb-1">
+              <span class="text-gray-300">Bitcoin:</span>
+              <span class="text-blue-400"
+                >{{ "%.6f"|format(package.price_usd / btc_price) }} BTC</span
+              >
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-300">Monero:</span>
+              <span class="text-blue-400"
+                >{{ "%.6f"|format(package.price_usd / xmr_price) }} XMR</span
+              >
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="package_id" value="{{ package.id }}" />
+
+          {% if not package.free %}
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2"
+              >Payment Method</label
+            >
+            <select
+              name="crypto_currency"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <option value="" class="text-gray-100 bg-gray-700">Select cryptocurrency</option>
+              <option value="BTC" class="text-gray-100 bg-gray-700">Bitcoin (BTC)</option>
+              <option value="XMR" class="text-gray-100 bg-gray-700">Monero (XMR)</option>
       </select>
-      <input name="upgrade" class="bstd" value="Become A Vendor" type="submit">
+          </div>
+          {% endif %}
+
+          <button
+            type="submit"
+            class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          >
+            {% if package.free %} Activate Free Package {% else %} Subscribe Now
+            {% endif %}
+          </button>
+        </form>
+      </div>
+      {% endfor %}
     </div>
-  </form>
+
+    <!-- Additional Information -->
+    <div class="bg-gray-800 rounded-lg p-6">
+      <h2 class="text-2xl font-semibold text-gray-100 mb-4">
+        Important Information
+      </h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-lg font-medium text-gray-100 mb-3">
+            Vendor Requirements
+          </h3>
+          <ul class="space-y-2 text-gray-400">
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              Valid PGP key for secure communication
+            </li>
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              Compliance with marketplace rules
+            </li>
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-green-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              Active subscription required
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-gray-100 mb-3">
+            Payment Security
+          </h3>
+          <ul class="space-y-2 text-gray-400">
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-blue-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              Cryptocurrency payments only
+            </li>
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-blue-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              No personal information required
+            </li>
+            <li class="flex items-start">
+              <svg
+                class="w-4 h-4 text-blue-400 mr-2 mt-0.5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                ></path>
+              </svg>
+              Instant activation for free packages
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Support Section -->
+    <div class="text-center mt-8">
+      <p class="text-gray-400 mb-4">Need help? Contact our support team</p>
+      <a
+        href="{{ url_for('user.support') }}"
+        class="inline-flex items-center px-4 py-2 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 transition-colors"
+      >
+        <svg
+          class="w-4 h-4 mr-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          ></path>
+        </svg>
+        Get Support
+      </a>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -35,7 +35,7 @@
               class="sidebar-categories__checkbox"
             />
             <a
-              href="/search?fcats[]={{ category.id }}"
+              href="{{ url_for('public.category_products', category_id=category.id) }}"
               class="cat-name text-white"
             >
               <strong class="mx-2">{{ category.name }}</strong>
@@ -53,7 +53,7 @@
                   class="sidebar-categories__checkbox"
                 />
                 <a
-                  href="/search?fcats[]={{ child.id }}"
+                  href="{{ url_for('public.category_products', category_id=child.id) }}"
                   class="cat-name text-white"
                 >
                   <strong class="mx-2 text-white">{{ child.name }}</strong>
@@ -73,7 +73,7 @@
                     class="sidebar-categories__checkbox2"
                   />
                   <a
-                    href="/search?fcats[]={{ grandchild.id }}"
+                    href="{{ url_for('public.category_products', category_id=grandchild.id) }}"
                     class="cat-name text-white"
                   >
                     <strong class="mx-2 text-white"

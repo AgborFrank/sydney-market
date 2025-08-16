@@ -1,250 +1,217 @@
-
 {% extends 'user/user_base.html' %}
 {% block title %}Edit Product - {{ settings['site_name'] }}{% endblock %}
-
 {% block user_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Edit Product: {{ product['title'] }}</h2>
+<div class="container mx-auto p-6">
+  <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 2xl:w-auto">Edit Product: {{ product.title }}</h1>
+  <h3 class="px-2 py-1 border-solid border-0 text-white 2xl:text-left font-bold">
+    Edit your product. Ensure all details are accurate and comply with market rules. Products require admin approval before going live.
+  </h3>
 
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <form method="POST" action="{{ url_for('vendor.products_edit', product_id=product['id']) }}" enctype="multipart/form-data" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div>
-            <label for="title" class="block text-gray-700 font-semibold mb-2">Product Title</label>
-            <input 
-                type="text" 
-                id="title" 
-                name="title" 
-                value="{{ product['title'] }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter product title" 
-                required
-            >
-        </div>
-        <div>
-            <label for="description" class="block text-gray-700 font-semibold mb-2">Description</label>
-            <textarea 
-                id="description" 
-                name="description" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter product description" 
-                rows="4"
-            >{{ product['description'] or '' }}</textarea>
-        </div>
-        <div>
-            <label for="price_usd" class="block text-gray-700 font-semibold mb-2">Price (USD)</label>
-            <input 
-                type="number" 
-                id="price_usd" 
-                name="price_usd" 
-                step="0.01" 
-                min="0" 
-                value="{{ product['price_usd'] }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter price in USD" 
-                required
-            >
-        </div>
-        <div>
-            <label for="original_price_usd" class="block text-gray-700 font-semibold mb-2">Original Price (USD, optional)</label>
-            <input 
-                type="number" 
-                id="original_price_usd" 
-                name="original_price_usd" 
-                step="0.01" 
-                min="0" 
-                value="{{ product['original_price_usd'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter original price in USD"
-            >
-        </div>
-        <div>
-            <label for="discount_active" class="block text-gray-700 font-semibold mb-2">Discount Active</label>
-            <input 
-                type="checkbox" 
-                id="discount_active" 
-                name="discount_active" 
-                class="h-5 w-5 text-yellow-400 border-gray-300 rounded focus:ring-yellow-400"
-                {% if product['discount_active'] %}checked{% endif %}
-            >
-        </div>
-        <div>
-            <label for="stock" class="block text-gray-700 font-semibold mb-2">Stock Quantity</label>
-            <input 
-                type="number" 
-                id="stock" 
-                name="stock" 
-                min="0" 
-                value="{{ product['stock'] }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter stock quantity" 
-                required
-            >
-        </div>
-        <div>
-            <label for="category_id" class="block text-gray-700 font-semibold mb-2">Category</label>
-            <select 
-                id="category_id" 
-                name="category_id" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                required
-            >
-                <option value="">Select a category</option>
-                {% for category in categories %}
-                <option value="{{ category['id'] }}" {% if category['id'] == product['category_id'] %}selected{% endif %}>
-                    {{ category['name'] }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label for="sku" class="block text-gray-700 font-semibold mb-2">SKU (Stock Keeping Unit)</label>
-            <input 
-                type="text" 
-                id="sku" 
-                name="sku" 
-                value="{{ product['sku'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter unique SKU (e.g., ABC123)"
-            >
-        </div>
-        <div>
-            <label for="shipping_weight" class="block text-gray-700 font-semibold mb-2">Shipping Weight (lbs)</label>
-            <input 
-                type="number" 
-                id="shipping_weight" 
-                name="shipping_weight" 
-                step="0.1" 
-                min="0" 
-                value="{{ product['shipping_weight'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter weight in pounds"
-            >
-        </div>
-        <div>
-            <label for="shipping_dimensions" class="block text-gray-700 font-semibold mb-2">Shipping Dimensions (LxWxH, inches)</label>
-            <input 
-                type="text" 
-                id="shipping_dimensions" 
-                name="shipping_dimensions" 
-                value="{{ product['shipping_dimensions'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="e.g., 10x5x3"
-            >
-        </div>
-        <div>
-            <label for="shipping_method" class="block text-gray-700 font-semibold mb-2">Shipping Method</label>
-            <input 
-                type="text" 
-                id="shipping_method" 
-                name="shipping_method" 
-                value="{{ product['shipping_method'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="e.g., TOR-routed, Discreet"
-            >
-        </div>
-        <div>
-            <label for="moq" class="block text-gray-700 font-semibold mb-2">Minimum Order Quantity (MOQ)</label>
-            <input 
-                type="number" 
-                id="moq" 
-                name="moq" 
-                min="1" 
-                value="{{ product['moq'] or 1 }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="Enter minimum order quantity"
-            >
-        </div>
-        <div>
-            <label for="lead_time" class="block text-gray-700 font-semibold mb-2">Lead Time</label>
-            <input 
-                type="text" 
-                id="lead_time" 
-                name="lead_time" 
-                value="{{ product['lead_time'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="e.g., 3-5 days"
-            >
-        </div>
-        <div>
-            <label for="packaging_details" class="block text-gray-700 font-semibold mb-2">Packaging Details</label>
-            <textarea 
-                id="packaging_details" 
-                name="packaging_details" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="e.g., Discreet, vacuum-sealed" 
-                rows="2"
-            >{{ product['packaging_details'] or '' }}</textarea>
-        </div>
-        <div>
-            <label for="tags" class="block text-gray-700 font-semibold mb-2">Tags (comma-separated)</label>
-            <input 
-                type="text" 
-                id="tags" 
-                name="tags" 
-                value="{{ product['tags'] or '' }}"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                placeholder="e.g., electronics, gadget, fast-shipping"
-            >
-        </div>
-        <div>
-            <label for="status" class="block text-gray-700 font-semibold mb-2">Status</label>
-            <select 
-                id="status" 
-                name="status" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            >
-                <option value="active" {% if product['status'] == 'active' %}selected{% endif %}>Active</option>
-                <option value="out_of_stock" {% if product['status'] == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
-                <option value="pending" {% if product['status'] == 'pending' %}selected{% endif %}>Pending</option>
-            </select>
-        </div>
-        <div>
-            <label for="featured_image" class="block text-gray-700 font-semibold mb-2">Featured Image (Leave blank to keep current)</label>
-            <input 
-                type="file" 
-                id="featured_image" 
-                name="featured_image" 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                accept="image/*"
-            >
-            {% if product['featured_image'] %}
-            <p class="mt-2 text-gray-600">Current: <img src="{{ url_for('static', filename=product['featured_image']) }}" alt="Current Image" class="h-16 w-16 inline-block rounded"></p>
-            {% endif %}
-        </div>
-        <div>
-            <label for="additional_images" class="block text-gray-700 font-semibold mb-2">Additional Images (Add more, existing kept unless deleted)</label>
-            <input 
-                type="file" 
-                id="additional_images" 
-                name="additional_images" 
-                multiple 
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400" 
-                accept="image/*"
-            >
-            {% if product_images %}
-            <p class="mt-2 text-gray-600">Current Images:</p>
-            <div class="flex flex-wrap gap-2">
-                {% for img in product_images %}
-                <img src="{{ url_for('static', filename=img['image_path']) }}" alt="Additional Image" class="h-16 w-16 object-cover rounded">
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-        <div class="text-right space-x-2">
-            <button 
-                type="submit" 
-                class="bg-yellow-400 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200"
-            >
-                Save Changes
-            </button>
-            <a href="{{ url_for('admin.admin_add_products') }}" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200">Cancel</a>
-        </div>
-    </form>
-    {% if error %}
-    <p class="mt-4 text-red-600">{{ error }}</p>
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mt-4 w-full mx-auto">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded-md text-white {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
-    {% if success %}
-    <p class="mt-4 text-green-600">{{ success }}</p>
+  {% endwith %}
+
+  <form action="" method="post" enctype="multipart/form-data" class="w-full mx-auto bg-card bg-opacity-10 rounded-md p-6 border border-sydney space-y-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Basic Info Section -->
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="font-bold text-white">Product Title</label>
+        <input type="text" name="title" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.title if product else (form_data.title if form_data else '') }}" required maxlength="100">
+      </div>
+      <div>
+        <label class="font-bold text-white">Category</label>
+        <select name="category_id" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" required>
+          <option value="">Select category...</option>
+          {% for category in categories %}
+            <option value="{{ category.id }}" 
+                    {% if product and product.category_id == category.id %}selected
+                    {% elif form_data and form_data.category_id == category.id|string %}selected{% endif %} 
+                    class="text-gray-100 bg-card">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="md:col-span-2">
+        <label class="font-bold text-white">Description</label>
+        <textarea name="description" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" rows="5" required maxlength="5000">{{ product.description if product else (form_data.description if form_data else '') }}</textarea>
+        <span class="text-xs text-gray-400">No URLs allowed. Max 5000 characters.</span>
+      </div>
+      <div>
+        <label class="font-bold text-white">SKU (Optional)</label>
+        <input type="text" name="sku" maxlength="50" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.sku if product else (form_data.sku if form_data else '') }}">
+      </div>
+      <div>
+        <label class="font-bold text-white">Tags (Comma-separated, Optional)</label>
+        <input type="text" name="tags" maxlength="200" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.tags if product else (form_data.tags if form_data else '') }}">
+      </div>
+    </div>
+
+    <!-- Pricing Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="font-bold text-white">Price (USD)</label>
+        <input type="number" name="price_usd" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               step="0.01" min="1" value="{{ product.price_usd if product else (form_data.price_usd if form_data else '') }}" required>
+      </div>
+      <div>
+        <label class="font-bold text-white">Original Price (USD, Optional)</label>
+        <input type="number" name="original_price_usd" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               step="0.01" min="0" value="{{ product.original_price_usd if product else (form_data.original_price_usd if form_data else '') }}">
+      </div>
+      <div class="flex items-center gap-2 md:col-span-2">
+        <input type="checkbox" name="discount_active" value="yes" class="mr-2" 
+               {% if product and product.discount_active %}checked{% elif form_data and form_data.discount_active %}checked{% endif %}>
+        <label class="font-bold text-white">Enable Discount</label>
+      </div>
+    </div>
+
+    <!-- Inventory Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="font-bold text-white">Stock</label>
+        <input type="number" name="stock" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               min="0" value="{{ product.stock if product else (form_data.stock if form_data else '0') }}" required>
+      </div>
+      <div>
+        <label class="font-bold text-white">Minimum Order Quantity</label>
+        <input type="number" name="moq" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               min="1" value="{{ product.moq if product else (form_data.moq if form_data else '1') }}" required>
+      </div>
+      <div>
+        <label class="font-bold text-white">Product Type</label>
+        <select name="product_type" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" required>
+          <option value="">Select type...</option>
+          <option value="physical" 
+                  {% if product and product.product_type == 'physical' %}selected
+                  {% elif form_data and form_data.product_type == 'physical' %}selected{% endif %} 
+                  class="text-gray-100 bg-card">Physical</option>
+          <option value="digital" 
+                  {% if product and product.product_type == 'digital' %}selected
+                  {% elif form_data and form_data.product_type == 'digital' %}selected{% endif %} 
+                  class="text-gray-100 bg-card">Digital</option>
+        </select>
+      </div>
+      <div>
+        <label class="font-bold text-white">Origin Country (Optional)</label>
+        <select name="origin_country" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full">
+          {% set selected_country = product.origin_country if product else (form_data.origin_country if form_data else '') %}
+          {% include 'components/country_options.html' %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Shipping Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="font-bold text-white">Shipping Methods (Optional)</label>
+        <input type="text" name="shipping_methods" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.shipping_methods if product else (form_data.shipping_methods if form_data else '') }}" maxlength="200" placeholder="e.g., Standard, Express, Overnight">
+      </div>
+      <div>
+        <label class="font-bold text-white">Weight (grams)</label>
+        <input type="number" name="weight_grams" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               step="0.1" min="0" value="{{ product.weight_grams if product else (form_data.weight_grams if form_data else '') }}">
+      </div>
+      <div>
+        <label class="font-bold text-white">Dimensions (LxWxH cm, Optional)</label>
+        <input type="text" name="shipping_dimensions" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.shipping_dimensions if product else (form_data.shipping_dimensions if form_data else '') }}" maxlength="20">
+      </div>
+      <div>
+        <label class="font-bold text-white">Shipping Origin (Optional)</label>
+        <input type="text" name="shipping_origin" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.shipping_origin if product else (form_data.shipping_origin if form_data else '') }}" maxlength="100">
+      </div>
+      <div class="md:col-span-2">
+        <label class="font-bold text-white">Shipping Destinations</label>
+        <input type="text" name="shipping_destinations" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.shipping_destinations if product else (form_data.shipping_destinations if form_data else 'Worldwide') }}" required maxlength="200">
+      </div>
+      <div>
+        <label class="font-bold text-white">Lead Time (e.g., 1-3 days, Optional)</label>
+        <input type="text" name="lead_time" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+               value="{{ product.lead_time if product else (form_data.lead_time if form_data else '') }}" maxlength="50">
+      </div>
+      <div>
+        <label class="font-bold text-white">Packaging Details (Optional)</label>
+        <textarea name="packaging_details" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+                  rows="2" maxlength="500">{{ product.packaging_details if product else (form_data.packaging_details if form_data else '') }}</textarea>
+      </div>
+      <div>
+        <label class="font-bold text-white">Return Policy (Optional)</label>
+        <textarea name="return_policy" class="border-solid rounded-md border border-border2 px-2 py-[4px] hover:border-sydney text-sydney w-full" 
+                  rows="2" maxlength="500">{{ product.return_policy if product else (form_data.return_policy if form_data else '') }}</textarea>
+      </div>
+    </div>
+
+    <!-- Current Images Section -->
+    {% if product and product.featured_image %}
+    <div class="border border-sydney rounded-md p-4">
+      <h4 class="font-bold text-white mb-3">Current Images</h4>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% if product.featured_image %}
+        <div class="text-center">
+          <label class="font-bold text-white text-sm mb-2 block">Featured Image</label>
+          <img src="{{ url_for('static', filename='uploads/products/' + product.featured_image) }}" 
+               alt="Featured Image" class="w-full h-32 object-cover rounded-md border border-border2">
+        </div>
+        {% endif %}
+        {% if product.additional_images %}
+        <div class="text-center">
+          <label class="font-bold text-white text-sm mb-2 block">Additional Images</label>
+          <div class="grid grid-cols-2 gap-2">
+            {% for image in product.additional_images.split(',') if image.strip() %}
+            <img src="{{ url_for('static', filename='uploads/products/' + image.strip()) }}" 
+                 alt="Additional Image" class="w-full h-16 object-cover rounded-md border border-border2">
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <p class="text-xs text-gray-400 mt-2">Upload new images to replace current ones. Leave empty to keep existing images.</p>
+    </div>
     {% endif %}
+
+    <!-- New Images Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="font-bold text-white">Featured Image (PNG/JPG)</label>
+        <input type="file" name="featured_image" class="rounded-md px-2 py-[4px] hover:border-sydney text-sydney w-full" accept="image/png,image/jpeg">
+        {% if product and product.featured_image %}
+        <p class="text-xs text-gray-400 mt-1">Current: {{ product.featured_image }}</p>
+        {% endif %}
+      </div>
+      <div>
+        <label class="font-bold text-white">Additional Images (PNG/JPG, Optional)</label>
+        <input type="file" name="additional_images" class="rounded-md px-2 py-[4px] hover:border-sydney text-sydney w-full" accept="image/png,image/jpeg" multiple>
+        {% if product and product.additional_images %}
+        <p class="text-xs text-gray-400 mt-1">Current: {{ product.additional_images.split(',')|length }} images</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="w-full mt-8 flex gap-4">
+      <button type="submit" class="bg-yellow-400 text-gray-900 font-semibold py-2 px-6 rounded-md hover:bg-yellow-500 transition duration-200">
+        Update Product
+      </button>
+      <a href="{{ url_for('vendor.products_index') }}" class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200">
+        Cancel
+      </a>
+    </div>
+  </form>
 </div>
 {% endblock %}

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, session, request, flash, redirect, url_for, jsonify
 from utils.database import get_db_connection
+from flask_wtf.csrf import generate_csrf
 import requests
 import datetime
 import re
@@ -11,15 +12,25 @@ from monero.backends.jsonrpc import JSONRPCWallet
 
 wallet_bp = Blueprint('wallet', __name__)
 
+@wallet_bp.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf}
+
 # Fallback prices
 FALLBACK_PRICES = {
     "BTC": 60000.00,
     "XMR": 150.00
 }
 
+# Tor proxy configuration
+TOR_ENABLED = os.getenv('TOR_ENABLED', 'false').lower() == 'true'
+TOR_PROXY = {
+    "http": f"socks5h://127.0.0.1:5000",
+    "https": f"socks5h://127.0.0.1:5000"
+}
 
 BTC_WALLET_NAME = "MarketplaceBTCWallet"
-BTC_TESTNET = os.getenv("BTC_TESTNET", "True") == "True"  # Default to True if not set
+BTC_TESTNET = os.getenv("BTC_TESTNET", "false") == "false"  # Default to True if not set
 MONERO_RPC_HOST = os.getenv("MONERO_RPC_HOST", "localhost")
 MONERO_RPC_PORT = int(os.getenv("MONERO_RPC_PORT", 18082))
 MONERO_RPC_USER = os.getenv("MONERO_RPC_USER", "your_rpc_username")
@@ -28,8 +39,12 @@ MONERO_RPC_PASSWORD = os.getenv("MONERO_RPC_PASSWORD", "your_rpc_password")
 def get_crypto_price(currency):
     url = "https://api.coingecko.com/api/v3/simple/price"
     params = {"ids": "bitcoin,monero", "vs_currencies": "usd"}
+    
+    # Use Tor proxy if enabled
+    proxies = TOR_PROXY if TOR_ENABLED else None
+    
     try:
-        response = requests.get(url, params=params, timeout=5)
+        response = requests.get(url, params=params, timeout=10, proxies=proxies)
         response.raise_for_status()
         data = response.json()
         if currency == "BTC":
@@ -74,7 +89,7 @@ def wallet():
     # Unchanged except for get_crypto_price usage
     if 'user_id' not in session:
         flash("Please log in to access your wallet.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
     
     # if 'user_id' not in session or not has_active_subscription(session['user_id']):
     #    flash("You must have an active subscription to withdraw sales.", 'error')
@@ -175,7 +190,7 @@ def withdraw():
 def admin_withdrawals():
     if 'user_id' not in session:
         flash("Please log in as an admin.", 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('user.login'))
 
     try:
         with get_db_connection() as conn:
