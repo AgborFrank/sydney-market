@@ -644,6 +644,13 @@ def products_create():
     if user_role != 'vendor' or not has_active_subscription(user_id):
         flash("You must be a vendor with an active subscription to create products.", 'error')
         return redirect(url_for('vendor.subscribe'))
+    
+    # Check if vendor has PGP key set in vendor settings
+    c.execute("SELECT pgp_public_key FROM vendor_settings WHERE user_id = ?", (user_id,))
+    vendor_settings = c.fetchone()
+    if not vendor_settings or not vendor_settings['pgp_public_key']:
+        flash("You must set a PGP public key in your vendor settings before creating products.", 'error')
+        return redirect(url_for('vendor.vendor_settings'))
 
     if request.method == 'POST':
         # Form fields
@@ -1081,6 +1088,89 @@ def confirm_payment(package_id, crypto_currency):
         print(f"Error in confirm_payment: {str(e)}")
         flash("An error occurred.", 'error')
         return redirect(url_for('user.become_vendor'))
+
+@vendor_bp.route('/messages', methods=['GET', 'POST'])
+@require_vendor_role
+def vendor_messages():
+    """Vendor messages - view and respond to messages from users"""
+    if 'user_id' not in session:
+        flash("Please log in to view messages.", 'error')
+        return redirect(url_for('user.login'))
+    
+    vendor_id = session['user_id']
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Get vendor's PGP key
+        c.execute("SELECT pgp_public_key FROM vendor_settings WHERE user_id = ?", (vendor_id,))
+        vendor_pgp = c.fetchone()
+        vendor_has_pgp = bool(vendor_pgp and vendor_pgp['pgp_public_key'])
+        
+        if request.method == 'POST':
+            message_id = request.form.get('message_id', type=int)
+            response = request.form.get('response', '').strip()
+            
+            if not message_id or not response:
+                flash("Message ID and response are required.", 'error')
+                return redirect(url_for('vendor.vendor_messages'))
+            
+            # Verify the message belongs to this vendor
+            c.execute("SELECT id FROM messages WHERE id = ? AND recipient_id = ?", (message_id, vendor_id))
+            message = c.fetchone()
+            if not message:
+                flash("Message not found or access denied.", 'error')
+                return redirect(url_for('vendor.vendor_messages'))
+            
+            # Get sender's PGP key for encryption
+            c.execute("SELECT sender_id FROM messages WHERE id = ?", (message_id,))
+            sender_info = c.fetchone()
+            if sender_info:
+                c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (sender_info['sender_id'],))
+                sender_pgp = c.fetchone()
+                sender_has_pgp = bool(sender_pgp and sender_pgp['pgp_public_key'])
+                
+                # Encrypt response if both parties have PGP keys
+                response_content = response
+                if vendor_has_pgp and sender_has_pgp:
+                    try:
+                        from utils.pgp_utils import pgp_utils
+                        encrypted_content = pgp_utils.encrypt_message(sender_pgp['pgp_public_key'], response_content)
+                        if encrypted_content != response_content:
+                            response_content = encrypted_content
+                        else:
+                            flash("Encryption failed, sending as plain text.", 'warning')
+                    except Exception as e:
+                        logger.error(f"PGP encryption error: {e}")
+                        flash("Encryption failed, sending as plain text.", 'warning')
+                elif not vendor_has_pgp and not sender_has_pgp:
+                    pass  # Both parties don't have PGP - send as plain text
+                else:
+                    flash("One party doesn't have PGP key, sending as plain text.", 'info')
+                
+                # Store response
+                c.execute("""
+                    INSERT INTO messages (sender_id, recipient_id, content, created_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (vendor_id, sender_info['sender_id'], response_content))
+                conn.commit()
+                
+                flash("Response sent successfully!", 'success')
+                return redirect(url_for('vendor.vendor_messages'))
+        
+        # Get messages for this vendor
+        c.execute("""
+            SELECT m.id, m.content, m.created_at, u.pusername as sender_name
+            FROM messages m
+            JOIN users u ON m.sender_id = u.id
+            WHERE m.recipient_id = ? AND m.sender_id != ?
+            ORDER BY m.created_at DESC
+        """, (vendor_id, vendor_id))
+        messages = [dict(row) for row in c.fetchall()]
+        
+        return render_template('vendor/messages.html', 
+                             messages=messages, 
+                             vendor_has_pgp=vendor_has_pgp)
 
 @vendor_bp.route('/settings', methods=['GET', 'POST'])
 @require_vendor_role

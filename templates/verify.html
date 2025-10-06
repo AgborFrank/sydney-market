@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace Verification - {{ settings.site_name or 'Dark Web Marketplace' }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-xl font-bold text-blue-400 mb-4">Marketplace Verification</h1>
+            <p class="text-gray-300 text-lg">Verify the authenticity of this marketplace using sydney market's PGP key PGP key</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-red-900 border border-red-600 text-red-100 px-4 py-3 rounded mb-6">
+            <h3 class="font-bold">Error:</h3>
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Verification Instructions -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">📋 How to Verify This Marketplace</h2>
+            <div class="space-y-4 text-gray-300">
+                <div class="flex items-start space-x-3">
+                    <span class="bg-yellow-400 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
+                    <p>Copy the market's PGP public key from the section below</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="bg-yellow-400 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
+                    <p>Import the key into your PGP client (GPG, Kleopatra, etc.)</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="bg-yellow-400 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
+                    <p>Verify the signed message using the market's public key</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="bg-yellow-400 text-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</span>
+                    <p>Check that the signature is valid and the message content matches</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market PGP Public Key -->
+        {% if admin_pgp_key %}
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">🔑 Market PGP Public Key</h2>
+            <div class="bg-gray-900 border border-gray-500 rounded p-4">
+                <pre class="text-green-400 text-sm whitespace-pre-wrap break-all">{{ admin_pgp_key }}</pre>
+            </div>
+            <button onclick="copyToClipboard('{{ admin_pgp_key }}')" 
+                    class="mt-4 bg-yellow-400 text-gray-900 px-4 py-2 rounded hover:bg-yellow-300 transition-colors">
+                📋 Copy Market PGP Key
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Verification Message -->
+        {% if verification_message %}
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">📝 Verification Message</h2>
+            <div class="bg-gray-900 border border-gray-500 rounded p-4">
+                <pre class="text-blue-400 text-sm whitespace-pre-wrap">{{ verification_message }}</pre>
+            </div>
+            <button onclick="copyToClipboard('{{ verification_message }}')" 
+                    class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 transition-colors">
+                 Copy Message
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Signed Message -->
+        {% if signed_message %}
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">✍️ Signed Message</h2>
+            <div class="bg-gray-900 border border-gray-500 rounded p-4">
+                <pre class="text-purple-400 text-sm whitespace-pre-wrap">{{ signed_message }}</pre>
+            </div>
+            <button onclick="copyToClipboard('{{ signed_message }}')" 
+                    class="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-500 transition-colors">
+                📋 Copy Signed Message
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Verification Commands -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">Quick Verification Commands</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Import the Market PGP key:</h3>
+                    <div class="bg-gray-900 border border-gray-500 rounded p-3">
+                        <code class="text-green-400">gpg --import market_key.asc</code>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Verify a signed message:</h3>
+                    <div class="bg-gray-900 border border-gray-500 rounded p-3">
+                        <code class="text-green-400">gpg --verify message.sig message.txt</code>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Check key fingerprint:</h3>
+                    <div class="bg-gray-900 border border-gray-500 rounded p-3">
+                        <code class="text-green-400">gpg --fingerprint [key-id]</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Notes -->
+        <div class="bg-yellow-900 border border-yellow-600 rounded-lg p-6">
+            <h2 class="text-lg font-bold text-yellow-400 mb-4">Security Notes</h2>
+            <ul class="space-y-2 text-yellow-100">
+                <li>• Always verify PGP signatures before trusting any marketplace</li>
+                <li>• Check that the key fingerprint matches the one published by the market</li>
+                <li>• Be cautious of phishing sites that may copy this verification page</li>
+                <li>• The market's private key should never be shared or compromised</li>
+                <li>• If signature verification fails, do not trust this marketplace</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-400">
+            <p>For PGP setup instructions, visit: <a href="/how-to-pgp" class="text-yellow-400 hover:text-yellow-300">How to Use PGP</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show a temporary success message
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = '✅ Copied!';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-yellow-400', 'bg-blue-600', 'bg-purple-600');
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-600');
+            button.classList.add('bg-yellow-400');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+</script>
+{% endblock %}

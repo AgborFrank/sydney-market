@@ -19,6 +19,7 @@ from utils.ddos_protection import ddos_protection
 from flask_wtf.csrf import generate_csrf
 from utils.security import log_admin_action_encrypted
 from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, set_captcha_code, generate_captcha_code
+from utils.pgp_utils import pgp_utils
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 logger = logging.getLogger(__name__)
@@ -1899,14 +1900,17 @@ def messages():
     with get_db_connection() as conn:
         c = conn.cursor()
         
-        # Fetch sent messages
+        # Fetch both sent and received messages
         c.execute("""
-            SELECT m.*, u.pusername as recipient_username
+            SELECT m.*, 
+                   CASE WHEN m.sender_id = ? THEN u.pusername ELSE s.pusername END as other_username,
+                   CASE WHEN m.sender_id = ? THEN 'sent' ELSE 'received' END as message_type
             FROM messages m
             LEFT JOIN users u ON m.recipient_id = u.id
-            WHERE m.sender_id = ? 
+            LEFT JOIN users s ON m.sender_id = s.id
+            WHERE m.sender_id = ? OR m.recipient_id = ?
             ORDER BY m.created_at DESC
-        """, (session['admin_id'],))
+        """, (session['admin_id'], session['admin_id'], session['admin_id'], session['admin_id']))
         messages = [dict(row) for row in c.fetchall()]
         
         if request.method == 'POST':
@@ -2479,6 +2483,41 @@ def admin_update_security():
         conn.commit()
     flash('Security settings updated successfully.', 'success')
     return redirect(url_for('admin.admin_security'))
+
+@admin_bp.route('/sign_verification', methods=['GET', 'POST'])
+@require_admin_role
+def sign_verification():
+    """Admin endpoint to sign verification messages."""
+    if request.method == 'POST':
+        try:
+            # Get admin's private key and passphrase from form
+            private_key = request.form.get('private_key', '').strip()
+            passphrase = request.form.get('passphrase', '').strip()
+            message = request.form.get('message', '').strip()
+            
+            if not all([private_key, passphrase, message]):
+                flash("All fields are required.", 'error')
+                return render_template('admin/sign_verification.html')
+            
+            # Sign the message
+            signed_message = pgp_utils.sign_message(private_key, passphrase, message)
+            
+            if signed_message:
+                flash("Message signed successfully!", 'success')
+                return render_template('admin/sign_verification.html', 
+                                     signed_message=signed_message,
+                                     original_message=message)
+            else:
+                flash("Failed to sign message. Check your private key and passphrase.", 'error')
+                return render_template('admin/sign_verification.html')
+                
+        except Exception as e:
+            logger.error(f"Error signing verification message: {e}")
+            flash(f"Error signing message: {str(e)}", 'error')
+            return render_template('admin/sign_verification.html')
+    
+    return render_template('admin/sign_verification.html')
+
 
 @admin_bp.route('/ban_vendor/<int:vendor_id>', methods=['POST'])
 def admin_ban_vendor(vendor_id):

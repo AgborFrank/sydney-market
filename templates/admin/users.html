@@ -140,18 +140,17 @@
       <p>Showing {{ (page - 1) * per_page + 1 }} to {{ (page - 1) * per_page + users|length }} of {{ total_users }} users</p>
       <div class="space-x-2">
         {% if page > 1 %}
-        <a href="{{ url_for('admin.admin_users', page=page-1, search=request.args.get('search', ''), role=request.args.get('role', ''), status=request.args.get('status', '')) }}"
+        <a href="{{ url_for('admin.manage_users', page=page-1, search=request.args.get('search', ''), role=request.args.get('role', ''), status=request.args.get('status', '')) }}"
           class="bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Previous</a>
         {% endif %}
         {% if page < total_pages %}
-        <a href="{{ url_for('admin.admin_users', page=page+1, search=request.args.get('search', ''), role=request.args.get('role', ''), status=request.args.get('status', '')) }}"
+        <a href="{{ url_for('admin.manage_users', page=page+1, search=request.args.get('search', ''), role=request.args.get('role', ''), status=request.args.get('status', '')) }}"
           class="bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Next</a>
         {% endif %}
       </div>
     </div>
     {% endif %}
   </div>
-
   
 </section>
 {% endblock %}

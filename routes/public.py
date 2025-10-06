@@ -15,6 +15,7 @@ from utils.monero import generate_monero_address
 from utils.database import send_notification_with_email
 from flask_wtf.csrf import generate_csrf
 from config import Config
+from utils.pgp_utils import pgp_utils
 
 public_bp = Blueprint('public', __name__, url_prefix='')
 logger = logging.getLogger(__name__)
@@ -1522,3 +1523,74 @@ def auto_finalize_trusted_vendor_orders():
             send_notification_with_email(order['vendor_id'], f'Order #{order["id"]} has been auto-finalized and funds released to your balance.', 'success', subject='Order Auto-Finalized')
             send_notification_with_email(1, f'Order #{order["id"]} was auto-finalized for trusted vendor. Escrow released.', 'info', subject='Order Auto-Finalized')
             print(f"Auto-finalized order {order['id']} for trusted vendor {order['vendor_id']}")
+
+
+@public_bp.route('/verify')
+def verify_marketplace():
+    """
+    Public verification endpoint for dark web marketplace verification.
+    Displays admin PGP key and signed verification message.
+    """
+    try:
+        settings = get_settings()
+        admin_pgp_key = settings.get('pgp_key', '')
+        
+        if not admin_pgp_key:
+            return render_template('verify.html', 
+                                 error="Admin PGP key not configured",
+                                 admin_pgp_key="",
+                                 verification_message="",
+                                 signed_message="")
+        
+        # Create verification message with current timestamp
+        verification_message = f"""MARKETPLACE VERIFICATION
+Site: {settings.get('site_name', 'Dark Web Marketplace')}
+URL: {request.url_root}
+Timestamp: {datetime.utcnow().isoformat()}
+Market PGP Key Fingerprint: {pgp_utils.get_key_fingerprint(admin_pgp_key) if pgp_utils else 'N/A'}
+
+This message confirms the authenticity of this marketplace.
+Only the admin with the corresponding private key can sign this message.
+
+For verification instructions, visit: {request.url_root}how-to-pgp
+"""
+        
+        # Try to sign the message (this would require admin's private key)
+        # For now, we'll show the message that should be signed
+        signed_message = "PGP signature would be generated here with admin's private key"
+        
+        # TODO: Implement admin signature endpoint with proper authentication
+        # This would require:
+        # 1. Admin authentication
+        # 2. Admin's private key (stored securely)
+        # 3. Passphrase for the private key
+        # signed_message = pgp_utils.sign_message(admin_private_key, passphrase, verification_message)
+        
+        return render_template('verify.html',
+                             admin_pgp_key=admin_pgp_key,
+                             verification_message=verification_message,
+                             signed_message=signed_message,
+                             settings=settings)
+                             
+    except Exception as e:
+        logger.error(f"Error in verification endpoint: {e}")
+        return render_template('verify.html',
+                             error=f"Verification error: {str(e)}",
+                             admin_pgp_key="",
+                             verification_message="",
+                             signed_message="")
+
+
+@public_bp.route('/verify/sign', methods=['POST'])
+def sign_verification():
+    """
+    Endpoint for admin to sign verification message with private key.
+    This should be called by admin with their private key.
+    """
+    try:
+        # This would require admin authentication and private key
+        # For security, this should be implemented with proper admin authentication
+        return jsonify({"error": "Admin signature endpoint not yet implemented"})
+    except Exception as e:
+        logger.error(f"Error in signature endpoint: {e}")
+        return jsonify({"error": str(e)})

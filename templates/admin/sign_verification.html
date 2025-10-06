@@ -1,0 +1,151 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Sign Verification Message - Admin Panel{% endblock %}
+
+{% block admin_content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-xl font-bold text-yellow-400 mb-4">Sign Verification Message</h1>
+            <p class="text-gray-300">Sign a verification message with your PGP private key for marketplace authentication.</p>
+        </div>
+
+        <!-- Security Warning -->
+        <div class="bg-red-900 border border-red-600 rounded-lg p-4 mb-6">
+            <h3 class="font-bold text-red-200 mb-2"> Security Warning</h3>
+            <ul class="text-red-100 text-sm space-y-1">
+                <li>• Never share your private key with anyone</li>
+                <li>• This form is for admin use only</li>
+                <li>• Ensure you're on a secure connection</li>
+                <li>• Clear your browser history after use</li>
+            </ul>
+        </div>
+
+        <!-- Signing Form -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6 mb-6">
+            <form method="POST" class="space-y-6">
+                <div>
+                    <label for="message" class="block text-gray-300 font-semibold mb-2">
+                        Verification Message
+                    </label>
+                    <textarea
+                        id="message"
+                        name="message"
+                        rows="8"
+                        class="w-full py-2 px-4 rounded-md border border-gray-300 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        placeholder="Paste the verification message to sign here..."
+                        required
+                    >{{ original_message or '' }}</textarea>
+                </div>
+
+                <div>
+                    <label for="private_key" class="block text-gray-300 font-semibold mb-2">
+                        Your PGP Private Key
+                    </label>
+                    <textarea
+                        id="private_key"
+                        name="private_key"
+                        rows="6"
+                        class="w-full py-2 px-4 rounded-md border border-gray-300 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        placeholder="Paste your PGP private key here..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label for="passphrase" class="block text-gray-300 font-semibold mb-2">
+                        Private Key Passphrase
+                    </label>
+                    <input
+                        type="password"
+                        id="passphrase"
+                        name="passphrase"
+                        class="w-full py-2 px-4 rounded-md border border-gray-300 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        placeholder="Enter your private key passphrase..."
+                        required
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full bg-yellow-400 text-gray-900 py-3 px-6 rounded-md font-semibold hover:bg-yellow-300 transition-colors"
+                >
+                    🔐 Sign Message
+                </button>
+            </form>
+        </div>
+
+        <!-- Signed Message Display -->
+        {% if signed_message %}
+        <div class="bg-green-900 border border-green-600 rounded-lg p-6 mb-6">
+            <h3 class="text-xl font-bold text-green-200 mb-4">✅ Signed Message</h3>
+            <div class="bg-gray-900 border border-gray-500 rounded p-4">
+                <pre class="text-green-400 text-sm whitespace-pre-wrap">{{ signed_message }}</pre>
+            </div>
+            <button onclick="copyToClipboard('{{ signed_message }}')" 
+                    class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500 transition-colors">
+                📋 Copy Signed Message
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Instructions -->
+        <div class="bg-gray-800 border border-gray-600 rounded-lg p-6">
+            <h3 class="text-xl font-bold text-yellow-400 mb-4">📋 Instructions</h3>
+            <div class="space-y-4 text-gray-300">
+                <div>
+                    <h4 class="font-semibold text-white mb-2">1. Prepare Your Message</h4>
+                    <p>Create a verification message with current timestamp and marketplace details.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">2. Sign the Message</h4>
+                    <p>Use your PGP private key to sign the message. The signed message will be displayed above.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">3. Update Verification Page</h4>
+                    <p>Copy the signed message and update the verification page at <code class="bg-gray-700 px-2 py-1 rounded">/verify</code></p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-2">4. Test Verification</h4>
+                    <p>Visit the verification page to ensure users can verify the signature.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-6 flex space-x-4">
+            <a href="/verify" 
+               class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-500 transition-colors">
+                🔍 View Verification Page
+            </a>
+            <a href="/admin/settings" 
+               class="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-500 transition-colors">
+                ⚙️ Admin Settings
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show a temporary success message
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = '✅ Copied!';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-green-600');
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-600');
+            button.classList.add('bg-green-600');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+</script>
+{% endblock %}

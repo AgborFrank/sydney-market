@@ -239,6 +239,13 @@
           </li>
           <li>
             <a
+              href="{{ url_for('admin.sign_verification') }}"
+              class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
+              ><i class="fas fa-key w-5 text-center"></i> Sign Verification</a
+            >
+          </li>
+          <li>
+            <a
               href="{{ url_for('admin.admin_ddos_protection') }}"
               class="flex items-center p-2 text-white hover:bg-gray-700 rounded"
               ><i class="fas fa-shield-virus w-5 text-center"></i> DDoS

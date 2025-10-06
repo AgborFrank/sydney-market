@@ -2,7 +2,12 @@
 {% block title %}Vendor Settings - {{ settings['site_name'] }}{% endblock %}
 {% block user_content %}
 <div class="container mx-auto p-6">
-  <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 2xl:w-auto">Vendor Settings</h1>
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 2xl:w-auto">Vendor Settings</h1>
+    <a href="{{ url_for('vendor.vendor_messages') }}" class="bg-sydney hover:bg-sydney/80 text-white font-medium py-2 px-4 rounded-md transition-colors">
+      View Messages
+    </a>
+  </div>
   <h3 class="px-2 py-1 border-solid border-0 text-white 2xl:text-left font-bold">
     Configure your vendor profile, store details, security, and payout settings. Changes are saved automatically.
   </h3>

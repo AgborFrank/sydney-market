@@ -15,11 +15,6 @@ import os
 import uuid
 import logging
 import secrets
-
-# Import the new PGP utilities
-from utils.pgp_utils import pgp_utils
-import gnupg
-from routes import require_role
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash, check_password_hash
 from dataclasses import dataclass
@@ -475,11 +470,8 @@ def register():
                           (username, pusername, hashed_password, hashed_pin, 'user'))
                 user_id = c.lastrowid
                 conn.commit()
-                session['user_id'] = user_id
-                session['username'] = username
-                session['role'] = 'user'
-                flash("Registration completed! Set up 2FA and PGP in settings.", 'success')
-                return redirect(url_for('user.dashboard'))
+                flash("Registration completed! Please log in to access your account.", 'success')
+                return redirect(url_for('user.login'))
             except sqlite3.IntegrityError:
                 flash("Username or public username already exists.", 'error')
                 return render_template('register.html', form_data=request.form.to_dict())
@@ -1303,6 +1295,112 @@ def update_profile():
             flash(f'Database error: {str(e)}', 'error')
 
     return redirect(url_for('user.edit_profile'))
+
+@user_bp.route('/contact', methods=['GET', 'POST'])
+def contact():
+    """Contact admin or vendors - works with or without PGP keys"""
+    if 'user_id' not in session:
+        flash("Please log in to send messages.", 'error')
+        return redirect(url_for('user.login'))
+    
+    user_id = session['user_id']
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Get user's PGP key if available
+        c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (user_id,))
+        user_pgp = c.fetchone()
+        user_has_pgp = bool(user_pgp and user_pgp['pgp_public_key'])
+        
+        if request.method == 'POST':
+            recipient_type = request.form.get('recipient_type', '').strip()
+            recipient_id = request.form.get('recipient_id', type=int)
+            subject = request.form.get('subject', '').strip()
+            message = request.form.get('message', '').strip()
+            
+            # Validation
+            if not all([recipient_type, subject, message]):
+                flash("All fields are required.", 'error')
+                return render_template('user/contact.html', user_has_pgp=user_has_pgp)
+            
+            if recipient_type not in ['admin', 'vendor']:
+                flash("Invalid recipient type.", 'error')
+                return render_template('user/contact.html', user_has_pgp=user_has_pgp)
+            
+            # Get recipient info
+            if recipient_type == 'admin':
+                c.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+                admin = c.fetchone()
+                if not admin:
+                    flash("Admin not found.", 'error')
+                    return render_template('user/contact.html', user_has_pgp=user_has_pgp)
+                recipient_id = admin['id']
+            elif recipient_type == 'vendor':
+                if not recipient_id:
+                    flash("Please select a vendor.", 'error')
+                    return render_template('user/contact.html', user_has_pgp=user_has_pgp)
+                
+                c.execute("SELECT id, role FROM users WHERE id = ?", (recipient_id,))
+                vendor = c.fetchone()
+                if not vendor or vendor['role'] != 'vendor':
+                    flash("Invalid vendor selected.", 'error')
+                    return render_template('user/contact.html', user_has_pgp=user_has_pgp)
+            
+            # Get recipient's PGP key
+            if recipient_type == 'admin':
+                c.execute("SELECT pgp_public_key FROM users WHERE role = 'admin' LIMIT 1")
+            else:
+                c.execute("SELECT pgp_public_key FROM vendor_settings WHERE user_id = ?", (recipient_id,))
+            
+            recipient_pgp = c.fetchone()
+            recipient_has_pgp = bool(recipient_pgp and recipient_pgp['pgp_public_key'])
+            
+            # Prepare message content
+            message_content = f"Subject: {subject}\n\n{message}"
+            
+            # Encrypt if both parties have PGP keys
+            if user_has_pgp and recipient_has_pgp:
+                try:
+                    from utils.pgp_utils import pgp_utils
+                    encrypted_content = pgp_utils.encrypt_message(recipient_pgp['pgp_public_key'], message_content)
+                    if encrypted_content != message_content:  # Encryption succeeded
+                        message_content = encrypted_content
+                    else:
+                        flash("Encryption failed, sending as plain text.", 'warning')
+                except Exception as e:
+                    logger.error(f"PGP encryption error: {e}")
+                    flash("Encryption failed, sending as plain text.", 'warning')
+            elif not user_has_pgp and not recipient_has_pgp:
+                # Both parties don't have PGP - send as plain text
+                pass
+            else:
+                # One party has PGP, one doesn't - send as plain text
+                flash("One party doesn't have PGP key, sending as plain text.", 'info')
+            
+            # Store message
+            c.execute("""
+                INSERT INTO messages (sender_id, recipient_id, content, created_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """, (user_id, recipient_id, message_content))
+            conn.commit()
+            
+            flash("Message sent successfully!", 'success')
+            return redirect(url_for('user.contact'))
+        
+        # Get available vendors for selection
+        c.execute("""
+            SELECT u.id, u.pusername, vs.business_name
+            FROM users u
+            LEFT JOIN vendor_settings vs ON u.id = vs.user_id
+            WHERE u.role = 'vendor' AND u.active = 1
+            ORDER BY u.pusername
+        """)
+        vendors = [dict(row) for row in c.fetchall()]
+        
+        return render_template('user/contact.html', 
+                             user_has_pgp=user_has_pgp, 
+                             vendors=vendors)
 
 @user_bp.route('/messages', methods=['GET', 'POST'])
 def messages():
