@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, g, jsonify
 from utils.database import get_db_connection, get_settings, get_user_profile_data, get_bond_amounts, get_pending_payment, get_user_notifications, mark_notification_read
-from utils.security import regenerate_session, encrypt_message, init_gpg_for_tor, is_tor_request
+from utils.security import regenerate_session, encrypt_message, init_gpg_for_tor, is_tor_request, verify_2fa, verify_pgp_signature
 from utils.crypto import get_exchange_rates
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import base64
 import time
+import re
 from utils.ddos_protection import recaptcha
 from utils.bitcoin import generate_btc_address
 from utils.monero import generate_monero_address
@@ -382,7 +383,7 @@ def login():
             flash("Logged in successfully.", 'success')
             if next_url:
                 return redirect(next_url)
-            return redirect(url_for('user.dashboard'))
+            return redirect(url_for('public.index'))
         flash("Invalid username or password.", 'error')
         return render_template('login.html', form_data={'username': username, 'next': next_url})
     return render_template('login.html', form_data={'next': next_url})
@@ -420,7 +421,7 @@ def two_factor_auth():
                 session.pop('2fa_message', None)
                 session.pop('encrypted_message', None)
                 flash('Logged in successfully.', 'success')
-                return redirect(url_for('user.dashboard'))
+                return redirect(url_for('public.index'))
             else:
                 flash('Invalid decrypted message.', 'error')
         else:

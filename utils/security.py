@@ -10,7 +10,7 @@ import socket
 import os
 
 # Import the new PGP utilities
-from utils.pgp_utils import pgp_utils
+from utils.pgp_utils import pgp_utils, GNUPG_AVAILABLE
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -166,6 +166,36 @@ def init_gpg_for_tor():
             return None, "fallback"
         else:
             return None, str(e)
+
+def verify_2fa(secret, code):
+    """Verify 2FA code using TOTP."""
+    try:
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code, valid_window=1)
+    except Exception as e:
+        logger.error(f"2FA verification failed: {e}")
+        return False
+
+def verify_pgp_signature(public_key, signature, message):
+    """Verify PGP signature."""
+    try:
+        if not GNUPG_AVAILABLE or not pgp_utils.gpg:
+            logger.error("PGP verification not available")
+            return False
+        
+        # Import the public key
+        import_result = pgp_utils.gpg.import_keys(public_key)
+        if not import_result.fingerprints:
+            logger.error("Failed to import PGP public key for verification")
+            return False
+        
+        # Verify the signature
+        verified = pgp_utils.gpg.verify(signature)
+        return verified.valid
+    except Exception as e:
+        logger.error(f"PGP signature verification failed: {e}")
+        return False
 
 def is_tor_request(request):
     """
