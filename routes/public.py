@@ -154,9 +154,8 @@ def product_detail(product_id):
     vendor_dict['pgp_fingerprint'] = None
     if vendor_dict.get('pgp_public_key'):
         try:
-            import pgpy
-            key, _ = pgpy.PGPKey.from_blob(vendor_dict['pgp_public_key'])
-            vendor_dict['pgp_fingerprint'] = str(key.fingerprint)
+            from utils.pgp_utils import pgp_utils
+            vendor_dict['pgp_fingerprint'] = pgp_utils.get_key_fingerprint(vendor_dict['pgp_public_key'])
         except Exception as e:
             logger.error(f"Failed to parse PGP key for vendor {vendor_dict['id']}: {e}")
             vendor_dict['pgp_fingerprint'] = None
@@ -338,9 +337,8 @@ def vendor_profile(vendor_id):
     vendor_dict['pgp_fingerprint'] = None
     if vendor_dict.get('pgp_public_key'):
         try:
-            import pgpy
-            key, _ = pgpy.PGPKey.from_blob(vendor_dict['pgp_public_key'])
-            vendor_dict['pgp_fingerprint'] = str(key.fingerprint)
+            from utils.pgp_utils import pgp_utils
+            vendor_dict['pgp_fingerprint'] = pgp_utils.get_key_fingerprint(vendor_dict['pgp_public_key'])
         except Exception as e:
             logger.error(f"Failed to parse PGP key for vendor {vendor_dict['id']}: {e}")
             vendor_dict['pgp_fingerprint'] = None
@@ -1138,9 +1136,8 @@ def vendor_shop(vendor_id):
     vendor_dict['pgp_fingerprint'] = None
     if vendor_dict.get('pgp_public_key'):
         try:
-            import pgpy
-            key, _ = pgpy.PGPKey.from_blob(vendor_dict['pgp_public_key'])
-            vendor_dict['pgp_fingerprint'] = str(key.fingerprint)
+            from utils.pgp_utils import pgp_utils
+            vendor_dict['pgp_fingerprint'] = pgp_utils.get_key_fingerprint(vendor_dict['pgp_public_key'])
         except Exception as e:
             logger.error(f"Failed to parse PGP key for vendor {vendor_dict['id']}: {e}")
             vendor_dict['pgp_fingerprint'] = None

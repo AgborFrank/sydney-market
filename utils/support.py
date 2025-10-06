@@ -6,8 +6,10 @@ from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import pgpy
 from utils.database import get_db_connection, get_settings
+
+# Import the new PGP utilities
+from utils.pgp_utils import pgp_utils
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +67,8 @@ class SecureSupportTicket:
                 logger.warning("Invalid PGP key format")
                 return None
             
-            key, _ = pgpy.PGPKey.from_blob(recipient_pgp_key)
-            message = pgpy.PGPMessage.new(content)
-            encrypted = key.encrypt(message)
-            return str(encrypted)
+            encrypted = pgp_utils.encrypt_message(recipient_pgp_key, content)
+            return encrypted
         except Exception as e:
             logger.error(f"Failed to encrypt with PGP: {str(e)}")
             return None

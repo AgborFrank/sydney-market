@@ -1,6 +1,5 @@
 import secrets
 from flask import session
-import pgpy
 import hashlib
 import logging
 from config import Config
@@ -9,6 +8,9 @@ import smtplib
 import socks
 import socket
 import os
+
+# Import the new PGP utilities
+from utils.pgp_utils import pgp_utils
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -26,33 +28,27 @@ def regenerate_session():
     logger.debug("Session regenerated, user_id: %s, role: %s", user_id, role)
 
 def encrypt_message(pgp_public_key, message):
+    """Encrypt message using PGP public key."""
     try:
-        key, _ = pgpy.PGPKey.from_blob(pgp_public_key)
-        msg = pgpy.PGPMessage.new(message)
-        encrypted = key.encrypt(msg)
+        encrypted = pgp_utils.encrypt_message(pgp_public_key, message)
         logger.debug("Message encrypted successfully")
-        return str(encrypted)
+        return encrypted
     except Exception as e:
         logger.error(f"Failed to encrypt with PGP key: {str(e)}")
         raise ValueError(f"Failed to encrypt with PGP key: {str(e)}")
 
 def decrypt_message(private_key_blob, passphrase, encrypted_message):
+    """Decrypt message using PGP private key."""
     try:
-        # Load the passphrase-protected private key
-        key, _ = pgpy.PGPKey.from_blob(private_key_blob)
-        # Unlock the private key with the passphrase
-        if not key.is_unlocked:
-            key.unlock(passphrase)
-        # Decrypt the message
-        msg = pgpy.PGPMessage.from_blob(encrypted_message)
-        decrypted = key.decrypt(msg)
+        decrypted = pgp_utils.decrypt_message(private_key_blob, passphrase, encrypted_message)
         logger.debug("Message decrypted successfully")
-        return str(decrypted.message)
+        return decrypted
     except Exception as e:
         logger.error(f"Decryption failed: {str(e)}")
         return None
 
 def generate_pgp_keypair(pusername, email, passphrase):
+    """Generate PGP keypair."""
     try:
         # Input validation
         if not isinstance(pusername, str) or not pusername:
@@ -62,13 +58,9 @@ def generate_pgp_keypair(pusername, email, passphrase):
         if not isinstance(passphrase, str) or len(passphrase) < 8:
             raise ValueError("Passphrase must be a string of at least 8 characters")
 
-        key = pgpy.PGPKey.new('RSA', 2048)
-        uid = pgpy.PGPUID.new(pusername, email=email)
-        key.add_uid(uid, usage={'sign', 'encrypt'}, ciphers=['AES256'], hashes=['SHA256'], compression=['ZLIB'])
-        key.protect(passphrase, 'AES256', 'SHA256')
-        public_key = str(key.pubkey)
-        private_key = str(key)
-        logger.info(f"PGP keypair generated for {pusername}")
+        public_key, private_key = pgp_utils.generate_keypair(pusername, email, passphrase)
+        if public_key and private_key:
+            logger.info(f"PGP keypair generated for {pusername}")
         return public_key, private_key
     except ValueError as ve:
         logger.error(f"Input error in generate_pgp_keypair: {str(ve)}")
@@ -95,12 +87,17 @@ def store_pgp_keys(user_id, pusername, email, passphrase):
     return False
 
 def log_admin_action_encrypted(action, admin, pgp_pubkey):
+    """Log admin action with PGP encryption."""
     message = f"[{datetime.utcnow()}] {admin}: {action}"
-    pubkey, _ = pgpy.PGPKey.from_blob(pgp_pubkey)
-    msg = pgpy.PGPMessage.new(message)
-    encrypted = pubkey.encrypt(msg)
-    with open('admin_action_logs.pgp', 'a') as f:
-        f.write(str(encrypted) + '\n')
+    try:
+        encrypted = pgp_utils.encrypt_message(pgp_pubkey, message)
+        with open('admin_action_logs.pgp', 'a') as f:
+            f.write(encrypted + '\n')
+    except Exception as e:
+        logger.error(f"Failed to encrypt admin log: {e}")
+        # Log unencrypted as fallback
+        with open('admin_action_logs.txt', 'a') as f:
+            f.write(message + '\n')
 
 def send_pgp_email_over_tor(to_email, subject, message, pgp_public_key, smtp_host, smtp_port, smtp_user, smtp_password, from_email=None):
     """
@@ -108,9 +105,7 @@ def send_pgp_email_over_tor(to_email, subject, message, pgp_public_key, smtp_hos
     """
     # Encrypt message with PGP
     try:
-        pubkey, _ = pgpy.PGPKey.from_blob(pgp_public_key)
-        msg = pgpy.PGPMessage.new(message)
-        encrypted_message = str(pubkey.encrypt(msg))
+        encrypted_message = pgp_utils.encrypt_message(pgp_public_key, message)
     except Exception as e:
         print(f"[PGP] Encryption failed: {e}")
         return False

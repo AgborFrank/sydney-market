@@ -418,13 +418,25 @@ def internal_server_error(e):
 init_db()
 init_routes(app)
 
-# Initialize DDoS protection
-redis_client = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
-    port=int(os.getenv('REDIS_PORT', 6379)),
-    password=os.getenv('REDIS_PASSWORD', None)
-)
-init_ddos_protection(redis_client)
+# Initialize DDoS protection with Redis fallback
+try:
+    redis_client = redis.Redis(
+        host=os.getenv('REDIS_HOST', 'localhost'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        password=os.getenv('REDIS_PASSWORD', None),
+        socket_connect_timeout=5,
+        socket_timeout=5
+    )
+    # Test Redis connection
+    redis_client.ping()
+    init_ddos_protection(redis_client)
+    print("DDoS protection initialized with Redis")
+except Exception as e:
+    print(f"DDoS protection not available - Redis connection failed: {e}")
+    # Initialize DDoS protection with None to disable it
+    from utils.ddos_protection import ddos_protection, recaptcha
+    ddos_protection = None
+    recaptcha = None
 # Before request: Store rates in g
 @app.before_request
 def before_request():

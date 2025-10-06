@@ -14,8 +14,10 @@ import sqlite3
 import os
 import uuid
 import logging
-import pgpy
 import secrets
+
+# Import the new PGP utilities
+from utils.pgp_utils import pgp_utils
 import gnupg
 from routes import require_role
 from cryptography.fernet import Fernet
