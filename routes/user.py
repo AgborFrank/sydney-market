@@ -28,6 +28,11 @@ from utils.monero import generate_monero_address
 import qrcode
 import io
 from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, mark_captcha_verified, reset_captcha_verification, generate_captcha_code, set_captcha_code
+from utils.image_challenge import (
+    generate_image_challenge, validate_image_challenge_response, 
+    is_image_challenge_required, mark_image_challenge_verified, 
+    reset_image_challenge_verification, clear_image_challenge
+)
 from functools import wraps
 from flask_wtf.csrf import generate_csrf
 #from app import User  # Import User from app.py
@@ -239,6 +244,14 @@ def require_captcha_challenge(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def require_image_challenge(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if is_image_challenge_required():
+            return redirect(url_for('user.image_challenge', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @user_bp.route('/captcha_challenge', methods=['GET', 'POST'])
 def captcha_challenge():
     logger.warning(f"CAPTCHA challenge route called - Method: {request.method}")
@@ -257,9 +270,103 @@ def captcha_challenge():
     logger.warning(f"CAPTCHA challenge GET - next_url: {next_url}")
     return render_template('captcha_challenge.html', next=next_url)
 
+@user_bp.route('/image_challenge', methods=['GET', 'POST'])
+def image_challenge():
+    """Image challenge page - independent security challenge"""
+    logger.warning(f"Image challenge route called - Method: {request.method}")
+    
+    if request.method == 'POST':
+        # Handle challenge response
+        try:
+            data = request.get_json()
+            challenge_id = data.get('challenge_id')
+            response = data.get('response')
+            
+            if validate_image_challenge_response(challenge_id, response):
+                mark_image_challenge_verified()
+                clear_image_challenge(challenge_id)
+                next_url = request.args.get('next') or url_for('user.login')
+                logger.warning(f"Image challenge successful - redirecting to: {next_url}")
+                return jsonify({
+                    'success': True,
+                    'message': 'Challenge completed successfully!',
+                    'redirect_url': next_url
+                })
+            else:
+                logger.warning("Image challenge failed")
+                return jsonify({
+                    'success': False,
+                    'message': 'Challenge failed. Please try again.'
+                })
+        except Exception as e:
+            logger.error(f"Image challenge error: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid request. Please try again.'
+            })
+    
+    # GET request - show challenge page
+    next_url = request.args.get('next') or url_for('user.login')
+    logger.warning(f"Image challenge GET - next_url: {next_url}")
+    return render_template('image_challenge.html', next=next_url)
+
+@user_bp.route('/generate_challenge', methods=['POST'])
+def generate_challenge():
+    """Generate a new image challenge"""
+    try:
+        challenge = generate_image_challenge()
+        logger.warning(f"Generated new challenge: {challenge['type']}")
+        return jsonify({
+            'success': True,
+            'challenge': challenge
+        })
+    except Exception as e:
+        logger.error(f"Failed to generate challenge: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to generate challenge. Please try again.'
+        })
+
+@user_bp.route('/validate_challenge', methods=['POST'])
+def validate_challenge():
+    """Validate image challenge response"""
+    try:
+        data = request.get_json()
+        challenge_id = data.get('challenge_id')
+        response = data.get('response')
+        
+        if not challenge_id or not response:
+            return jsonify({
+                'success': False,
+                'message': 'Missing challenge data.'
+            })
+        
+        if validate_image_challenge_response(challenge_id, response):
+            mark_image_challenge_verified()
+            clear_image_challenge(challenge_id)
+            next_url = request.args.get('next') or url_for('user.login')
+            return jsonify({
+                'success': True,
+                'message': 'Challenge completed successfully!',
+                'redirect_url': next_url
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Challenge failed. Please try again.'
+            })
+            
+    except Exception as e:
+        logger.error(f"Challenge validation error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Invalid request. Please try again.'
+        })
+
 # Login route
 @user_bp.route('/login', methods=['GET', 'POST'])
 @require_captcha_challenge
+@require_image_challenge
 def login():
     from app import User  # Import here to avoid circular import
     logger.debug("Entering /login")
@@ -426,6 +533,7 @@ def two_factor_auth():
 # Register route
 @user_bp.route('/register', methods=['GET', 'POST'])
 @require_captcha_challenge
+@require_image_challenge
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -847,16 +955,24 @@ def dashboard():
                 'revenue_30d': revenue_30d,
                 'conversion_rate': conversion_rate
             }
-        return render_template('user/vendor_dashboard.html',
+        return render_template('user/dashboard.html',
                               vendor_name=vendor_name,
                               stats=stats,
                               recent_orders=recent_orders,
                               recent_reviews=recent_reviews,
                               recent_messages=recent_messages,
                               published_products=published_products,
-                              title="Vendor Dashboard")
+                              title="Vendor Dashboard",
+                              is_vendor=True,
+                              vendor_data={
+                                  'products': published_products,
+                                  'total_orders': total_orders,
+                                  'total_sales': total_sales,
+                                  'revenue': revenue,
+                                  'recent_orders': recent_orders
+                              })
     
-    # Non-vendor user dashboard (buyer) - fetch purchased products
+    # User dashboard - fetch purchased products and vendor data if applicable
     profile_data, error = get_user_profile_data(user_id)
     if error:
         flash(error, 'error')
@@ -926,6 +1042,47 @@ def dashboard():
             paid_usd = 0.0
             in_escrow_usd = 0.0
             total_purchases_usd = 0.0
+        
+        # Vendor data if user is a vendor
+        vendor_data = None
+        if is_vendor:
+            # Fetch vendor's products
+            c.execute("""
+                SELECT p.id, p.title, p.price_usd, p.stock, p.status, p.created_at, p.featured_image,
+                       c.name as category_name
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.vendor_id = ?
+                ORDER BY p.created_at DESC
+            """, (user_id,))
+            vendor_products = [dict(row) for row in c.fetchall()]
+            
+            # Vendor sales statistics
+            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ?", (user_id,))
+            total_orders = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM orders WHERE vendor_id = ? AND status = 'delivered'", (user_id,))
+            total_sales = c.fetchone()[0]
+            c.execute("SELECT SUM(amount_usd) FROM orders WHERE vendor_id = ? AND status = 'delivered'", (user_id,))
+            revenue = c.fetchone()[0] or 0.0
+            
+            # Recent vendor orders
+            c.execute("""
+                SELECT o.id, o.amount_usd, o.status, o.created_at, p.title, u.pusername as buyer_username
+                FROM orders o
+                JOIN products p ON o.product_id = p.id
+                JOIN users u ON o.user_id = u.id
+                WHERE o.vendor_id = ?
+                ORDER BY o.created_at DESC LIMIT 5
+            """, (user_id,))
+            vendor_orders = [dict(row) for row in c.fetchall()]
+            
+            vendor_data = {
+                'products': vendor_products,
+                'total_orders': total_orders,
+                'total_sales': total_sales,
+                'revenue': revenue,
+                'recent_orders': vendor_orders
+            }
     
     rates = get_exchange_rates()
     if not rates:
@@ -948,6 +1105,8 @@ def dashboard():
                          profile_data=profile_data,
                          stats=stats,
                          purchased_products=purchased_products,
+                         vendor_data=vendor_data,
+                         is_vendor=is_vendor,
                          title="Dashboard - Sydney")
 
 def get_bond_amounts():
@@ -1629,30 +1788,43 @@ def balance():
     except Exception as e:
         logger.error("Failed to fetch balance: %s", str(e))
         flash("Unable to fetch balance.", 'error')
-        return redirect(url_for('user.balance'))
+        return redirect(url_for('user.dashboard'))
     
-    # Generate deposit address (simplified; use secure wallet in production)
+    # Generate deposit address using the existing utils functions
     try:
         if crypto == 'btc':
-            wallet = BitcoinWallet(wallet_id=f"user_{user_id}_btc")
-            deposit_address = wallet.get_new_address()
+            deposit_address = generate_btc_address(user_id)
         else:
-            wallet = Wallet()  # Configure Monero wallet appropriately
-            deposit_address = wallet.new_address()
+            deposit_address = generate_monero_address(user_id)
         
-        # Encrypt and store deposit address
+        if not deposit_address:
+            flash("Unable to generate deposit address.", 'error')
+            return redirect(url_for('user.dashboard'))
+        
+        # Store deposit address in the correct table
         with get_db_connection() as conn:
             c = conn.cursor()
-            c.execute("SELECT pgp_public_key FROM users WHERE id = ?", (user_id,))
-            public_key = c.fetchone()['pgp_public_key']
-            if public_key:
-                encrypted_address = encrypt_message(public_key, deposit_address)
-                c.execute("UPDATE balances SET deposit_address = ? WHERE user_id = ?", (encrypted_address, user_id))
-                conn.commit()
+            # Check if address already exists for this user
+            c.execute("SELECT user_id FROM user_crypto_addresses WHERE user_id = ?", (user_id,))
+            existing = c.fetchone()
+            
+            if existing:
+                # Update existing address
+                if crypto == 'btc':
+                    c.execute("UPDATE user_crypto_addresses SET btc_address = ? WHERE user_id = ?", (deposit_address, user_id))
+                else:
+                    c.execute("UPDATE user_crypto_addresses SET xmr_subaddress = ? WHERE user_id = ?", (deposit_address, user_id))
+            else:
+                # Insert new address record
+                if crypto == 'btc':
+                    c.execute("INSERT INTO user_crypto_addresses (user_id, btc_address) VALUES (?, ?)", (user_id, deposit_address))
+                else:
+                    c.execute("INSERT INTO user_crypto_addresses (user_id, xmr_subaddress) VALUES (?, ?)", (user_id, deposit_address))
+            conn.commit()
     except Exception as e:
         logger.error("Failed to generate or store deposit address: %s", str(e))
         flash("Unable to generate deposit address.", 'error')
-        return redirect(url_for('user.balance'))
+        return redirect(url_for('user.dashboard'))
     
     return render_template('user/balance.html', crypto=crypto, balance=balance, deposit_address=deposit_address)
 

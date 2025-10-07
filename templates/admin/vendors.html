@@ -1,127 +1,131 @@
-{% extends 'admin/admin_base.html' %}
-
-{% block title %}Admin - Vendor Management - {{ settings['site_name'] }}{% endblock %}
+{% extends "admin/admin_base.html" %}
 
 {% block admin_content %}
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Vendors</h2>
-
-<div class="bg-white p-6 rounded-lg shadow-md mb-6">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Vendor Ratings and Levels</h3>
-    <p class="text-sm text-gray-500 mb-4">View and manage vendor ratings and levels. Levels are updated automatically daily at 00:00 UTC or after order completions/ratings. Use the buttons below to manage vendor levels.</p>
-    
-    <div class="flex space-x-4 mb-4">
-        <form method="POST" action="{{ url_for('admin.admin_update_all_vendor_levels') }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="bg-yellow-400 text-gray-900 py-2 px-4 rounded-md hover:bg-yellow-500 transition duration-200">Update All Vendor Levels Now</button>
-        </form>
-        
-        <form method="POST" action="{{ url_for('admin.admin_fix_vendor_levels') }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200">Fix Missing Vendor Levels</button>
-        </form>
-        
-        <form method="POST" action="{{ url_for('admin.admin_recalculate_vendor_metrics') }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition duration-200">Recalculate Vendor Metrics</button>
-        </form>
-    </div>
-    
-    <!-- Vendor Level Legend -->
-    <div class="bg-gray-50 p-4 rounded-lg mb-6">
-        <h4 class="text-sm font-semibold text-gray-700 mb-3">Vendor Level Requirements</h4>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-            {% for level in range(1, 11) %}
-            <div class="flex items-center space-x-2">
-                <span class="px-2 py-1 rounded text-white font-bold bg-lvl{{ level }}">{{ level }}</span>
-                <span>
-                    {% if level == 1 %}
-                        New Vendor
-                    {% elif level == 2 %}
-                        10+ sales, 90%+ feedback
-                    {% elif level == 3 %}
-                        15+ sales, 92%+ feedback
-                    {% elif level == 4 %}
-                        25+ sales, 93%+ feedback
-                    {% elif level == 5 %}
-                        50+ sales, 94%+ feedback
-                    {% elif level == 6 %}
-                        100+ sales, 95%+ feedback
-                    {% elif level == 7 %}
-                        250+ sales, 96%+ feedback
-                    {% elif level == 8 %}
-                        500+ sales, 97%+ feedback
-                    {% elif level == 9 %}
-                        1000+ sales, 98%+ feedback
-                    {% elif level == 10 %}
-                        2000+ sales, 99%+ feedback
-                    {% endif %}
-                </span>
+<div class="max-w-7xl mx-auto pt-28">
+    <div class="bg-card border border-border rounded-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-white">Vendor Management</h1>
+            <div class="flex gap-2">
+                <form method="POST" action="{{ url_for('admin.admin_fix_vendor_levels') }}" class="inline">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                        Fix Vendor Levels
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.admin_recalculate_vendor_metrics') }}" class="inline">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm">
+                        Recalculate Metrics
+                    </button>
+                </form>
             </div>
-            {% endfor %}
         </div>
-    </div>
 
-    {% if vendors %}
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Feedback (%)</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Rating</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            {% for vendor in vendors %}
-            <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <a href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.vendor_id) }}" class="text-yellow-400 hover:text-yellow-500">{{ vendor.pusername }}</a>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {% if vendor.level %}
-                        <span class="px-2 py-1 rounded text-green-600 text-xs font-bold bg-lvl{{ vendor.level }}">
-                            Level {{ vendor.level }}
-                        </span>
-                    {% else %}
-                        <span class="px-2 py-1 rounded text-white text-xs font-bold bg-gray-500">
-                            N/A
-                        </span>
-                    {% endif %}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ vendor.sales_count }}</td>
-                {%if vendor.positive_feedback_percentage%}
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ '%.1f' % vendor.positive_feedback_percentage }}</td>
-                {%endif%}
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ '%.1f' % vendor.avg_rating if vendor.avg_rating else 'N/A' }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ vendor.updated_at }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <div class="flex space-x-2">
-                        <a href="{{ url_for('admin.admin_edit_vendor', vendor_id=vendor.vendor_id) }}" 
-                           class="text-blue-400 hover:text-blue-500">Edit</a>
-                        <form method="POST" action="{{ url_for('admin.admin_update_vendor_level', vendor_id=vendor.vendor_id) }}" class="inline">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                            <select name="level" class="border-gray-300 rounded-md shadow-sm focus:ring-yellow-400 focus:border-yellow-400 sm:text-sm">
-                                {% for lvl in range(1, 11) %}
-                                <option value="{{ lvl }}" {% if lvl == (vendor.level or 1) %}selected{% endif %}>Level {{ lvl }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="ml-2 text-yellow-400 hover:text-yellow-500">Update Level</button>
-                        </form>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-600{% elif category == 'success' %}bg-green-600{% else %}bg-blue-600{% endif %} text-white">
+                        {{ message }}
                     </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="text-sm text-gray-500">No vendors found.</p>
-    {% endif %}
-</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-{% for message in get_flashed_messages(with_categories=true) %}
-<p class="mt-4 {% if message[0] == 'success' %}text-green-600{% else %}text-red-600{% endif %}">{{ message[1] }}</p>
-{% endfor %}
+        {% if vendors %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-card border border-border rounded-lg">
+                <thead class="bg-sydney">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Vendor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Level</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Sales</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Rating</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Feedback %</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Last Seen</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for vendor in vendors %}
+                    <tr class="hover:bg-gray-800">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-sydney flex items-center justify-center">
+                                        <span class="text-white font-bold text-sm">{{ vendor.pusername[0].upper() if vendor.pusername else 'V' }}</span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-white">{{ vendor.pusername or 'Unknown' }}</div>
+                                    <div class="text-sm text-gray-400">ID: {{ vendor.vendor_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if vendor.level >= 5 %}bg-green-100 text-green-800
+                                {% elif vendor.level >= 3 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                Level {{ vendor.level or 0 }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {{ vendor.sales_count or 0 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {% if vendor.avg_rating %}
+                                <div class="flex items-center">
+                                    <span class="text-yellow-400">★</span>
+                                    <span class="ml-1">{{ "%.1f"|format(vendor.avg_rating) }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">No ratings</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {% if vendor.positive_feedback_percentage is not none %}
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-700 rounded-full h-2 mr-2">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: {{ vendor.positive_feedback_percentage }}%"></div>
+                                    </div>
+                                    <span>{{ "%.1f"|format(vendor.positive_feedback_percentage) }}%</span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {% if vendor.last_seen_formatted %}
+                                {% if vendor.is_online %}
+                                    <span class="text-green-400 font-semibold">{{ vendor.last_seen_formatted }}</span>
+                                {% else %}
+                                    {{ vendor.last_seen_formatted }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-400">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('admin.admin_vendor_details', vendor_id=vendor.vendor_id) }}" 
+                                   class="text-orange-400 hover:text-orange-300 font-semibold">Details</a>
+                                <a href="{{ url_for('admin.admin_edit_vendor', vendor_id=vendor.vendor_id) }}" 
+                                   class="text-blue-400 hover:text-blue-300">Edit</a>
+                                <a href="{{ url_for('admin.admin_vendor_profile', vendor_id=vendor.vendor_id) }}" 
+                                   class="text-green-400 hover:text-green-300">Profile</a>
+                                <a href="{{ url_for('admin.admin_vendor_level_history', vendor_id=vendor.vendor_id) }}" 
+                                   class="text-purple-400 hover:text-purple-300">History</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-gray-400 text-lg mb-4">No vendors found</div>
+            <p class="text-gray-500">There are currently no vendors registered in the system.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

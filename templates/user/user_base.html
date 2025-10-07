@@ -14,24 +14,22 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='dist/styles.css') }}"
     />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='dist/media.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
+
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/style.css') }}"
     />
+    <link href="{{ url_for('static', filename='dist/media.css') }}" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
     <link href="https://css.gg/css" rel="stylesheet" />
     <style>
       :root {
-          --primary-color: {{ settings.primary_color | default('#3b82f6') }};
-          --secondary-color: {{ settings.secondary_color | default('#16a34a') }};
-          --primary-color-rgb: {{ settings.primary_color_rgb | default('59, 130, 246') }};
+          --primary-color: {{ settings.primary_color | default('#3b82f6', true) if settings is defined else '#3b82f6' }};
+          --secondary-color: {{ settings.secondary_color | default('#16a34a', true) if settings is defined else '#16a34a' }};
+          --primary-color-rgb: {{ settings.primary_color_rgb | default('59, 130, 246', true) if settings is defined else '59, 130, 246' }};
       }
       .container { max-width: 1280px; }
       .bg-primary { background-color: var(--primary-color); }
@@ -68,7 +66,7 @@
     {% if stats is not defined %} {% set stats = {'items_bought': 0, 'paid_usd':
     0, 'in_escrow_usd': 0, 'total_purchases_usd': 0} %} {% endif %}
     <div
-      class="min-h-full w-full 2xl:max-w-screen-4xl mx-auto"
+      class="min-h-full w-full xl:max-w-screen-4xl mx-auto"
       style="position: relative; z-index: 10"
     >
       <!-- Header -->
@@ -78,11 +76,13 @@
         class="contentcont z-0 bg-primary border-solid border-[1px] border-border rounded-md w-full"
       >
         <div
-          class="content mx-auto min-h-[calc(100vh-230px)] px-[16px] py-[15px] flex flex-wrap gap-2"
+          class="content mx-auto min-h-[calc(100vh-230px)] px-[16px] py-[15px] flex flex-nowrap gap-2"
+          style="display: flex !important; flex-direction: row !important;"
         >
           <!-- Sidebar -->
           <div
-            class="2xl:w-[270px] flex flex-col items-center justify-start mx-2"
+            class="md:w-[270px] md:flex-shrink-0 flex flex-col items-center justify-start mx-2"
+            style="width: 270px !important; flex-shrink: 0 !important;"
           >
             <div class="w-full flex flex-col gap-2">
               {% import 'components/macros.html' as macros %} {{
@@ -92,15 +92,15 @@
                 class="bg-card border-solid border-[1px] border-border rounded-md p-2 hover:!border-sydney mx-auto my-0 w-full h-[fit-content]"
               >
                 <h1
-                  class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
+                  class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start lg:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
                 >
                   <i class="gg-user mr-3"></i> Profile Actions
                 </h1>
                 <div
-                  class="px-0.5 py-1 grid grid-cols-2 md:grid-cols-1 xl:flex xl:flex-row 2xl:flex-col flex-1 flex-wrap justify-center gap-2 text-[13px] 2xl:gap-[2px]"
+                  class="px-0.5 py-1 flex flex-col gap-2 text-[13px]"
                 >
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -109,7 +109,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -118,7 +118,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -128,7 +128,7 @@
                     <span class="group-hover:text-white mr-3">(0)</span>
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -137,7 +137,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -147,7 +147,7 @@
                     <span class="group-hover:text-white mr-3">(0)</span>
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -156,7 +156,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -165,7 +165,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 _album py-[3px] group-hover:text-white rounded-md"
@@ -174,7 +174,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -183,7 +183,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -193,7 +193,7 @@
                   </div>
                   {% if session['role'] == 'vendor' %}
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -202,7 +202,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -211,7 +211,7 @@
                     >
                   </div>
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -221,7 +221,7 @@
                   </div>
                   {% endif %}
                   <div
-                    class="flex flex-shrink-0 last:col-span-2 border-solid border-[1px] 2xl:border-0 2xl:border-b-[1px] border-sydney 2xl:border-border hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
+                    class="flex flex-shrink-0 border-solid border-[1px] border-sydney hover:border-transparent text-white items-center justify-between hover:bg-sydney rounded-md group"
                   >
                     <a
                       class="px-2 py-[3px] group-hover:text-white rounded-md"
@@ -238,8 +238,9 @@
 
               <!-- Exchange Rates -->
               {% import "components/exchange.html" as exchange %} {{
-              exchange.exchange_rates(rates) }} {% endif %} {% include
-              'components/categories_sidebar.html' %}
+              exchange.exchange_rates(rates) }}
+              {% endif %}
+              {% include 'components/categories_sidebar.html' %}
               <!--LATEST NEWS-->
               {% include 'components/news_sidebar.html' %}
 
@@ -248,7 +249,8 @@
           </div>
           <!-- Main Content -->
           <div
-            class="2xl:w-[calc(100%-300px)] flex flex-col mx-auto justify-start gap-2 text-xs text-sydney bg-card p-2 border-solid border border-border hover:border-sydney rounded-md"
+            class="md:flex-1 flex flex-col mx-auto justify-start gap-2 text-xs text-sydney bg-card p-2 border-solid border border-border hover:border-sydney rounded-md"
+            style="flex: 1 !important;"
           >
             {% block user_content %}{% endblock %}
           </div>

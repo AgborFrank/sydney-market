@@ -1,5 +1,5 @@
 <header
-  class="bg-card rounded-b-md w-full z-10 flex flex-col-reverse 2xl:flex-col sticky 2xl:static top-0 mb-2 py-2 px-2"
+  class="bg-card rounded-b-md w-full z-10 flex flex-col-reverse lg:flex-col sticky lg:static top-0 mb-2 py-2 px-2"
 >
   <!-- Mobile Menu Toggle -->
   <input id="nav" type="checkbox" name="nav" class="absolute hidden" />
@@ -20,7 +20,7 @@
     <!-- Mobile Toggle -->
     <label
       for="nav"
-      class="text-white h-[30px] border-solid gap-2 border-transparent hover:border-white hover:bg-white hover:text-sydney flex items-center justify-center rounded 2xl:hidden"
+      class="text-white h-[30px] border-solid gap-2 border-transparent hover:border-white hover:bg-white hover:text-sydney flex items-center justify-center rounded lg:hidden"
     >
       <i class="gg-menu"></i> Menu
     </label>
@@ -79,7 +79,7 @@
 
     <div class="flex items-center space-x-4">
       {% if 'user_id' in session %}
-      <div class="h-[95px] hidden 2xl:flex items-center">
+      <div class="h-[95px] hidden lg:flex items-center">
         <div
           class="h-16 px-3 py-1 rounded-md border-solid border-[1.5px] border-transparent flex justify-center items-center"
         >
@@ -178,7 +178,7 @@
   </div>
 
   <!-- Currency Prices 
-    <div class="hidden overflow-hidden z-20 2xl:flex bg-sydney px-1.5 py-3 2xl:py-0 2xl:rounded-b-none 2xl:rounded-t-md rounded-b-md rounded-t-none text-right w-auto self-end">
+    <div class="hidden overflow-hidden z-20 lg:flex bg-sydney px-1.5 py-3 lg:py-0 lg:rounded-b-none lg:rounded-t-md rounded-b-md rounded-t-none text-right w-auto self-end">
         <div class="text-white min-w-[450px] text-center flex justify-around relative" style="font-size: 11px !important;">
             <span class="text-white text-center"><span class="bred">▼</span>USD {{ rates.usd|default('93,853.67') }}</span> 
             <span class="text-white text-center"><span class="bred">▼</span>CAD {{ rates.cad|default('130,406.88') }}</span> 
@@ -191,14 +191,14 @@
   <!-- Navigation Menu -->
   <div
     id="nav-menu"
-    class="w-full hidden 2xl:flex flex-col 2xl:flex-row items-center justify-between bg-card rounded-b-md rounded-tl-md"
+    class="w-full hidden lg:flex flex-col lg:flex-row items-center justify-between bg-card rounded-b-md rounded-tl-md"
   >
     <div
-      class="flex flex-col gap-1 2xl:gap-0 w-full h-14 2xl:w-auto 2xl:flex-row items-start 2xl:items-center"
+      class="flex flex-col gap-1 lg:gap-0 w-full h-14 lg:w-auto lg:flex-row items-start lg:items-center"
     >
       <!-- Mobile Header -->
       <div
-        class="flex 2xl:hidden w-full items-center justify-between px-4 mb-2.5"
+        class="flex lg:hidden w-full items-center justify-between px-4 mb-2.5"
       >
         <a
           href="{{ url_for('user.dashboard') }}"
@@ -228,12 +228,12 @@
           ></label>
         </div>
       </div>
-      <span class="block 2xl:hidden w-full h-[1px] bg-white"></span>
+      <span class="block lg:hidden w-full h-[1px] bg-white"></span>
 
       <!-- Mobile User Panel -->
       {% if 'user_id' in session %}
       <div
-        class="w-full flex 2xl:hidden flex-col gap-1 items-center px-1 py-1.5 text-white bg-sydney"
+        class="w-full flex lg:hidden flex-col gap-1 items-center px-1 py-1.5 text-white bg-sydney"
       >
         <div
           class="grid grid-cols-[65px,auto] space-y-2 items-center w-full h-full"
@@ -317,11 +317,11 @@
           </div>
         </div>
       </div>
-      <span class="block 2xl:hidden w-full h-[1px] bg-white"></span>
+      <span class="block lg:hidden w-full h-[1px] bg-white"></span>
       {% endif %}
       <!-- Navigation Links -->
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="/"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -331,7 +331,7 @@
 
       <!-- Navigation Links -->
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="{{ url_for('user.dashboard') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -340,10 +340,10 @@
       </a>
 
       <div
-        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group lg:hover:w-[unset] w-full lg:w-auto"
       >
         <a
-          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
           href="{{ url_for('user.orders') }}"
         >
           <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -351,12 +351,12 @@
           </div>
         </a>
         <div
-          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+          class="hidden group-hover:block z-50 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
         >
           {% for status in ['pending', 'accepted', 'shipped', 'finalized',
           'disputed', 'canceled', 'unpaid'] %}
           <a
-            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-bold leading-[12px] py-[8px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.orders', status=status) }}"
             >{{ status|capitalize }} Orders</a
           >
@@ -365,10 +365,10 @@
       </div>
 
       <div
-        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group lg:hover:w-[unset] w-full lg:w-auto"
       >
         <a
-          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
           href="{{ url_for('user.messages') }}"
         >
           <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -376,28 +376,28 @@
           </div>
         </a>
         <div
-          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+          class="hidden group-hover:block z-50 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
         >
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.messages_conversations') }}"
           >
             Conversations
           </a>
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.messages_order_messages') }}"
           >
             Order Messages
           </a>
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.messages_trash') }}"
           >
             Trash
           </a>
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.messages_invitations') }}"
           >
             Invitations
@@ -406,7 +406,7 @@
       </div>
 
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="{{ url_for('user.favorites') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -422,7 +422,7 @@
       </a>
 
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="{{ url_for('user.feedback') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -431,10 +431,10 @@
       </a>
 
       <div
-        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group lg:hover:w-[unset] w-full lg:w-auto"
       >
         <a
-          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
           href="{{ url_for('vendor.products_index') }}"
         >
           <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -442,15 +442,15 @@
           </div>
         </a>
         <div
-          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+          class="hidden group-hover:block z-50 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
         >
           <a
-            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-bold leading-[12px] py-[8px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('vendor.products_create') }}"
             >Add new Product</a
           >
           <a
-            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-bold leading-[12px] py-[8px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('vendor.products_edit', product_id=1) }}"
             >Edit Product</a
           >
@@ -458,7 +458,7 @@
       </div>
 
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="{{ url_for('user.wallet') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -467,7 +467,7 @@
       </a>
 
       <a
-        class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full 2xl:w-auto"
+        class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex w-full lg:w-auto"
         href="{{ url_for('user.become_vendor') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -476,10 +476,10 @@
       </a>
 
       <div
-        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group lg:hover:w-[unset] w-full lg:w-auto"
       >
         <a
-          class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          class="text-white text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
           href="{{ url_for('user.profile') }}"
         >
           <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -487,21 +487,21 @@
           </div>
         </a>
         <div
-          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+          class="hidden group-hover:block z-50 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
         >
           <a
-            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-bold leading-[12px] py-[8px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.profile') }}"
             >View Feedback & Profile</a
           >
           <a
-            class="text-left text-white block text-[13px] font-bold leading-[14px] py-[8px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-bold leading-[12px] py-[8px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.edit_profile') }}"
             >Edit Profile</a
           >
           {% if session['role'] == 'vendor' %}
           <a
-            class="text-left text-gray-100 block text-[13px] font-bold leading-[14px] py-[8px] px-[14px]  hover:text-white"
+            class="text-left text-gray-100 block text-[11px] font-bold leading-[12px] py-[8px] px-[14px]  hover:text-white"
             href="{{ url_for('vendor.vendor_settings') }}"
             >Vendor Settings</a
           >
@@ -509,32 +509,32 @@
         </div>
       </div>
       <div
-        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group 2xl:hover:w-[unset] w-full 2xl:w-auto"
+        class="inline-block relative h-full hover:bg-sydney2 hover:w-full group lg:hover:w-[unset] w-full lg:w-auto"
       >
         <a
           href="{{ url_for('user.faq') }}"
-          class="text-white text-[13px] font-normal leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
+          class="text-white text-[11px] font-normal leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex"
         >
           <div class="grid grid-cols-[30px,auto] gap-1 items-center">
             <i class="gg-support justify-self-center"></i> Support
           </div>
         </a>
         <div
-          class="hidden 2xl:group-hover:block z-10 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
+          class="hidden group-hover:block z-50 bg-[#5f6266] rounded-b-md absolute min-w-[220px] w-[unset]"
         >
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.support') }}"
           >
             Create ticket
           </a>
           <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href="{{ url_for('user.my_tickets') }}"
             >My Tickets</a
           >
           <!-- <a
-            class="text-left text-white block text-[13px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
+            class="text-left text-white block text-[11px] font-normal leading-[12px] py-[4px] px-[14px] hover:bg-sydney2"
             href=""
             >View contact details</a
           > -->
@@ -543,7 +543,7 @@
 
       {% if 'user_id' in session %}
       <a
-        class="text-sydney text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex 2xl:hidden bg-white hover:text-white w-full 2xl:w-auto"
+        class="text-sydney text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex lg:hidden bg-white hover:text-white w-full lg:w-auto"
         href="{{ url_for('user.logout') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">
@@ -552,7 +552,7 @@
       </a>
       {% else %}
       <a
-        class="text-sydney text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex 2xl:hidden bg-white hover:text-white w-full 2xl:w-auto"
+        class="text-sydney text-[11px] font-bold leading-[12px] px-[5px] py-[9px] uppercase hover:bg-sydney2 h-full flex lg:hidden bg-white hover:text-white w-full lg:w-auto"
         href="{{ url_for('user.login') }}"
       >
         <div class="grid grid-cols-[30px,auto] gap-1 items-center">

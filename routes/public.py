@@ -56,17 +56,10 @@ def index():
     if error:
         flash(error, 'error')
 
-    # Exchange rates
-    rates = get_exchange_rates()
-    if not rates:
-        flash("Unable to fetch exchange rates.", 'error')
-        rates = {"bitcoin": {}, "monero": {}}
-
     return render_template('index.html',
                          featured_products=featured_products,
                          random_products=random_products,
-                         profile_data=profile_data,
-                         rates=rates)
+                         profile_data=profile_data)
 @public_bp.route('/product/<int:product_id>')
 @login_required
 def product_detail(product_id):
@@ -205,10 +198,15 @@ def product_detail(product_id):
             vendor_dict['last_login'] = vendor_dict['last_login'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
         except ValueError as e:
             logger.error(f"Failed to parse vendor last_login: {e}")
-            vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+            vendor_dict['last_login'] = None
     else:
         logger.warning(f"last_login is None for vendor {vendor_dict['id']}")
-        vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+        vendor_dict['last_login'] = None
+    
+    # Add formatted last seen time
+    from utils.time_utils import format_last_seen, is_online
+    vendor_dict['last_seen_formatted'] = format_last_seen(vendor_dict['last_login'])
+    vendor_dict['is_online'] = is_online(vendor_dict['last_login'])
 
     # Fetch detailed feedback with pagination
     page = request.args.get('pg', 1, type=int)
@@ -673,17 +671,11 @@ def search_products():
                 if product.get('price_usd') is None:
                     product['price_usd'] = 0.0
         
-        rates_flat = get_exchange_rates()
-        # Convert to nested dict for template compatibility
-        rates = {
-            'bitcoin': {'usd': rates_flat.get('BTC/USD', {}).get('rate', 0)},
-            'monero': {'usd': rates_flat.get('XMR/USD', {}).get('rate', 0)}
-        }
-        return render_template('search_results.html', products=products, query=query, filters=request.args, rates=rates)
+        return render_template('search_results.html', products=products, query=query, filters=request.args)
     except Exception as e:
         logger.error(f"Search error: {str(e)}")
         flash("An error occurred while searching. Please try again.", 'error')
-        return render_template('search_results.html', products=[], query=query, filters=request.args, rates={})
+        return render_template('search_results.html', products=[], query=query, filters=request.args)
 
 @public_bp.route('/privacy-policy')
 def privacy_policy():
@@ -1188,10 +1180,15 @@ def vendor_shop(vendor_id):
             vendor_dict['last_login'] = vendor_dict['last_login'].replace(tzinfo=timezone('UTC')).astimezone(timezone('Africa/Lagos'))
         except ValueError as e:
             logger.error(f"Failed to parse vendor last_login: {e}")
-            vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+            vendor_dict['last_login'] = None
     else:
         logger.warning(f"last_login is None for vendor {vendor_dict['id']}")
-        vendor_dict['last_login'] = datetime.now(tz=timezone('Africa/Lagos'))
+        vendor_dict['last_login'] = None
+    
+    # Add formatted last seen time
+    from utils.time_utils import format_last_seen, is_online
+    vendor_dict['last_seen_formatted'] = format_last_seen(vendor_dict['last_login'])
+    vendor_dict['is_online'] = is_online(vendor_dict['last_login'])
 
     # Fetch all active products by the vendor
     products = db.execute(

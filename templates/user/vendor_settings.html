@@ -3,12 +3,12 @@
 {% block user_content %}
 <div class="container mx-auto p-6">
   <div class="flex justify-between items-center mb-4">
-    <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 2xl:w-auto">Vendor Settings</h1>
+    <h1 class="text-white text-[13px] font-bold leading-[14px] px-[5px] py-[9px] uppercase hover:bg-sydney2 lg:w-auto">Vendor Settings</h1>
     <a href="{{ url_for('vendor.vendor_messages') }}" class="bg-sydney hover:bg-sydney/80 text-white font-medium py-2 px-4 rounded-md transition-colors">
       View Messages
     </a>
   </div>
-  <h3 class="px-2 py-1 border-solid border-0 text-white 2xl:text-left font-bold">
+  <h3 class="px-2 py-1 border-solid border-0 text-white lg:text-left font-bold">
     Configure your vendor profile, store details, security, and payout settings. Changes are saved automatically.
   </h3>
   {% with messages = get_flashed_messages(with_categories=true) %}

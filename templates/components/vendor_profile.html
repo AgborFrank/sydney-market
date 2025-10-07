@@ -1,12 +1,12 @@
 <div
-  class="w-full flex flex-col gap-2 mt-2 mb-0 2xl:mt-0 2xl:mb-2 order-last 2xl:order-first"
+  class="w-full flex flex-col gap-2 mt-2 mb-0 lg:mt-0 lg:mb-2 order-last lg:order-first"
 >
   <!-- about vendor -->
   <div
     class="bg-card border-solid border border-border rounded-md p-2 hover:!border-sydney2 group mx-auto my-0 !w-full h-[fit-content]"
   >
     <h1
-      class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start 2xl:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
+      class="text-[13px] font-bold pl-[10px] m-0 uppercase flex items-center justify-start lg:justify-center bg-sydney text-white rounded-md border-none py-2 mb-1"
     >
       <i class="gg-user user mr-3"></i> About Vendor
     </h1>
@@ -71,7 +71,13 @@
 
         <div class="text-xs text-sydney flex flex-wrap gap-1">
           <b>Last seen online:</b>
-          <div>{{ vendor.last_login.strftime('%b %d, %Y') }}</div>
+          <div class="{% if vendor.is_online %}text-green-400{% endif %}">
+            {% if vendor.is_online %}
+              <span class="text-green-400">● online</span>
+            {% else %}
+              {{ vendor.last_seen_formatted }}
+            {% endif %}
+          </div>
         </div>
       </div>
 
@@ -138,7 +144,7 @@
       <input type="checkbox" id="market" class="hidden absolute peer" />
 
       <pre
-        class="select-all mx-auto text-black border-solid 2xl:overflow-x-auto overflow-y-scroll border-border2 hover:border-sydney2 border rounded-md px-1 2xl:px-4 py-2 leading-tight text-[9px] text-justify 2xl:text-xs"
+        class="select-all mx-auto text-black border-solid lg:overflow-x-auto overflow-y-scroll border-border2 hover:border-sydney2 border rounded-md px-1 lg:px-4 py-2 leading-tight text-[9px] text-justify lg:text-xs"
         style="height: calc(100vh - 350px); max-height: 700px"
       >
 {{ vendor.pgp_public_key }}
@@ -152,7 +158,7 @@
       </div>
 
       <pre
-        class="mx-auto text-left w-full border-solid border-border2 hover:border-sydney2 text-black border rounded-md p-2 break-words whitespace-pre-line leading-tight text-[9px] 2xl:text-xs select-all"
+        class="mx-auto text-left w-full border-solid border-border2 hover:border-sydney2 text-black border rounded-md p-2 break-words whitespace-pre-line leading-tight text-[9px] lg:text-xs select-all"
       >
 {% if vendor.pgp_fingerprint %}
 {{ vendor.pgp_fingerprint }}

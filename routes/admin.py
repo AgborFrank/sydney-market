@@ -20,6 +20,7 @@ from flask_wtf.csrf import generate_csrf
 from utils.security import log_admin_action_encrypted
 from utils.captcha import serve_captcha_image, validate_captcha, is_captcha_required, set_captcha_code, generate_captcha_code
 from utils.pgp_utils import pgp_utils
+from utils.time_utils import format_last_seen, is_online
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 logger = logging.getLogger(__name__)
@@ -180,13 +181,13 @@ def dashboard():
         total_orders = c.fetchone()['count']
         
         # Total Sales (BTC, completed orders)
-        c.execute("SELECT SUM(amount_btc) AS total FROM orders WHERE status = 'completed'")
+        c.execute("SELECT SUM(amount) AS total FROM orders WHERE status = 'completed'")
         total_sales = c.fetchone()['total'] or 0.0
         
         # Recent Orders (limit 5)
         c.execute("""
             SELECT o.id, u.pusername AS user, p.title AS product, v.pusername AS vendor,
-                   o.amount_btc, o.status, o.created_at
+                   o.amount, o.status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             JOIN products p ON o.product_id = p.id
@@ -194,7 +195,7 @@ def dashboard():
             ORDER BY o.created_at DESC
             LIMIT 5
         """)
-        recent_orders = [dict(row) for row in c.fetchall()]
+        recent_orders = [dict(row) for row in (c.fetchall() or [])]
         
         # Pending Disputes Count
         c.execute("SELECT COUNT(*) AS count FROM orders WHERE dispute_status = 'open'")
@@ -202,16 +203,16 @@ def dashboard():
         
         # Recent Withdrawals (limit 5)
         c.execute("""
-            SELECT w.id, u.pusername AS user, w.amount_btc, w.status, w.requested_at
+            SELECT w.id, u.pusername AS user, w.amount, w.status, w.requested_at
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
             ORDER BY w.requested_at DESC
             LIMIT 5
         """)
-        recent_withdrawals = [dict(row) for row in c.fetchall()]
+        recent_withdrawals = [dict(row) for row in (c.fetchall() or [])]
         
         # Total Escrow (BTC, pending)
-        c.execute("SELECT SUM(amount_btc) AS total FROM escrow WHERE status = 'pending'")
+        c.execute("SELECT SUM(amount) AS total FROM escrow WHERE status = 'pending'")
         escrow_total_btc = c.fetchone()['total'] or 0.0
     
     return render_template('admin/dashboard.html',
@@ -316,7 +317,7 @@ def manage_categories():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT * FROM categories ORDER BY name")
-        categories = [dict(row) for row in c.fetchall()]
+        categories = [dict(row) for row in (c.fetchall() or [])]
         
         if request.method == 'POST':
             category_name = request.form.get('category_name', '').strip()
@@ -363,7 +364,7 @@ def admin_edit_category(category_id):
         edit_category = dict(edit_category)
         
         c.execute("SELECT * FROM categories ORDER BY name")
-        categories = [dict(row) for row in c.fetchall()]
+        categories = [dict(row) for row in (c.fetchall() or [])]
         
         if request.method == 'POST':
             category_name = request.form.get('category_name', '').strip()
@@ -484,7 +485,7 @@ def manage_products():
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT id, name FROM categories ORDER BY name")
-            categories = [dict(row) for row in c.fetchall()]
+            categories = [dict(row) for row in (c.fetchall() or [])]
             
             # Filters
             category_id = request.args.get('category_id', type=int)
@@ -523,10 +524,10 @@ def manage_products():
             params.extend([per_page, (page - 1) * per_page])
             
             c.execute(query, params)
-            products = [dict(row) for row in c.fetchall()]
+            products = [dict(row) for row in (c.fetchall() or [])]
             
             c.execute("SELECT * FROM product_images")
-            product_images = [dict(row) for row in c.fetchall()]
+            product_images = [dict(row) for row in (c.fetchall() or [])]
             
             if request.method == 'POST':
                 title = request.form.get('title', '').strip()
@@ -757,13 +758,13 @@ def admin_products():
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT id, pusername FROM users WHERE role = 'vendor'")
-            vendors = [dict(row) for row in c.fetchall()]
+            vendors = [dict(row) for row in (c.fetchall() or [])]
             c.execute("SELECT id, name, parent_id FROM categories")
-            categories = [dict(row) for row in c.fetchall()]
+            categories = [dict(row) for row in (c.fetchall() or [])]
             c.execute("SELECT * FROM products")
-            products = [dict(row) for row in c.fetchall()]
+            products = [dict(row) for row in (c.fetchall() or [])]
             c.execute("SELECT id, product_id, image_path FROM product_images")
-            product_images = [dict(row) for row in c.fetchall()]
+            product_images = [dict(row) for row in (c.fetchall() or [])]
             
             if request.method == 'POST':
                 title = request.form.get('title', '').strip()
@@ -899,11 +900,11 @@ def admin_edit_product(product_id):
             return redirect(url_for('admin.admin_products'))
         
         c.execute("SELECT id, pusername FROM users WHERE role = 'vendor'")
-        vendors = [dict(row) for row in c.fetchall()]
+        vendors = [dict(row) for row in (c.fetchall() or [])]
         c.execute("SELECT id, name, parent_id FROM categories")
-        categories = [dict(row) for row in c.fetchall()]
+        categories = [dict(row) for row in (c.fetchall() or [])]
         c.execute("SELECT id, product_id, image_path FROM product_images WHERE product_id = ?", (product_id,))
-        additional_images = [dict(row) for row in c.fetchall()]
+        additional_images = [dict(row) for row in (c.fetchall() or [])]
         
         if request.method == 'POST':
             title = request.form.get('title')
@@ -1147,7 +1148,7 @@ def manage_users():
     query = """
         SELECT u.id, u.pusername, u.role, u.created_at, u.last_login, u.btc_address, u.status,
                COUNT(o.id) AS order_count,
-               COALESCE(SUM(o.amount_btc), 0) AS total_spent_btc
+               COALESCE(SUM(o.amount), 0) AS total_spent_btc
         FROM users u
         LEFT JOIN orders o ON u.id = o.user_id
         WHERE u.role != 'vendor'
@@ -1177,7 +1178,7 @@ def manage_users():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        users = [dict(row) for row in c.fetchall()]
+        users = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/users.html',
         users=users,
@@ -1270,7 +1271,7 @@ def faqs():
             c = conn.cursor()
             # Fetch categories
             c.execute("SELECT id, name FROM faq_categories ORDER BY name")
-            categories = [dict(row) for row in c.fetchall()]
+            categories = [dict(row) for row in (c.fetchall() or [])]
             
             # Fetch FAQs with category names
             c.execute("""
@@ -1279,7 +1280,7 @@ def faqs():
                 JOIN faq_categories fc ON f.category_id = fc.id
                 ORDER BY fc.name, f.question
             """)
-            faqs = [dict(row) for row in c.fetchall()]
+            faqs = [dict(row) for row in (c.fetchall() or [])]
             
             # Group FAQs by category
             grouped_faqs = {cat['name']: [] for cat in categories}
@@ -1303,7 +1304,7 @@ def new_faq():
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT id, name FROM faq_categories ORDER BY name")
-            categories = [dict(row) for row in c.fetchall()]
+            categories = [dict(row) for row in (c.fetchall() or [])]
             
             if request.method == 'POST':
                 question = request.form.get('question', '').strip()
@@ -1338,7 +1339,7 @@ def edit_faq(id):
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute("SELECT id, name FROM faq_categories ORDER BY name")
-            categories = [dict(row) for row in c.fetchall()]
+            categories = [dict(row) for row in (c.fetchall() or [])]
             
             c.execute("SELECT id, question, answer, category_id FROM faqs WHERE id = ?", (id,))
             faq = c.fetchone()
@@ -1484,11 +1485,16 @@ def admin_vendor_profile(vendor_id):
     try:
         with get_db_connection() as conn:
             c = conn.cursor()
-            # Fetch vendor details with vendor level stats
+            
+            # Fetch comprehensive vendor details
             c.execute("""
-                SELECT u.id, u.pusername, u.btc_address, u.pgp_public_key, u.role, u.is_vendor, u.vendor_status, u.level,
-                       vl.level AS vendor_level, vl.sales_count, vl.positive_feedback_percentage, vl.joined_at, vl.updated_at,
-                       AVG(vr.rating) AS avg_rating
+                SELECT u.id, u.pusername, u.username, u.btc_address, u.pgp_public_key, u.role, u.is_vendor, 
+                       u.vendor_status, u.level, u.created_at, u.last_login, u.status, u.avatar, u.description,
+                       u.currencyid, u.stealth, u.multisig, u.refund, u.canbuy, u.pinbuy, u.phis, u.menu_follow,
+                       u.feedback, u.tocountryid, u.countryid, u.jabber, u.notify_messages, u.notify_orders,
+                       vl.level AS vendor_level, vl.sales_count, vl.positive_feedback_percentage, 
+                       vl.joined_at, vl.updated_at,
+                       AVG(vr.rating) AS avg_rating, COUNT(vr.id) AS total_reviews
                 FROM users u
                 LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
                 LEFT JOIN vendor_ratings vr ON u.id = vr.vendor_id
@@ -1500,20 +1506,285 @@ def admin_vendor_profile(vendor_id):
                 flash("Vendor not found.", 'error')
                 return redirect(url_for('admin.manage_users'))
             
-            # Fetch vendor products
+            # Convert vendor to dict for easier manipulation
+            vendor_dict = dict(vendor)
+            
+            # Format last login time
+            if vendor_dict['last_login'] and isinstance(vendor_dict['last_login'], str):
+                try:
+                    vendor_dict['last_login'] = datetime.strptime(vendor_dict['last_login'], '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    vendor_dict['last_login'] = None
+            
+            vendor_dict['last_seen_formatted'] = format_last_seen(vendor_dict['last_login'])
+            vendor_dict['is_online'] = is_online(vendor_dict['last_login'])
+            
+            # Fetch wallet balance information
             c.execute("""
-                SELECT id, title, price_usd, stock, status
-                FROM products
-                WHERE vendor_id = ?
-                ORDER BY created_at DESC
+                SELECT 
+                    COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END), 0) AS total_deposits,
+                    COALESCE(SUM(CASE WHEN type = 'withdrawal' THEN amount ELSE 0 END), 0) AS total_withdrawals,
+                    COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE -amount END), 0) AS current_balance,
+                    COUNT(CASE WHEN type = 'deposit' THEN 1 END) AS deposit_count,
+                    COUNT(CASE WHEN type = 'withdrawal' THEN 1 END) AS withdrawal_count
+                FROM transactions 
+                WHERE user_id = ? AND currency = 'BTC'
             """, (vendor_id,))
-            products = [dict(row) for row in c.fetchall()]
+            wallet_info = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch comprehensive order statistics
+            c.execute("""
+                SELECT 
+                    COUNT(*) as total_orders,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
+                    COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
+                    COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_orders,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
+                    COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+                    COUNT(CASE WHEN status = 'disputed' THEN 1 END) as disputed_orders,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount_btc ELSE 0 END), 0) as total_revenue_btc,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount_usd ELSE 0 END), 0) as total_revenue_usd,
+                    COALESCE(AVG(CASE WHEN status = 'completed' THEN amount_usd END), 0) as avg_order_value
+                FROM orders 
+                WHERE vendor_id = ?
+            """, (vendor_id,))
+            order_stats = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch recent orders (last 10)
+            c.execute("""
+                SELECT o.id, o.user_id, o.status, o.amount_btc, o.amount_usd, o.created_at,
+                       u.pusername as buyer_username
+                FROM orders o
+                LEFT JOIN users u ON o.user_id = u.id
+                WHERE o.vendor_id = ?
+                ORDER BY o.created_at DESC
+                LIMIT 10
+            """, (vendor_id,))
+            recent_orders = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch all vendor products with more details
+            c.execute("""
+                SELECT p.id, p.title, p.price_usd, p.price_btc, p.stock, p.status, p.created_at,
+                       c.name as category_name, COUNT(o.id) as order_count
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN orders o ON p.id = o.product_id
+                WHERE p.vendor_id = ?
+                GROUP BY p.id
+                ORDER BY p.created_at DESC
+            """, (vendor_id,))
+            products = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch recent reviews/ratings
+            c.execute("""
+                SELECT r.id, r.rating, r.comment, r.created_at, u.pusername as reviewer_username
+                FROM vendor_ratings r
+                LEFT JOIN users u ON r.user_id = u.id
+                WHERE r.vendor_id = ?
+                ORDER BY r.created_at DESC
+                LIMIT 10
+            """, (vendor_id,))
+            recent_reviews = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch vendor settings
+            c.execute("""
+                SELECT * FROM vendor_settings WHERE user_id = ?
+            """, (vendor_id,))
+            vendor_settings = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch dispute statistics
+            c.execute("""
+                SELECT 
+                    COUNT(*) as total_disputes,
+                    COUNT(CASE WHEN d.status = 'open' THEN 1 END) as open_disputes,
+                    COUNT(CASE WHEN d.status = 'resolved' THEN 1 END) as resolved_disputes,
+                    COUNT(CASE WHEN d.status = 'closed' THEN 1 END) as closed_disputes
+                FROM disputes d
+                JOIN orders o ON d.order_id = o.id
+                WHERE o.vendor_id = ?
+            """, (vendor_id,))
+            dispute_stats = dict(result) if (result := c.fetchone()) else {}
         
-        return render_template('admin/vendor_profile.html', vendor=vendor, products=products)
+        return render_template('admin/vendor_profile.html', 
+                             vendor=vendor_dict, 
+                             products=products,
+                             wallet_info=wallet_info,
+                             order_stats=order_stats,
+                             recent_orders=recent_orders,
+                             recent_reviews=recent_reviews,
+                             vendor_settings=vendor_settings,
+                             dispute_stats=dispute_stats)
     except Exception as e:
         logger.error(f"Error fetching vendor profile: {str(e)}")
         flash("Database error occurred. Please try again.", 'error')
         return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/vendor_details/<int:vendor_id>', methods=['GET'])
+def admin_vendor_details(vendor_id):
+    """Comprehensive vendor details page with all information"""
+    if not is_admin():
+        flash("Admin access required.", 'error')
+        return redirect(url_for('admin.login'))
+    
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            
+            logger.info(f"Fetching vendor details for vendor_id: {vendor_id}")
+            # Fetch comprehensive vendor details
+            try:
+                c.execute("""
+                    SELECT u.id, u.pusername, u.username, u.btc_address, u.pgp_public_key, u.role, u.is_vendor, 
+                           u.vendor_status, u.level, u.created_at, u.last_login, u.status, u.avatar, u.description,
+                           u.currencyid, u.stealth, u.multisig, u.refund, u.canbuy, u.pinbuy, u.phis, u.menu_follow,
+                           u.feedback, u.tocountryid, u.countryid, u.jabber, u.notify_messages, u.notify_orders,
+                           vl.level AS vendor_level, vl.sales_count, vl.positive_feedback_percentage, 
+                           vl.joined_at, vl.updated_at,
+                           AVG(vr.rating) AS avg_rating, COUNT(vr.id) AS total_reviews
+                    FROM users u
+                    LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
+                    LEFT JOIN vendor_ratings vr ON u.id = vr.vendor_id
+                    WHERE u.id = ? AND u.is_vendor = 1
+                    GROUP BY u.id
+                """, (vendor_id,))
+                vendor = c.fetchone()
+                if not vendor:
+                    flash("Vendor not found.", 'error')
+                    return redirect(url_for('admin.manage_vendors'))
+                
+                logger.info(f"Vendor found: {vendor}")
+                # Convert vendor to dict for easier manipulation
+                vendor_dict = dict(vendor)
+            except Exception as query_error:
+                logger.error(f"Error in vendor query: {str(query_error)}")
+                flash("Error fetching vendor information.", 'error')
+                return redirect(url_for('admin.manage_vendors'))
+            
+            # Format last login time
+            if vendor_dict['last_login'] and isinstance(vendor_dict['last_login'], str):
+                try:
+                    vendor_dict['last_login'] = datetime.strptime(vendor_dict['last_login'], '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    vendor_dict['last_login'] = None
+            
+            vendor_dict['last_seen_formatted'] = format_last_seen(vendor_dict['last_login'])
+            vendor_dict['is_online'] = is_online(vendor_dict['last_login'])
+            
+            # Fetch wallet balance information
+            c.execute("""
+                SELECT 
+                    COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END), 0) AS total_deposits,
+                    COALESCE(SUM(CASE WHEN type = 'withdrawal' THEN amount ELSE 0 END), 0) AS total_withdrawals,
+                    COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE -amount END), 0) AS current_balance,
+                    COUNT(CASE WHEN type = 'deposit' THEN 1 END) AS deposit_count,
+                    COUNT(CASE WHEN type = 'withdrawal' THEN 1 END) AS withdrawal_count
+                FROM transactions 
+                WHERE user_id = ? AND currency = 'BTC'
+            """, (vendor_id,))
+            wallet_info = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch comprehensive order statistics
+            c.execute("""
+                SELECT 
+                    COUNT(*) as total_orders,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
+                    COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
+                    COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_orders,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
+                    COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+                    COUNT(CASE WHEN status = 'disputed' THEN 1 END) as disputed_orders,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount_btc ELSE 0 END), 0) as total_revenue_btc,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount_usd ELSE 0 END), 0) as total_revenue_usd,
+                    COALESCE(AVG(CASE WHEN status = 'completed' THEN amount_usd END), 0) as avg_order_value
+                FROM orders 
+                WHERE vendor_id = ?
+            """, (vendor_id,))
+            order_stats = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch recent orders (last 15)
+            c.execute("""
+                SELECT o.id, o.user_id, o.status, o.amount_btc, o.amount_usd, o.created_at,
+                       u.pusername as buyer_username
+                FROM orders o
+                LEFT JOIN users u ON o.user_id = u.id
+                WHERE o.vendor_id = ?
+                ORDER BY o.created_at DESC
+                LIMIT 15
+            """, (vendor_id,))
+            recent_orders = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch all vendor products with more details
+            c.execute("""
+                SELECT p.id, p.title, p.price_usd, p.price_btc, p.stock, p.status, p.created_at,
+                       c.name as category_name, COUNT(o.id) as order_count
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN orders o ON p.id = o.product_id
+                WHERE p.vendor_id = ?
+                GROUP BY p.id
+                ORDER BY p.created_at DESC
+            """, (vendor_id,))
+            products = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch recent reviews/ratings
+            c.execute("""
+                SELECT r.id, r.rating, r.comment, r.created_at, u.pusername as reviewer_username
+                FROM vendor_ratings r
+                LEFT JOIN orders o ON r.order_id = o.id
+                LEFT JOIN users u ON o.user_id = u.id
+                WHERE r.vendor_id = ?
+                ORDER BY r.created_at DESC
+                LIMIT 15
+            """, (vendor_id,))
+            recent_reviews = [dict(row) for row in (c.fetchall() or [])]
+            
+            # Fetch vendor settings
+            c.execute("""
+                SELECT * FROM vendor_settings WHERE user_id = ?
+            """, (vendor_id,))
+            vendor_settings = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch dispute statistics
+            c.execute("""
+                SELECT 
+                    COUNT(*) as total_disputes,
+                    COUNT(CASE WHEN d.status = 'open' THEN 1 END) as open_disputes,
+                    COUNT(CASE WHEN d.status = 'resolved' THEN 1 END) as resolved_disputes,
+                    COUNT(CASE WHEN d.status = 'closed' THEN 1 END) as closed_disputes
+                FROM disputes d
+                JOIN orders o ON d.order_id = o.id
+                WHERE o.vendor_id = ?
+            """, (vendor_id,))
+            dispute_stats = dict(result) if (result := c.fetchone()) else {}
+            
+            # Fetch recent wallet transactions
+            c.execute("""
+                SELECT type, amount, created_at, status
+                FROM transactions 
+                WHERE user_id = ? AND currency = 'BTC'
+                ORDER BY created_at DESC
+                LIMIT 10
+            """, (vendor_id,))
+            recent_transactions = [dict(row) for row in (c.fetchall() or [])]
+        
+        # Ensure all variables are properly initialized
+        template_data = {
+            'vendor': vendor_dict,
+            'products': products or [],
+            'wallet_info': wallet_info or {},
+            'order_stats': order_stats or {},
+            'recent_orders': recent_orders or [],
+            'recent_reviews': recent_reviews or [],
+            'vendor_settings': vendor_settings or {},
+            'dispute_stats': dispute_stats or {},
+            'recent_transactions': recent_transactions or []
+        }
+        
+        return render_template('admin/vendor_details.html', **template_data)
+    except Exception as e:
+        logger.error(f"Error fetching vendor details: {str(e)}")
+        flash("Database error occurred. Please try again.", 'error')
+        return redirect(url_for('admin.manage_vendors'))
 
 @admin_bp.route('/edit_vendor/<int:vendor_id>', methods=['GET', 'POST'])
 def admin_edit_vendor(vendor_id):
@@ -1716,7 +1987,7 @@ def admin_vendor_level_history(vendor_id):
                 WHERE vendor_id = ?
                 ORDER BY created_at DESC
             """, (vendor_id,))
-            history = [dict(row) for row in c.fetchall()]
+            history = [dict(row) for row in (c.fetchall() or [])]
             
             return render_template('admin/vendor_level_history.html', vendor=vendor, history=history)
             
@@ -1780,7 +2051,7 @@ def manage_orders():
             JOIN products p ON o.product_id = p.id
             ORDER BY o.created_at DESC
         """)
-        orders = [dict(row) for row in c.fetchall()]
+        orders = [dict(row) for row in (c.fetchall() or [])]
         return render_template('admin/vendor_orders.html', orders=orders)
 
 @admin_bp.route('/my_orders', methods=['GET', 'POST'])
@@ -1797,7 +2068,7 @@ def admin_my_orders():
             WHERE o.vendor_id = ?
             ORDER BY o.created_at DESC
         """, (session['admin_id'],))
-        orders = [dict(row) for row in c.fetchall()]
+        orders = [dict(row) for row in (c.fetchall() or [])]
         
         if request.method == 'POST':
             order_id = request.form.get('order_id', type=int)
@@ -1851,8 +2122,8 @@ def admin_order_resolve_dispute(order_id):
             conn.commit()
             flash(f"Dispute for order {order_id} resolved: Funds refunded to buyer.", 'success')
         elif action == 'partial_refunded':
-            refund_amount_btc = order['amount_btc'] * (refund_percentage / 100)
-            vendor_amount_btc = order['amount_btc'] - refund_amount_btc
+            refund_amount = order['amount'] * (refund_percentage / 100)
+            vendor_amount = order['amount'] - refund_amount
             # Placeholder: Implement partial refund logic
             c.execute("UPDATE orders SET escrow_status = 'partially_refunded', dispute_status = 'resolved' WHERE id = ?", (order_id,))
             conn.commit()
@@ -1911,7 +2182,7 @@ def messages():
             WHERE m.sender_id = ? OR m.recipient_id = ?
             ORDER BY m.created_at DESC
         """, (session['admin_id'], session['admin_id'], session['admin_id'], session['admin_id']))
-        messages = [dict(row) for row in c.fetchall()]
+        messages = [dict(row) for row in (c.fetchall() or [])]
         
         if request.method == 'POST':
             recipient_type = request.form.get('recipient_type')
@@ -2137,7 +2408,7 @@ def admin_fees():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        fees = [dict(row) for row in c.fetchall()]
+        fees = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/fees.html',
         fees=fees,
@@ -2188,7 +2459,7 @@ def admin_vendor_disputes():
     
     query = """
         SELECT d.id, d.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-               p.title AS product_title, o.amount_btc, o.amount_usd, d.status, d.reason, d.created_at,
+               p.title AS product_title, o.amount, o.amount_usd, d.status, d.reason, d.created_at,
                o.vendor_id
         FROM disputes d
         JOIN orders o ON d.order_id = o.id
@@ -2219,7 +2490,7 @@ def admin_vendor_disputes():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        disputes = [dict(row) for row in c.fetchall()]
+        disputes = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/vendor_disputes.html',
         disputes=disputes,
@@ -2238,7 +2509,7 @@ def admin_vendor_dispute_details(dispute_id):
         c = conn.cursor()
         c.execute("""
             SELECT d.id, d.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                   p.title AS product_title, o.amount_btc, o.amount_usd, o.status AS order_status,
+                   p.title AS product_title, o.amount, o.amount_usd, o.status AS order_status,
                    d.status, d.reason, d.comments, d.created_at, d.resolved_at,
                    su.pusername AS submitted_by_username, e.status AS escrow_status,
                    e.escrow_address, e.txid, o.vendor_id
@@ -2304,7 +2575,7 @@ def admin_resolve_vendor_dispute(dispute_id):
             c.execute("""
                 UPDATE balances
                 SET balance_usd = balance_usd + ?, last_updated = ?
-                WHERE user_id = ?
+                WHERE user_id = ? AND currency = 'BTC'
             """, (net_amount, datetime.utcnow(), result['vendor_id']))
         elif action == 'refund':
             new_order_status = 'cancelled'
@@ -2355,7 +2626,7 @@ def admin_security():
         settings = {row['setting_name']: row['value'] for row in c.fetchall()}
         # Fetch audit trail (last 10 security changes)
         c.execute("SELECT timestamp, action, admin FROM security_audit ORDER BY timestamp DESC LIMIT 10")
-        audit_trail = [dict(row) for row in c.fetchall()]
+        audit_trail = [dict(row) for row in (c.fetchall() or [])]
     defaults = {
         '2fa_admin': 'disabled',
         '2fa_vendor': 'disabled',
@@ -2625,7 +2896,7 @@ def admin_packages():
                                 flash("Package not found.", 'error')
 
             c.execute("SELECT * FROM packages")
-            packages = [dict(row) for row in c.fetchall()]
+            packages = [dict(row) for row in (c.fetchall() or [])]
         
         return render_template('admin/packages.html', packages=packages)
     except Exception as e:
@@ -2665,7 +2936,7 @@ def admin_withdrawals():
     status = request.args.get('status', '')
     
     query = """
-        SELECT w.id, u.pusername AS vendor_username, w.amount_usd, w.amount_btc, w.wallet_address,
+        SELECT w.id, u.pusername AS vendor_username, w.amount_usd, w.amount, w.wallet_address,
                w.status, w.requested_at, w.crypto_currency, w.crypto_amount
         FROM withdrawals w
         JOIN users u ON w.user_id = u.id
@@ -2693,7 +2964,7 @@ def admin_withdrawals():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        withdrawals = [dict(row) for row in c.fetchall()]
+        withdrawals = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/withdrawal/requests.html',
         withdrawals=withdrawals,
@@ -2711,7 +2982,7 @@ def admin_withdrawal_details(withdrawal_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT w.id, u.pusername AS vendor_username, w.amount_btc, w.wallet_address as btc_address,
+            SELECT w.id, u.pusername AS vendor_username, w.amount, w.wallet_address as btc_address,
                    w.status, w.txid, w.rejection_reason, w.requested_at as created_at, b.balance_usd
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
@@ -2727,7 +2998,7 @@ def admin_withdrawal_details(withdrawal_id):
         # Calculate fee amount for approved withdrawals
         if withdrawal_dict['status'] == 'approved':
             fee_percentage = get_withdrawal_fee_percentage()
-            withdrawal_dict['fee_amount'] = withdrawal_dict['amount_btc'] * fee_percentage
+            withdrawal_dict['fee_amount'] = withdrawal_dict['amount'] * fee_percentage
         else:
             withdrawal_dict['fee_amount'] = None
         
@@ -2785,7 +3056,7 @@ def admin_user_orders():
             c = conn.cursor()
             c.execute("""
                 SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                       p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                       p.title AS product_title, o.amount, o.amount_usd, o.status, 
                        o.created_at, o.dispute_status
                 FROM orders o
                 JOIN users u ON o.user_id = u.id
@@ -2794,7 +3065,7 @@ def admin_user_orders():
                 WHERE o.user_id = ?
                 ORDER BY o.created_at DESC
             """, (user_id,))
-            orders = [dict(row) for row in c.fetchall()]
+            orders = [dict(row) for row in (c.fetchall() or [])]
             c.execute("SELECT pusername FROM users WHERE id = ?", (user_id,))
             user = c.fetchone()
             if not user:
@@ -2816,7 +3087,7 @@ def admin_vendor_orders():
             c = conn.cursor()
             c.execute("""
                 SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                       p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                       p.title AS product_title, o.amount, o.amount_usd, o.status, 
                        o.created_at, o.dispute_status
                 FROM orders o
                 JOIN users u ON o.user_id = u.id
@@ -2825,7 +3096,7 @@ def admin_vendor_orders():
                 WHERE o.vendor_id = ?
                 ORDER BY o.created_at DESC
             """, (vendor_id,))
-            orders = [dict(row) for row in c.fetchall()]
+            orders = [dict(row) for row in (c.fetchall() or [])]
             c.execute("SELECT pusername FROM users WHERE id = ?", (vendor_id,))
             vendor = c.fetchone()
             if not vendor:
@@ -2849,7 +3120,7 @@ def admin_orders():
         
         query = """
             SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                   p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                   p.title AS product_title, o.amount, o.amount_usd, o.status, 
                    o.created_at, o.dispute_status
             FROM orders o
             JOIN users u ON o.user_id = u.id
@@ -2871,7 +3142,7 @@ def admin_orders():
         with get_db_connection() as conn:
             c = conn.cursor()
             # Get total count for pagination
-            count_query = query.replace("SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username, p.title AS product_title, o.amount_btc, o.amount_usd, o.status, o.created_at, o.dispute_status", "SELECT COUNT(*)")
+            count_query = query.replace("SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username, p.title AS product_title, o.amount, o.amount_usd, o.status, o.created_at, o.dispute_status", "SELECT COUNT(*)")
             c.execute(count_query, params)
             count_result = c.fetchone()
             total_orders = count_result['COUNT(*)'] if count_result else 0
@@ -2882,7 +3153,7 @@ def admin_orders():
             params.extend([per_page, offset])
             
             c.execute(query, params)
-            orders = [dict(row) for row in c.fetchall()]
+            orders = [dict(row) for row in (c.fetchall() or [])]
     
         # Get order statistics
         with get_db_connection() as conn:
@@ -2938,7 +3209,7 @@ def admin_order_details(order_id):
         c = conn.cursor()
         c.execute("""
             SELECT o.id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                   p.title AS product_title, o.amount_btc, o.amount_usd, o.status, 
+                   p.title AS product_title, o.amount, o.amount_usd, o.status, 
                    o.dispute_status, o.created_at, o.escrow_status
             FROM orders o
             JOIN users u ON o.user_id = u.id
@@ -3031,7 +3302,7 @@ def admin_approve_withdrawal(withdrawal_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT w.status, w.amount_usd, w.wallet_address, u.pusername, w.user_id, w.amount_btc
+            SELECT w.status, w.amount_usd, w.wallet_address, u.pusername, w.user_id, w.amount
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
             WHERE w.id = ? AND u.role = 'vendor'
@@ -3085,7 +3356,7 @@ def admin_approve_withdrawal(withdrawal_id):
             c.execute("""
                 UPDATE balances
                 SET balance_usd = balance_usd - ?, last_updated = ?
-                WHERE user_id = ?
+                WHERE user_id = ? AND currency = 'BTC'
             """, (total_deduction, datetime.utcnow(), withdrawal['user_id']))
             conn.commit()
             flash(f"Withdrawal #{withdrawal_id} for {withdrawal['pusername']} approved successfully. TXID: {txid}", 'success')
@@ -3106,7 +3377,7 @@ def admin_escrow():
     
     query = """
         SELECT e.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-               p.title AS product_title, e.amount_btc, e.amount_usd, e.status, 
+               p.title AS product_title, e.amount, e.amount_usd, e.status, 
                o.status AS order_status, e.crypto_currency, e.created_at,
                vl.level AS vendor_level, vl.positive_feedback_percentage
         FROM escrow e
@@ -3141,7 +3412,7 @@ def admin_escrow():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        escrows = [dict(row) for row in c.fetchall()]
+        escrows = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/escrow.html',
         escrows=escrows,
@@ -3160,7 +3431,7 @@ def admin_escrow_details(order_id):
         c = conn.cursor()
         c.execute("""
             SELECT e.order_id, u.pusername AS buyer_username, v.pusername AS vendor_username,
-                   p.title AS product_title, e.amount_btc, e.amount_usd, e.status, 
+                   p.title AS product_title, e.amount, e.amount_usd, e.status, 
                    o.status AS order_status, e.crypto_currency, e.created_at, 
                    e.multisig_address, e.buyer_address, e.vendor_address, e.escrow_address, e.txid,
                    vl.level AS vendor_level, vl.positive_feedback_percentage, vl.sales_count
@@ -3194,7 +3465,7 @@ def admin_update_escrow(order_id):
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT e.status, o.status AS order_status, o.vendor_id, e.amount_btc
+            SELECT e.status, o.status AS order_status, o.vendor_id, e.amount
             FROM escrow e
             JOIN orders o ON e.order_id = o.id
             WHERE e.order_id = ?
@@ -3218,7 +3489,7 @@ def admin_update_escrow(order_id):
         # If releasing funds, add to vendor balance
         if action == 'release':
             fee_percentage = 0.05  # 5% platform fee
-            net_amount = result['amount_btc'] * (1 - fee_percentage)
+            net_amount = result['amount'] * (1 - fee_percentage)
             
             # Ensure vendor has balance record
             c.execute("SELECT user_id FROM balances WHERE user_id = ?", (result['vendor_id'],))
@@ -3228,7 +3499,7 @@ def admin_update_escrow(order_id):
             c.execute("""
                 UPDATE balances 
                 SET balance_btc = balance_btc + ?, last_updated = CURRENT_TIMESTAMP
-                WHERE user_id = ?
+                WHERE user_id = ? AND currency = 'BTC'
             """, (net_amount, result['vendor_id']))
             
             # Update vendor sales count and level
@@ -3262,7 +3533,7 @@ def admin_disputes():
     
     query = """
         SELECT d.id, d.order_id, u.pusername AS buyer_username, p.title AS product_title,
-               o.amount_btc, o.amount_usd, d.status, d.reason, d.created_at
+               o.amount, o.amount_usd, d.status, d.reason, d.created_at
         FROM disputes d
         JOIN orders o ON d.order_id = o.id
         JOIN users u ON o.user_id = u.id
@@ -3291,7 +3562,7 @@ def admin_disputes():
         params.extend([per_page, offset])
         
         c.execute(query, params)
-        disputes = [dict(row) for row in c.fetchall()]
+        disputes = [dict(row) for row in (c.fetchall() or [])]
     
     return render_template('admin/disputes.html',
         disputes=disputes,
@@ -3310,7 +3581,7 @@ def admin_dispute_details(dispute_id):
         c = conn.cursor()
         c.execute("""
             SELECT d.id, d.order_id, u.pusername AS buyer_username, p.title AS product_title,
-                   o.amount_btc, o.amount_usd, o.status AS order_status, d.status,
+                   o.amount, o.amount_usd, o.status AS order_status, d.status,
                    d.reason, d.comments, d.created_at, d.resolved_at,
                    su.pusername AS submitted_by_username,
                    e.status AS escrow_status, e.escrow_address, e.txid
@@ -3446,7 +3717,7 @@ def news():
                 JOIN users u ON n.admin_id = u.id
                 ORDER BY n.created_at DESC
             """)
-            news_articles = [dict(row) for row in c.fetchall()]
+            news_articles = [dict(row) for row in (c.fetchall() or [])]
         return render_template('admin/news_manage.html', news_articles=news_articles)
     except Exception as e:
         logger.error(f"News list error: {str(e)}")
@@ -3555,7 +3826,7 @@ def manage_vendors():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("""
-            SELECT u.id AS vendor_id, u.pusername, vl.level, vl.sales_count, 
+            SELECT u.id AS vendor_id, u.pusername, u.last_login, vl.level, vl.sales_count, 
                    vl.positive_feedback_percentage, vl.updated_at, AVG(vr.rating) AS avg_rating
             FROM users u
             LEFT JOIN vendor_levels vl ON u.id = vl.vendor_id
@@ -3566,10 +3837,44 @@ def manage_vendors():
         """)
         vendors = c.fetchall()
     
-    if not vendors:
+    # Format last_login data for display
+    formatted_vendors = []
+    for vendor in vendors:
+        vendor_dict = dict(vendor)
+        
+        # Convert last_login to datetime if it's a string
+        if vendor_dict['last_login'] and isinstance(vendor_dict['last_login'], str):
+            try:
+                vendor_dict['last_login'] = datetime.strptime(vendor_dict['last_login'], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                vendor_dict['last_login'] = None
+        
+        # Format last seen time
+        vendor_dict['last_seen_formatted'] = format_last_seen(vendor_dict['last_login'])
+        vendor_dict['is_online'] = is_online(vendor_dict['last_login'])
+        
+        formatted_vendors.append(vendor_dict)
+    
+    if not formatted_vendors:
         flash('No vendors available.', 'info')
     
-    return render_template('admin/vendors.html', vendors=vendors)
+    return render_template('admin/vendors.html', vendors=formatted_vendors)
+
+def get_level_requirements(level):
+    """Get the minimum sales count and feedback percentage required for a given level."""
+    requirements = {
+        1: {'sales_count': 0, 'feedback_percentage': 0.0},
+        2: {'sales_count': 10, 'feedback_percentage': 90.0},
+        3: {'sales_count': 15, 'feedback_percentage': 92.0},
+        4: {'sales_count': 25, 'feedback_percentage': 93.0},
+        5: {'sales_count': 50, 'feedback_percentage': 94.0},
+        6: {'sales_count': 100, 'feedback_percentage': 95.0},
+        7: {'sales_count': 250, 'feedback_percentage': 96.0},
+        8: {'sales_count': 500, 'feedback_percentage': 97.0},
+        9: {'sales_count': 1000, 'feedback_percentage': 98.0},
+        10: {'sales_count': 2000, 'feedback_percentage': 99.0}
+    }
+    return requirements.get(level, {'sales_count': 0, 'feedback_percentage': 0.0})
 
 @admin_bp.route('/update_vendor_level/<int:vendor_id>', methods=['POST'])
 def admin_update_vendor_level(vendor_id):
@@ -3601,11 +3906,16 @@ def admin_update_vendor_level(vendor_id):
         else:
             old_level = result['level']
         
+        # Get the minimum requirements for the target level
+        level_requirements = get_level_requirements(level)
+        sales_count = level_requirements['sales_count']
+        positive_feedback_percentage = level_requirements['feedback_percentage']
+        
         c.execute("""
             UPDATE vendor_levels
-            SET level = ?, updated_at = ?
+            SET level = ?, sales_count = ?, positive_feedback_percentage = ?, updated_at = ?
             WHERE vendor_id = ?
-        """, (level, datetime.utcnow(), vendor_id))
+        """, (level, sales_count, positive_feedback_percentage, datetime.utcnow(), vendor_id))
         
         # Also update users.level for consistency
         c.execute("UPDATE users SET level = ? WHERE id = ?", (level, vendor_id))
@@ -3613,10 +3923,71 @@ def admin_update_vendor_level(vendor_id):
         c.execute("""
             INSERT INTO vendor_level_logs (vendor_id, old_level, new_level, reason)
             VALUES (?, ?, ?, ?)
-        """, (vendor_id, old_level, level, 'Manual update by admin'))
+        """, (vendor_id, old_level, level, 'Manual admin override - metrics set to level requirements'))
         conn.commit()
     
-    flash(f'Vendor level updated to {level} successfully.', 'success')
+    flash(f'Vendor level updated to {level} successfully. Sales set to {sales_count}, Feedback set to {positive_feedback_percentage:.1f}% (level requirements)', 'success')
+    return redirect(url_for('admin.manage_vendors'))
+
+@admin_bp.route('/manual_update_vendor_metrics/<int:vendor_id>', methods=['POST'])
+def admin_manual_update_vendor_metrics(vendor_id):
+    """Allow admin to manually set vendor level, sales count, and feedback percentage."""
+    if not is_admin():
+        return redirect(url_for('admin.login'))
+    
+    level = request.form.get('level', type=int)
+    sales_count = request.form.get('sales_count', type=int)
+    feedback_percentage = request.form.get('feedback_percentage', type=float)
+    
+    # Validate inputs
+    if not (1 <= level <= 10):
+        flash('Vendor level must be between 1 and 10.', 'error')
+        return redirect(url_for('admin.manage_vendors'))
+    
+    if sales_count < 0:
+        flash('Sales count cannot be negative.', 'error')
+        return redirect(url_for('admin.manage_vendors'))
+    
+    if not (0.0 <= feedback_percentage <= 100.0):
+        flash('Feedback percentage must be between 0 and 100.', 'error')
+        return redirect(url_for('admin.manage_vendors'))
+    
+    with get_db_connection() as conn:
+        c = conn.cursor()
+        
+        # Check if vendor exists
+        c.execute("SELECT id FROM users WHERE id = ? AND role = 'vendor'", (vendor_id,))
+        vendor = c.fetchone()
+        if not vendor:
+            flash('Vendor not found.', 'error')
+            return redirect(url_for('admin.manage_vendors'))
+        
+        # Check if vendor level record exists, create if not
+        c.execute("SELECT level FROM vendor_levels WHERE vendor_id = ?", (vendor_id,))
+        result = c.fetchone()
+        if not result:
+            # Initialize vendor level record
+            initialize_vendor_level(vendor_id)
+            old_level = 1
+        else:
+            old_level = result['level']
+        
+        c.execute("""
+            UPDATE vendor_levels
+            SET level = ?, sales_count = ?, positive_feedback_percentage = ?, updated_at = ?
+            WHERE vendor_id = ?
+        """, (level, sales_count, feedback_percentage, datetime.utcnow(), vendor_id))
+        
+        # Also update users.level for consistency
+        c.execute("UPDATE users SET level = ? WHERE id = ?", (level, vendor_id))
+        
+        c.execute("""
+            INSERT INTO vendor_level_logs (vendor_id, old_level, new_level, reason)
+            VALUES (?, ?, ?, ?)
+        """, (vendor_id, old_level, level, f'Manual admin override - Level: {level}, Sales: {sales_count}, Feedback: {feedback_percentage}%'))
+        conn.commit()
+    
+    flash(f'Vendor metrics updated successfully. Level: {level}, Sales: {sales_count}, Feedback: {feedback_percentage:.1f}%', 'success')
     return redirect(url_for('admin.manage_vendors'))
 
 @admin_bp.route('/update_all_vendor_levels', methods=['POST'])
@@ -3648,7 +4019,7 @@ def admin_resolve_dispute(dispute_id):
         c = conn.cursor()
         c.execute("""
             SELECT d.status, d.order_id, o.status AS order_status, e.status AS escrow_status,
-                   o.vendor_id, o.amount_btc
+                   o.vendor_id, o.amount
             FROM disputes d
             JOIN orders o ON d.order_id = o.id
             LEFT JOIN escrow e ON d.order_id = e.order_id
@@ -3671,12 +4042,12 @@ def admin_resolve_dispute(dispute_id):
             new_order_status = 'completed'
             new_escrow_status = 'released'
             fee_percentage = get_order_fee_percentage()
-            net_amount = result['amount_btc'] * (1 - fee_percentage)
+            net_amount = result['amount'] * (1 - fee_percentage)
             ensure_vendor_balance(result['vendor_id'])
             c.execute("""
                 UPDATE balances
                 SET balance_btc = balance_btc + ?, last_updated = ?
-                WHERE user_id = ?
+                WHERE user_id = ? AND currency = 'BTC'
             """, (net_amount, datetime.utcnow(), result['vendor_id']))
             # Update sales count and trigger level update
             c.execute("""
@@ -3862,7 +4233,7 @@ def wallet_audit_log():
     with get_db_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT timestamp, action, admin FROM security_audit WHERE action LIKE '%wallet%' ORDER BY timestamp DESC LIMIT 50")
-        wallet_audit_trail = [dict(row) for row in c.fetchall()]
+        wallet_audit_trail = [dict(row) for row in (c.fetchall() or [])]
     return render_template('admin/wallet_audit_log.html', wallet_audit_trail=wallet_audit_trail)
 
 @admin_bp.route('/deposits', methods=['GET'])
@@ -3884,7 +4255,7 @@ def admin_deposits():
             params.append(currency_filter)
         query += " ORDER BY t.created_at DESC LIMIT 50"
         c.execute(query, params)
-        deposits = [dict(row) for row in c.fetchall()]
+        deposits = [dict(row) for row in (c.fetchall() or [])]
     return render_template('admin/deposits.html', deposits=deposits)
 
 @admin_bp.route('/ads')
@@ -3907,7 +4278,7 @@ def admin_ads():
                 JOIN users u ON sa.vendor_id = u.id
                 ORDER BY sa.created_at DESC
             """)
-            all_ads = [dict(row) for row in c.fetchall()]
+            all_ads = [dict(row) for row in (c.fetchall() or [])]
             
             # Calculate summary statistics
             total_ads = len(all_ads)
@@ -3926,7 +4297,7 @@ def admin_ads():
                 WHERE ai.date >= date('now', '-7 days')
                 ORDER BY ai.date DESC
             """)
-            recent_performance = [dict(row) for row in c.fetchall()]
+            recent_performance = [dict(row) for row in (c.fetchall() or [])]
             
             # Get crypto prices for USD conversion
             btc_price = get_btc_price()
@@ -3981,7 +4352,7 @@ def admin_ad_details(ad_id):
                 ORDER BY date DESC
                 LIMIT 30
             """, (ad_id,))
-            daily_data = [dict(row) for row in c.fetchall()]
+            daily_data = [dict(row) for row in (c.fetchall() or [])]
             
             # Calculate totals
             total_impressions = sum(row['impression_count'] for row in daily_data)
@@ -3998,7 +4369,7 @@ def admin_ad_details(ad_id):
                 ORDER BY sa.created_at DESC
                 LIMIT 5
             """, (ad['vendor_id'], ad_id))
-            vendor_other_ads = [dict(row) for row in c.fetchall()]
+            vendor_other_ads = [dict(row) for row in (c.fetchall() or [])]
             
             return render_template('admin/ad_details.html',
                                  ad=ad,
@@ -4176,7 +4547,7 @@ def admin_vendor_ads(vendor_id):
                 WHERE sa.vendor_id = ?
                 ORDER BY sa.created_at DESC
             """, (vendor_id,))
-            vendor_ads = [dict(row) for row in c.fetchall()]
+            vendor_ads = [dict(row) for row in (c.fetchall() or [])]
             
             # Calculate vendor's ad statistics
             total_ads = len(vendor_ads)
@@ -4242,7 +4613,7 @@ def admin_ads_analytics():
                 GROUP BY date
                 ORDER BY date DESC
             """)
-            daily_performance = [dict(row) for row in c.fetchall()]
+            daily_performance = [dict(row) for row in (c.fetchall() or [])]
             
             # Get top performing ads
             c.execute("""
@@ -4257,7 +4628,7 @@ def admin_ads_analytics():
                 ORDER BY (SELECT SUM(click_count) FROM ad_impressions WHERE ad_id = sa.id) DESC
                 LIMIT 10
             """)
-            top_ads = [dict(row) for row in c.fetchall()]
+            top_ads = [dict(row) for row in (c.fetchall() or [])]
             
             # Get top spending vendors
             c.execute("""
@@ -4271,7 +4642,7 @@ def admin_ads_analytics():
                 ORDER BY total_spend DESC
                 LIMIT 10
             """)
-            top_vendors = [dict(row) for row in c.fetchall()]
+            top_vendors = [dict(row) for row in (c.fetchall() or [])]
             
             # Get crypto prices
             btc_price = get_btc_price()

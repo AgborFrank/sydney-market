@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "user/user_base.html" %}
+{% block user_content %}
 <div class="max-w-md mx-auto mt-8 p-6 bg-gray-900 rounded-lg shadow-lg">
     <h2 class="text-2xl font-bold text-white mb-6 text-center">{{ crypto | upper }} Balance</h2>
     {% with messages = get_flashed_messages(with_categories=true) %}

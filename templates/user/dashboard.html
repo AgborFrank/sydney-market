@@ -1,6 +1,7 @@
 {% extends 'user/user_base.html' %} {% block title %}Dashboard - {{
-settings['site_name'] }}{% endblock %} {% block user_content %}
-<div class="container gap-2 px-6 py-6">
+settings['site_name'] }}{% endblock %} 
+{% block user_content %}
+<div class="gap-2 px-6 py-6">
   {% if session['role'] == 'vendor' and not
   settings['vendor_settings_completed'] %}
   <div class="w-full flex flex-col gap-1 bg-blue-600 px-4 py-2 rounded-md mb-6">
@@ -73,6 +74,147 @@ settings['site_name'] }}{% endblock %} {% block user_content %}
     <p class="text-white">No recent reports.</p>
     {% endif %}
   </div>
+
+  <!-- Vendor Section (if user is a vendor) -->
+  {% if is_vendor and vendor_data %}
+  <div class="w-full mt-8">
+    <h2 class="text-xl font-bold text-white mb-4">Vendor Dashboard</h2>
+    
+    <!-- Vendor Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-gray-800 p-4 rounded-md text-white">
+        <h3 class="text-lg font-semibold text-blue-400">Total Orders</h3>
+        <p class="text-2xl font-bold text-white">{{ vendor_data.total_orders }}</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-md text-white">
+        <h3 class="text-lg font-semibold text-green-400">Total Sales</h3>
+        <p class="text-2xl font-bold text-white">{{ vendor_data.total_sales }}</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-md text-white">
+        <h3 class="text-lg font-semibold text-yellow-400">Revenue</h3>
+        <p class="text-2xl font-bold text-white">${{ "%.2f"|format(vendor_data.revenue) }}</p>
+      </div>
+    </div>
+
+    <!-- Vendor Products Table -->
+    <div class="bg-gray-800 p-4 rounded-md text-white mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-blue-400">Your Products ({{ vendor_data.products|length }})</h3>
+        <a
+          href="{{ url_for('vendor.products_index') }}"
+          class="text-blue-400 hover:text-blue-300 text-sm"
+        >
+          Manage All Products →
+        </a>
+      </div>
+      
+      {% if vendor_data.products %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-600">
+              <th class="text-left py-2 px-3">Product</th>
+              <th class="text-left py-2 px-3">Price</th>
+              <th class="text-left py-2 px-3">Stock</th>
+              <th class="text-left py-2 px-3">Status</th>
+              <th class="text-left py-2 px-3">Category</th>
+              <th class="text-left py-2 px-3">Created</th>
+              <th class="text-left py-2 px-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in vendor_data.products[:5] %}
+            <tr class="border-b border-gray-700">
+              <td class="py-2 px-3">
+                <div class="flex items-center space-x-2">
+                  {% if product.featured_image %}
+                  <img
+                    src="{{ url_for('static', filename=product.featured_image) }}"
+                    alt="{{ product.title }}"
+                    class="w-8 h-8 object-cover rounded"
+                  />
+                  {% else %}
+                  <div class="w-8 h-8 bg-gray-600 rounded flex items-center justify-center">
+                    <span class="text-gray-400 text-xs">No Image</span>
+                  </div>
+                  {% endif %}
+                  <span class="font-medium truncate max-w-32">{{ product.title }}</span>
+                </div>
+              </td>
+              <td class="py-2 px-3 text-green-400 font-bold">${{ "%.2f"|format(product.price_usd) }}</td>
+              <td class="py-2 px-3">{{ product.stock }}</td>
+              <td class="py-2 px-3">
+                <span class="px-2 py-1 rounded text-xs font-medium {% if product.status == 'active' %}bg-green-100 text-green-800 {% elif product.status == 'pending' %}bg-yellow-100 text-yellow-800 {% elif product.status == 'rejected' %}bg-red-100 text-red-800 {% else %}bg-gray-100 text-gray-800{% endif %}">
+                  {{ product.status|capitalize }}
+                </span>
+              </td>
+              <td class="py-2 px-3 text-gray-400">{{ product.category_name or 'Uncategorized' }}</td>
+              <td class="py-2 px-3 text-gray-400">{{ product.created_at[:10] if product.created_at else 'N/A' }}</td>
+              <td class="py-2 px-3">
+                <div class="flex space-x-1">
+                  <a
+                    href="{{ url_for('vendor.products_edit', product_id=product.id) }}"
+                    class="text-blue-400 hover:text-blue-300 text-xs"
+                  >
+                    Edit
+                  </a>
+                  <a
+                    href="{{ url_for('public.product_detail', product_id=product.id) }}"
+                    class="text-gray-400 hover:text-gray-300 text-xs"
+                  >
+                    View
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-8">
+        <p class="text-gray-400 mb-4">You haven't published any products yet.</p>
+        <a
+          href="{{ url_for('vendor.products_create') }}"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm"
+        >
+          Create Your First Product
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Recent Vendor Orders -->
+    {% if vendor_data.recent_orders %}
+    <div class="bg-gray-800 p-4 rounded-md text-white mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-blue-400">Recent Orders</h3>
+        <a
+          href="{{ url_for('vendor.vendor_orders') }}"
+          class="text-blue-400 hover:text-blue-300 text-sm"
+        >
+          View All Orders →
+        </a>
+      </div>
+      <div class="space-y-3">
+        {% for order in vendor_data.recent_orders %}
+        <div class="flex justify-between items-center py-2 border-b border-gray-700">
+          <div>
+            <p class="font-medium">{{ order.title }}</p>
+            <p class="text-sm text-gray-400">Buyer: {{ order.buyer_username }}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-green-400 font-bold">${{ "%.2f"|format(order.amount_usd) }}</p>
+            <p class="text-sm text-gray-400">{{ order.status|capitalize }}</p>
+            <p class="text-xs text-gray-500">{{ order.created_at[:10] if order.created_at else 'N/A' }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <!-- Purchased Products Preview -->
   {% if purchased_products %}
